@@ -2,6 +2,7 @@ package br.com.weediario.shared.presentation;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,5 +20,13 @@ public final class Viewer {
 
     public static UUID requireId(Jwt principal) {
         return UUID.fromString(principal.getSubject());
+    }
+
+    public static boolean isModerator(Jwt principal) {
+        if (principal == null) {
+            return false;
+        }
+        List<String> roles = principal.getClaimAsStringList("roles");
+        return roles != null && (roles.contains("MODERATOR") || roles.contains("ADMIN"));
     }
 }

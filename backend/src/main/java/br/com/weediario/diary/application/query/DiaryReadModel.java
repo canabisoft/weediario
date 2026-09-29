@@ -5,6 +5,7 @@ import br.com.weediario.diary.domain.model.FloweringType;
 import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowthStage;
 import br.com.weediario.diary.domain.model.SeedSex;
+import br.com.weediario.diary.domain.model.SetupSnapshot;
 import br.com.weediario.diary.domain.model.Visibility;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
@@ -42,7 +43,9 @@ public interface DiaryReadModel {
         /** Diários com update mais recente primeiro: o feed "vivo" da comunidade. */
         RECENTLY_UPDATED,
         /** Diários criados mais recentemente primeiro. */
-        NEWEST
+        NEWEST,
+        /** Diários com mais reações primeiro. */
+        MOST_REACTED
     }
 
     /** Dados crus de um diário para cards e cabeçalhos; a idade do cultivo é calculada pelo caso de uso. */
@@ -62,6 +65,9 @@ public interface DiaryReadModel {
             LocalDate endedOn,
             LocalDate lastUpdateOn,
             long updatesCount,
-            UUID coverPhotoId) {
+            long commentsCount,
+            long reactionsCount,
+            UUID coverPhotoId,
+            SetupSnapshot setup) {
     }
 }

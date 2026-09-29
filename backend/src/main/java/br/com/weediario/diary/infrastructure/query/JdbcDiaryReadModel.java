@@ -6,9 +6,12 @@ import br.com.weediario.diary.domain.model.FloweringType;
 import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowthStage;
 import br.com.weediario.diary.domain.model.SeedSex;
+import br.com.weediario.diary.domain.model.SetupSnapshot;
 import br.com.weediario.diary.domain.model.Visibility;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -26,7 +29,8 @@ import java.util.UUID;
  * Consultas do feed em SQL explícito. Todos os valores vêm por parâmetro nomeado (sem concatenação de entrada
  * do usuário); os únicos trechos dinâmicos são cláusulas fixas escolhidas por enum.
  * <p>
- * É o lado de leitura, então pode juntar tabelas de contextos diferentes (o apelido do autor vem de {@code users}).
+ * É o lado de leitura, então pode juntar tabelas de contextos diferentes (o apelido do autor vem de {@code users},
+ * as contagens sociais de {@code diary_comments}/{@code diary_reactions}).
  */
 @Component
 public class JdbcDiaryReadModel implements DiaryReadModel {
@@ -35,6 +39,9 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
             select d.id, d.title, u.username, d.strain_name, d.breeder, d.flowering_type, d.seed_sex, d.medium,
                    d.status, d.visibility, d.current_stage, d.started_on, d.ended_on, d.last_update_on,
                    (select count(*) from diary_updates du where du.diary_id = d.id) as updates_count,
+                   (select count(*) from diary_comments dc where dc.diary_id = d.id and not dc.hidden) as comments_count,
+                   (select count(*) from diary_reactions dr where dr.diary_id = d.id) as reactions_count,
+                   %s as setup_snapshot,
                    (select p.image_id
                       from diary_update_photos p
                       join diary_updates du on du.id = p.update_id
@@ -53,12 +60,21 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
 
     private static final Map<FeedSort, String> ORDER_BY = Map.of(
             FeedSort.RECENTLY_UPDATED, " order by coalesce(d.last_update_on, d.started_on) desc, d.updated_at desc, d.id",
-            FeedSort.NEWEST, " order by d.created_at desc, d.id");
+            FeedSort.NEWEST, " order by d.created_at desc, d.id",
+            FeedSort.MOST_REACTED, " order by reactions_count desc, coalesce(d.last_update_on, d.started_on) desc, d.id");
+
+    /** Listagens não carregam o setup (JSON maior e irrelevante para o card); o detalhe carrega. */
+    private static final String SELECT_LIST = SELECT.formatted("null::jsonb");
+    private static final String SELECT_DETAIL = SELECT.formatted("d.setup_snapshot");
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final ObjectMapper json;
+    private final RowMapper<DiarySummary> rowMapper;
 
-    public JdbcDiaryReadModel(NamedParameterJdbcTemplate jdbc) {
+    public JdbcDiaryReadModel(NamedParameterJdbcTemplate jdbc, ObjectMapper json) {
         this.jdbc = jdbc;
+        this.json = json;
+        this.rowMapper = this::mapRow;
     }
 
     @Override
@@ -86,16 +102,17 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
     public Optional<DiarySummary> findVisible(UUID diaryId, Optional<UUID> viewerId) {
         MapSqlParameterSource params = new MapSqlParameterSource("id", diaryId)
                 .addValue("viewerId", viewerId.orElse(null), java.sql.Types.OTHER);
-        String sql = SELECT + """
+        String sql = SELECT_DETAIL + """
                  where d.id = :id
                    and ((d.visibility = 'PUBLIC' and u.status = 'ACTIVE') or d.owner_id = :viewerId)""";
-        return jdbc.query(sql, params, ROW_MAPPER).stream().findFirst();
+        return jdbc.query(sql, params, rowMapper).stream().findFirst();
     }
 
     private PageResult<DiarySummary> page(String where, String orderBy, MapSqlParameterSource params, PageQuery page) {
         Long total = jdbc.queryForObject(COUNT + where, params, Long.class);
         params.addValue("limit", page.size()).addValue("offset", page.offset());
-        List<DiarySummary> items = jdbc.query(SELECT + where + orderBy + " limit :limit offset :offset", params, ROW_MAPPER);
+        List<DiarySummary> items = jdbc.query(SELECT_LIST + where + orderBy + " limit :limit offset :offset", params,
+                rowMapper);
         return PageResult.of(items, page, total == null ? 0 : total);
     }
 
@@ -112,7 +129,8 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
         return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
-    private static final RowMapper<DiarySummary> ROW_MAPPER = (rs, rowNum) -> new DiarySummary(
+    private DiarySummary mapRow(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new DiarySummary(
             rs.getObject("id", UUID.class),
             rs.getString("title"),
             rs.getString("username"),
@@ -128,7 +146,22 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
             toLocalDate(rs.getDate("ended_on")),
             toLocalDate(rs.getDate("last_update_on")),
             rs.getLong("updates_count"),
-            rs.getObject("cover_photo_id", UUID.class));
+            rs.getLong("comments_count"),
+            rs.getLong("reactions_count"),
+            rs.getObject("cover_photo_id", UUID.class),
+            parseSetup(rs.getString("setup_snapshot")));
+    }
+
+    private SetupSnapshot parseSetup(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        try {
+            return json.readValue(raw, SetupSnapshot.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Setup do diário corrompido", e);
+        }
+    }
 
     private static LocalDate toLocalDate(Date date) {
         return date == null ? null : date.toLocalDate();

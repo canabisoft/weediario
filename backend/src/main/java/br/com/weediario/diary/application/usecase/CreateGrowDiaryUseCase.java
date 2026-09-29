@@ -6,11 +6,15 @@ import br.com.weediario.diary.application.port.GrowerDirectory;
 import br.com.weediario.diary.domain.model.FloweringType;
 import br.com.weediario.diary.domain.model.GrowDiary;
 import br.com.weediario.diary.domain.model.GrowMedium;
+import br.com.weediario.diary.domain.model.GrowSetupId;
 import br.com.weediario.diary.domain.model.GrowerId;
 import br.com.weediario.diary.domain.model.SeedSex;
+import br.com.weediario.diary.domain.model.SetupSnapshot;
 import br.com.weediario.diary.domain.model.Strain;
 import br.com.weediario.diary.domain.model.Visibility;
 import br.com.weediario.diary.domain.repository.GrowDiaryRepository;
+import br.com.weediario.diary.domain.repository.GrowSetupRepository;
+import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
 
@@ -23,19 +27,23 @@ import java.util.UUID;
  * <p>
  * Regras de aplicação: o autor precisa ser um grower ativo e respeitar o limite de diários em andamento
  * (proteção contra spam/abuso). As invariantes do diário em si ficam no aggregate {@link GrowDiary}.
+ * <p>
+ * Com um setup escolhido, o diário recebe uma cópia dele e herda o meio de cultivo se o grower não informar outro.
  */
 public final class CreateGrowDiaryUseCase {
 
     public static final int MAX_DIARIES_IN_PROGRESS = 20;
 
     private final GrowDiaryRepository diaries;
+    private final GrowSetupRepository setups;
     private final GrowerDirectory growers;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
-    public CreateGrowDiaryUseCase(GrowDiaryRepository diaries, GrowerDirectory growers,
+    public CreateGrowDiaryUseCase(GrowDiaryRepository diaries, GrowSetupRepository setups, GrowerDirectory growers,
                                   UnitOfWork unitOfWork, Clock clock) {
         this.diaries = diaries;
+        this.setups = setups;
         this.growers = growers;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
@@ -46,18 +54,32 @@ public final class CreateGrowDiaryUseCase {
 
         return unitOfWork.execute(() -> {
             ensureCanOpenNewDiary(owner);
+            SetupSnapshot setup = command.setupId() == null ? null : ownedSetup(owner, command.setupId());
+            GrowMedium medium = command.medium() != null ? command.medium()
+                    : setup == null ? null : setup.spec().medium();
+            if (medium == null) {
+                throw new DomainException("Meio de cultivo é obrigatório");
+            }
             GrowDiary diary = GrowDiary.start(
                     owner,
                     command.title(),
                     new Strain(command.strainName(), command.breeder()),
                     command.floweringType(),
                     command.seedSex(),
-                    command.medium(),
+                    medium,
                     command.visibility() == null ? Visibility.PUBLIC : command.visibility(),
                     command.startedOn() == null ? LocalDate.now(clock) : command.startedOn(),
+                    setup,
                     clock);
             return GrowDiaryView.of(diaries.save(diary), LocalDate.now(clock));
         });
+    }
+
+    private SetupSnapshot ownedSetup(GrowerId owner, UUID setupId) {
+        return setups.findById(new GrowSetupId(setupId))
+                .filter(setup -> setup.isOwnedBy(owner))
+                .orElseThrow(() -> new ResourceNotFoundException("Setup"))
+                .snapshot();
     }
 
     private void ensureCanOpenNewDiary(GrowerId owner) {
@@ -79,6 +101,7 @@ public final class CreateGrowDiaryUseCase {
             SeedSex seedSex,
             GrowMedium medium,
             Visibility visibility,
-            LocalDate startedOn) {
+            LocalDate startedOn,
+            UUID setupId) {
     }
 }

@@ -8,6 +8,7 @@ import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowthStage;
 import br.com.weediario.diary.domain.model.GrowerId;
 import br.com.weediario.diary.domain.model.SeedSex;
+import br.com.weediario.diary.domain.model.SetupSnapshot;
 import br.com.weediario.diary.domain.model.Strain;
 import br.com.weediario.diary.domain.model.Visibility;
 import jakarta.persistence.Column;
@@ -16,6 +17,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -51,6 +54,11 @@ public class GrowDiaryJpaEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private GrowMedium medium;
+
+    /** Cópia do setup em JSON: é um valor congelado, nunca consultado por campo. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "setup_snapshot")
+    private SetupSnapshot setupSnapshot;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -92,6 +100,7 @@ public class GrowDiaryJpaEntity {
         entity.floweringType = diary.floweringType();
         entity.seedSex = diary.seedSex();
         entity.medium = diary.medium();
+        entity.setupSnapshot = diary.setup().orElse(null);
         entity.status = diary.status();
         entity.visibility = diary.visibility();
         entity.startedOn = diary.startedOn();
@@ -105,7 +114,7 @@ public class GrowDiaryJpaEntity {
 
     GrowDiary toDomain() {
         return GrowDiary.restore(new GrowDiaryId(id), new GrowerId(ownerId), title, new Strain(strainName, breeder),
-                floweringType, seedSex, medium, status, visibility, startedOn, endedOn, currentStage, lastUpdateOn,
+                floweringType, seedSex, medium, setupSnapshot, status, visibility, startedOn, endedOn, currentStage, lastUpdateOn,
                 createdAt, updatedAt);
     }
 }

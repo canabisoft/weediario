@@ -11,9 +11,11 @@ import br.com.weediario.diary.application.usecase.DeleteDiaryUpdateUseCase;
 import br.com.weediario.diary.application.usecase.FinishGrowDiaryUseCase;
 import br.com.weediario.diary.application.usecase.GetDiaryPhotoUseCase;
 import br.com.weediario.diary.application.usecase.ListDiaryUpdatesUseCase;
+import br.com.weediario.diary.application.usecase.ManageGrowSetupsUseCase;
 import br.com.weediario.diary.application.usecase.PublishDiaryUpdateUseCase;
 import br.com.weediario.diary.domain.repository.DiaryUpdateRepository;
 import br.com.weediario.diary.domain.repository.GrowDiaryRepository;
+import br.com.weediario.diary.domain.repository.GrowSetupRepository;
 import br.com.weediario.shared.application.UnitOfWork;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,9 +36,14 @@ public class DiaryUseCaseConfig {
     }
 
     @Bean
-    CreateGrowDiaryUseCase createGrowDiaryUseCase(GrowDiaryRepository diaries, GrowerDirectory growers,
-                                                  UnitOfWork unitOfWork, Clock clock) {
-        return new CreateGrowDiaryUseCase(diaries, growers, unitOfWork, clock);
+    CreateGrowDiaryUseCase createGrowDiaryUseCase(GrowDiaryRepository diaries, GrowSetupRepository setups,
+                                                  GrowerDirectory growers, UnitOfWork unitOfWork, Clock clock) {
+        return new CreateGrowDiaryUseCase(diaries, setups, growers, unitOfWork, clock);
+    }
+
+    @Bean
+    ManageGrowSetupsUseCase manageGrowSetupsUseCase(GrowSetupRepository setups, UnitOfWork unitOfWork, Clock clock) {
+        return new ManageGrowSetupsUseCase(setups, unitOfWork, clock);
     }
 
     @Bean

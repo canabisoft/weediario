@@ -10,7 +10,10 @@ import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowerId;
 import br.com.weediario.diary.domain.model.SeedSex;
 import br.com.weediario.diary.domain.model.Visibility;
+import br.com.weediario.diary.domain.model.GrowSetup;
+import br.com.weediario.diary.domain.model.GrowSetupId;
 import br.com.weediario.diary.domain.repository.GrowDiaryRepository;
+import br.com.weediario.diary.domain.repository.GrowSetupRepository;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
 import org.junit.jupiter.api.Test;
@@ -20,6 +23,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -36,7 +40,7 @@ class CreateGrowDiaryUseCaseTest {
 
     private final InMemoryGrowDiaryRepository diaries = new InMemoryGrowDiaryRepository();
     private final CreateGrowDiaryUseCase useCase = new CreateGrowDiaryUseCase(
-            diaries, grower -> Set.of(ACTIVE_GROWER).contains(grower.value()), new DirectUnitOfWork(), CLOCK);
+            diaries, new NoSetups(), grower -> Set.of(ACTIVE_GROWER).contains(grower.value()), new DirectUnitOfWork(), CLOCK);
 
     @Test
     void createsDiaryWithDefaults() {
@@ -77,7 +81,33 @@ class CreateGrowDiaryUseCaseTest {
 
     private static CreateGrowDiaryUseCase.Command command(UUID owner, Visibility visibility, LocalDate startedOn) {
         return new CreateGrowDiaryUseCase.Command(owner, "Auto na tenda 80x80", "Northern Lights Auto", null,
-                FloweringType.AUTOFLOWER, SeedSex.FEMINIZED, GrowMedium.MINERAL, visibility, startedOn);
+                FloweringType.AUTOFLOWER, SeedSex.FEMINIZED, GrowMedium.MINERAL, visibility, startedOn, null);
+    }
+
+    private static final class NoSetups implements GrowSetupRepository {
+        @Override
+        public GrowSetup save(GrowSetup setup) {
+            return setup;
+        }
+
+        @Override
+        public Optional<GrowSetup> findById(GrowSetupId id) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<GrowSetup> findByOwner(GrowerId ownerId) {
+            return List.of();
+        }
+
+        @Override
+        public long countByOwner(GrowerId ownerId) {
+            return 0;
+        }
+
+        @Override
+        public void delete(GrowSetupId id) {
+        }
     }
 
     private static final class DirectUnitOfWork implements UnitOfWork {

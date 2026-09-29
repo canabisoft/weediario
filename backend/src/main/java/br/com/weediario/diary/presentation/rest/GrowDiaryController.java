@@ -55,7 +55,8 @@ public class GrowDiaryController {
                 request.seedSex(),
                 request.medium(),
                 request.visibility(),
-                request.startedOn()));
+                request.startedOn(),
+                request.setupId()));
     }
 
     @GetMapping("/{diaryId}")

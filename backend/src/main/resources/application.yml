@@ -49,6 +49,8 @@ weediario:
   time-zone: America/Sao_Paulo
   media:
     storage-path: ${WEEDIARIO_MEDIA_PATH:./data/images}
+  social:
+    pseudonym-key: ${WEEDIARIO_PSEUDONYM_KEY}
   security:
     jwt:
       issuer: ${WEEDIARIO_JWT_ISSUER:weediario}

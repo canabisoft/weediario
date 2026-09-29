@@ -17,7 +17,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 class ArchitectureTest {
 
     private static final String ROOT = "br.com.weediario";
-    private static final List<String> CONTEXTS = List.of("identity", "diary", "media", "review");
+    private static final List<String> CONTEXTS = List.of("identity", "diary", "media", "review", "social");
 
     private static final JavaClasses CLASSES = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
@@ -48,7 +48,7 @@ class ArchitectureTest {
      * (ex.: {@code diary.infrastructure.media.MediaPhotoLibrary}).
      */
     @ParameterizedTest
-    @ValueSource(strings = {"identity", "diary", "media", "review"})
+    @ValueSource(strings = {"identity", "diary", "media", "review", "social"})
     void contextsOnlyTalkThroughInfrastructureAdapters(String context) {
         String[] otherContexts = CONTEXTS.stream()
                 .filter(other -> !other.equals(context))

@@ -25,6 +25,7 @@ public final class GrowDiary {
     private final FloweringType floweringType;
     private final SeedSex seedSex;
     private final GrowMedium medium;
+    private final SetupSnapshot setup;
     private DiaryStatus status;
     private Visibility visibility;
     private final LocalDate startedOn;
@@ -35,9 +36,9 @@ public final class GrowDiary {
     private Instant updatedAt;
 
     private GrowDiary(GrowDiaryId id, GrowerId ownerId, String title, Strain strain, FloweringType floweringType,
-                      SeedSex seedSex, GrowMedium medium, DiaryStatus status, Visibility visibility,
-                      LocalDate startedOn, LocalDate endedOn, GrowthStage currentStage, LocalDate lastUpdateOn,
-                      Instant createdAt, Instant updatedAt) {
+                      SeedSex seedSex, GrowMedium medium, SetupSnapshot setup, DiaryStatus status,
+                      Visibility visibility, LocalDate startedOn, LocalDate endedOn, GrowthStage currentStage,
+                      LocalDate lastUpdateOn, Instant createdAt, Instant updatedAt) {
         this.id = Guard.notNull(id, "Id");
         this.ownerId = Guard.notNull(ownerId, "Autor");
         this.title = validTitle(title);
@@ -45,6 +46,7 @@ public final class GrowDiary {
         this.floweringType = Guard.notNull(floweringType, "Tipo de floração");
         this.seedSex = Guard.notNull(seedSex, "Tipo de semente");
         this.medium = Guard.notNull(medium, "Meio de cultivo");
+        this.setup = setup;
         this.status = Guard.notNull(status, "Status");
         this.visibility = Guard.notNull(visibility, "Visibilidade");
         this.startedOn = Guard.notNull(startedOn, "Data de início");
@@ -58,22 +60,31 @@ public final class GrowDiary {
     public static GrowDiary start(GrowerId ownerId, String title, Strain strain, FloweringType floweringType,
                                   SeedSex seedSex, GrowMedium medium, Visibility visibility,
                                   LocalDate startedOn, Clock clock) {
+        return start(ownerId, title, strain, floweringType, seedSex, medium, visibility, startedOn, null, clock);
+    }
+
+    /**
+     * @param setup cópia do setup usado no cultivo, ou {@code null} se o grower não escolheu nenhum
+     */
+    public static GrowDiary start(GrowerId ownerId, String title, Strain strain, FloweringType floweringType,
+                                  SeedSex seedSex, GrowMedium medium, Visibility visibility,
+                                  LocalDate startedOn, SetupSnapshot setup, Clock clock) {
         Guard.notNull(startedOn, "Data de início");
         if (startedOn.isAfter(LocalDate.now(clock))) {
             throw new DomainException("A data de início não pode estar no futuro");
         }
         Instant now = clock.instant();
-        return new GrowDiary(GrowDiaryId.newId(), ownerId, title, strain, floweringType, seedSex, medium,
+        return new GrowDiary(GrowDiaryId.newId(), ownerId, title, strain, floweringType, seedSex, medium, setup,
                 DiaryStatus.IN_PROGRESS, visibility, startedOn, null, GrowthStage.initialFor(seedSex), null, now, now);
     }
 
     /** Reconstitui um diário já persistido; não aplica regras de criação. */
     public static GrowDiary restore(GrowDiaryId id, GrowerId ownerId, String title, Strain strain,
                                     FloweringType floweringType, SeedSex seedSex, GrowMedium medium,
-                                    DiaryStatus status, Visibility visibility, LocalDate startedOn,
+                                    SetupSnapshot setup, DiaryStatus status, Visibility visibility, LocalDate startedOn,
                                     LocalDate endedOn, GrowthStage currentStage, LocalDate lastUpdateOn,
                                     Instant createdAt, Instant updatedAt) {
-        return new GrowDiary(id, ownerId, title, strain, floweringType, seedSex, medium, status, visibility,
+        return new GrowDiary(id, ownerId, title, strain, floweringType, seedSex, medium, setup, status, visibility,
                 startedOn, endedOn, currentStage, lastUpdateOn, createdAt, updatedAt);
     }
 
@@ -189,6 +200,10 @@ public final class GrowDiary {
 
     public GrowMedium medium() {
         return medium;
+    }
+
+    public Optional<SetupSnapshot> setup() {
+        return Optional.ofNullable(setup);
     }
 
     public DiaryStatus status() {

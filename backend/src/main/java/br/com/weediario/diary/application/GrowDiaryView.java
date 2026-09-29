@@ -7,6 +7,7 @@ import br.com.weediario.diary.domain.model.GrowDiary;
 import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowthStage;
 import br.com.weediario.diary.domain.model.SeedSex;
+import br.com.weediario.diary.domain.model.SetupSnapshot;
 import br.com.weediario.diary.domain.model.Visibility;
 
 import java.time.LocalDate;
@@ -23,6 +24,7 @@ public record GrowDiaryView(
         FloweringType floweringType,
         SeedSex seedSex,
         GrowMedium medium,
+        SetupSnapshot setup,
         DiaryStatus status,
         Visibility visibility,
         LocalDate startedOn,
@@ -42,6 +44,7 @@ public record GrowDiaryView(
                 diary.floweringType(),
                 diary.seedSex(),
                 diary.medium(),
+                diary.setup().orElse(null),
                 diary.status(),
                 diary.visibility(),
                 diary.startedOn(),

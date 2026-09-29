@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+/*
+ * Tokens semânticos: os componentes usam só estes nomes (bg-surface, text-fg, border-line...),
+ * nunca cores fixas. Cada tema redefine as variáveis em [data-theme].
+ */
+@theme inline {
+  --color-canvas: var(--wd-canvas);
+  --color-surface: var(--wd-surface);
+  --color-surface-raised: var(--wd-surface-raised);
+  --color-line: var(--wd-line);
+  --color-fg: var(--wd-fg);
+  --color-fg-muted: var(--wd-fg-muted);
+  --color-accent: var(--wd-accent);
+  --color-accent-fg: var(--wd-accent-fg);
+  --color-ok: var(--wd-ok);
+  --color-warn: var(--wd-warn);
+  --color-danger: var(--wd-danger);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@custom-variant night (&:where([data-theme="night"], [data-theme="night"] *));
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --wd-canvas: #f5f7f4;
+  --wd-surface: #ffffff;
+  --wd-surface-raised: #eef2ec;
+  --wd-line: #d5ddd2;
+  --wd-fg: #17201a;
+  --wd-fg-muted: #56645a;
+  --wd-accent: #2f7d3b;
+  --wd-accent-fg: #ffffff;
+  --wd-ok: #2f7d3b;
+  --wd-warn: #9a6a00;
+  --wd-danger: #b3261e;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --wd-canvas: #0f1411;
+  --wd-surface: #161d18;
+  --wd-surface-raised: #1e2721;
+  --wd-line: #2c3830;
+  --wd-fg: #e3ebe4;
+  --wd-fg-muted: #9aab9e;
+  --wd-accent: #6cc47a;
+  --wd-accent-fg: #0b130d;
+  --wd-ok: #6cc47a;
+  --wd-warn: #e0b54a;
+  --wd-danger: #ef8a80;
+}
+
+/*
+ * Tema noturno de cultivo: para entrar na tenda no período de escuro das plantas.
+ * - Fundo preto puro (pixel apagado em telas OLED) e pouquíssima luz emitida.
+ * - Só tons de verde escuro: é a faixa do espectro a que as plantas menos respondem, por isso
+ *   lanternas de "luz verde" são o padrão no cultivo. Nada de branco ou azul.
+ * - Estados (ok/alerta/erro) não dependem de cor: a interface sempre mostra também texto e ícone.
+ */
+[data-theme="night"] {
+  color-scheme: dark;
+  --wd-canvas: #000000;
+  --wd-surface: #000000;
+  --wd-surface-raised: #020a03;
+  --wd-line: #0d2410;
+  --wd-fg: #2f7a38;
+  --wd-fg-muted: #1f5226;
+  --wd-accent: #2f7a38;
+  --wd-accent-fg: #000000;
+  --wd-ok: #2f7a38;
+  --wd-warn: #3f7a2a;
+  --wd-danger: #4a7a24;
+}
+
+html {
+  background-color: var(--wd-canvas);
+  color: var(--wd-fg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply min-h-dvh bg-canvas font-sans text-fg antialiased;
+}
+
+/* No modo noturno as fotos também emitem luz: ficam escurecidas e em tom verde. */
+[data-theme="night"] img {
+  filter: grayscale(1) brightness(0.35) sepia(1) hue-rotate(60deg) saturate(3);
+}
+
+/* Foco sempre visível (teclado e leitores de tela), em qualquer tema. */
+:focus-visible {
+  outline: 2px solid var(--wd-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  .wd-card {
+    @apply rounded-2xl border border-line bg-surface p-4;
+  }
+
+  .wd-label {
+    @apply mb-1 block text-sm font-medium text-fg-muted;
+  }
+
+  .wd-input {
+    @apply block min-h-12 w-full rounded-xl border border-line bg-surface-raised px-3 text-lg text-fg
+      placeholder:text-fg-muted/60 focus:border-accent focus:outline-none;
+  }
+
+  .wd-button {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-4 font-semibold
+      text-accent-fg active:opacity-80 disabled:opacity-50;
+  }
+}
