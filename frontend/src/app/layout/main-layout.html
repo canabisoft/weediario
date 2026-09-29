@@ -1,0 +1,161 @@
+<a
+  href="#conteudo"
+  class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-surface focus:p-2"
+>
+  Pular para o conteúdo
+</a>
+
+<!-- Fundo escurecido atrás da gaveta (só no celular). -->
+@if (menuOpen()) {
+  <div class="fixed inset-0 z-40 bg-black/60 lg:hidden" aria-hidden="true" (click)="closeMenu()"></div>
+}
+
+<aside
+  id="menu-lateral"
+  class="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-line bg-canvas transition-transform duration-200 lg:w-64 lg:translate-x-0"
+  [class.-translate-x-full]="!menuOpen()"
+  [class.translate-x-0]="menuOpen()"
+  [attr.inert]="!isDesktop() && !menuOpen() ? '' : null"
+  [attr.role]="isDesktop() ? null : 'dialog'"
+  [attr.aria-modal]="!isDesktop() && menuOpen() ? 'true' : null"
+  aria-label="Menu"
+>
+  <div class="flex h-16 items-center justify-between px-5">
+    <a routerLink="/" class="flex items-center gap-2 text-lg font-bold tracking-tight text-fg">
+      <span class="grid size-9 place-items-center rounded-xl bg-accent/15 text-accent">
+        <app-icon name="leaf" class="size-5" [strokeWidth]="2.2" />
+      </span>
+      weediário
+    </a>
+    <button
+      type="button"
+      class="grid size-11 place-items-center rounded-xl text-fg-muted lg:hidden"
+      aria-label="Fechar menu"
+      (click)="closeMenu()"
+    >
+      <app-icon name="close" class="size-6" />
+    </button>
+  </div>
+
+  <nav aria-label="Navegação principal" class="flex-1 overflow-y-auto px-3 py-2">
+    <ul class="grid gap-1">
+      @for (item of primaryNav; track item.path) {
+        <li>
+          <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }" />
+        </li>
+      }
+    </ul>
+    <p class="mb-1 mt-6 px-3 text-xs font-semibold uppercase tracking-wider text-fg-muted">Utilitários</p>
+    <ul class="grid gap-1">
+      @for (item of secondaryNav; track item.path) {
+        <li>
+          <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }" />
+        </li>
+      }
+    </ul>
+  </nav>
+
+  <div class="m-3 rounded-2xl border border-accent/30 bg-accent/10 p-4">
+    <p class="flex items-center gap-2 text-sm font-semibold text-accent">
+      <app-icon name="lock" class="size-4" [strokeWidth]="2.2" />
+      Máxima privacidade
+    </p>
+    <p class="mt-1 text-xs leading-relaxed text-fg-muted">
+      Sem logs de IP ou localização. Fotos publicadas sem metadados (GPS, aparelho, data).
+    </p>
+  </div>
+</aside>
+
+<ng-template #navLink let-item>
+  <a
+    [routerLink]="item.path"
+    routerLinkActive="bg-accent/10 text-accent"
+    [routerLinkActiveOptions]="{ exact: !!item.exact }"
+    #link="routerLinkActive"
+    [attr.aria-current]="link.isActive ? 'page' : null"
+    class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-fg-muted hover:bg-surface-raised hover:text-fg"
+  >
+    <app-icon [name]="item.icon" class="size-5" />
+    {{ item.label }}
+  </a>
+</ng-template>
+
+<div class="lg:pl-64">
+  <header
+    class="sticky top-0 z-30 border-b border-line bg-canvas/90 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:px-8"
+  >
+    <div class="flex items-center gap-2 lg:gap-4">
+      <button
+        type="button"
+        class="grid size-11 place-items-center rounded-xl text-fg lg:hidden"
+        aria-label="Abrir menu"
+        aria-controls="menu-lateral"
+        [attr.aria-expanded]="menuOpen()"
+        (click)="openMenu()"
+      >
+        <app-icon name="menu" class="size-6" />
+      </button>
+
+      <form role="search" class="hidden flex-1 md:block" (submit)="search($event)">
+        <ng-container *ngTemplateOutlet="searchField; context: { $implicit: 'busca-desktop' }" />
+      </form>
+      <span class="flex-1 md:hidden"></span>
+
+      <a routerLink="/diarios/novo" class="wd-button px-3 sm:px-4" aria-label="Iniciar diário">
+        <app-icon name="plus" class="size-5" [strokeWidth]="2.4" />
+        <span class="hidden sm:inline">Iniciar diário</span>
+      </a>
+
+      <button
+        type="button"
+        class="grid size-11 place-items-center rounded-xl border border-line text-fg"
+        [attr.aria-pressed]="theme.isNight()"
+        [attr.aria-label]="theme.isNight() ? 'Sair do modo noturno' : 'Ativar modo noturno'"
+        (click)="theme.toggleNight()"
+      >
+        <app-icon name="moon" class="size-5" />
+      </button>
+
+      <button
+        type="button"
+        class="grid size-11 place-items-center rounded-full bg-surface-raised text-sm font-semibold text-fg-muted ring-1 ring-line"
+        aria-label="Conta (entrar em breve)"
+        title="Conta"
+      >
+        <app-icon name="user" class="size-5" />
+      </button>
+    </div>
+
+    <!-- No celular a busca ganha a largura toda, abaixo da barra. -->
+    <form role="search" class="mt-3 md:hidden" (submit)="search($event)">
+      <ng-container *ngTemplateOutlet="searchField; context: { $implicit: 'busca-mobile' }" />
+    </form>
+  </header>
+
+  <ng-template #searchField let-id>
+    <label [for]="id" class="sr-only">Buscar growers</label>
+    <div class="relative">
+      <app-icon name="search" class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-fg-muted" />
+      <input
+        [id]="id"
+        name="q"
+        type="search"
+        enterkeyhint="search"
+        autocomplete="off"
+        maxlength="30"
+        placeholder="Buscar growers…"
+        class="block min-h-11 w-full rounded-xl border border-line bg-surface pl-10 pr-3 text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none"
+      />
+    </div>
+  </ng-template>
+
+  @if (!connectivity.online()) {
+    <p role="status" class="border-b border-line bg-surface-raised px-4 py-2 text-center text-sm text-fg-muted">
+      Sem conexão. As ferramentas continuam funcionando normalmente.
+    </p>
+  }
+
+  <main id="conteudo" class="mx-auto w-full max-w-5xl px-4 pb-16 pt-6 lg:px-8">
+    <router-outlet />
+  </main>
+</div>

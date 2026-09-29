@@ -1,13 +1,26 @@
+# Sobe a plataforma inteira: docker compose up -d --build
+# Antes da primeira vez, gere o .env com: scripts/setup-env.sh (ou scripts\setup-env.ps1 no PowerShell)
+#
+# Só o frontend (nginx) é publicado. Backend e banco ficam na rede interna do compose; o nginx
+# encaminha /api para o backend, então navegador, cookies e API estão na mesma origem.
+
+name: weediario
+
+x-hardening: &hardening
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
 services:
   postgres:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: weediario
-      POSTGRES_USER: ${WEEDIARIO_DB_USER}
-      POSTGRES_PASSWORD: ${WEEDIARIO_DB_PASSWORD}
-    # Exposto só no loopback, para desenvolvimento local.
-    ports:
-      - "127.0.0.1:5432:5432"
+      POSTGRES_USER: ${WEEDIARIO_DB_USER:?rode scripts/setup-env para criar o .env}
+      POSTGRES_PASSWORD: ${WEEDIARIO_DB_PASSWORD:?rode scripts/setup-env para criar o .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -17,8 +30,10 @@ services:
       retries: 10
 
   backend:
+    <<: *hardening
     build: ./backend
-    profiles: ["app"]
+    image: weediario-backend:local
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
@@ -26,21 +41,41 @@ services:
       WEEDIARIO_DB_URL: jdbc:postgresql://postgres:5432/weediario
       WEEDIARIO_DB_USER: ${WEEDIARIO_DB_USER}
       WEEDIARIO_DB_PASSWORD: ${WEEDIARIO_DB_PASSWORD}
-      WEEDIARIO_JWT_SECRET: ${WEEDIARIO_JWT_SECRET}
-      WEEDIARIO_PSEUDONYM_KEY: ${WEEDIARIO_PSEUDONYM_KEY}
-      WEEDIARIO_CORS_ORIGINS: ${WEEDIARIO_CORS_ORIGINS:-http://localhost:4200}
+      WEEDIARIO_JWT_SECRET: ${WEEDIARIO_JWT_SECRET:?rode scripts/setup-env para criar o .env}
+      WEEDIARIO_PSEUDONYM_KEY: ${WEEDIARIO_PSEUDONYM_KEY:?rode scripts/setup-env para criar o .env}
+      # Mesma origem via nginx; a lista só importa para quem acessar a API de outra origem.
+      WEEDIARIO_CORS_ORIGINS: http://localhost:${WEEDIARIO_HTTP_PORT:-8080}
       WEEDIARIO_MEDIA_PATH: /app/data/images
-    ports:
-      - "127.0.0.1:8080:8080"
     volumes:
       - images:/app/data
-    read_only: true
     tmpfs:
       - /tmp
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
+
+  frontend:
+    <<: *hardening
+    build: ./frontend
+    image: weediario-frontend:local
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      # Só no loopback. Para expor na rede/internet, coloque um proxy com HTTPS na frente (Caddy, Traefik...).
+      - "127.0.0.1:${WEEDIARIO_HTTP_PORT:-8080}:8080"
+    tmpfs:
+      - /tmp
+
+  # Banco acessível no host só quando pedido, para rodar o backend fora do Docker (mvn spring-boot:run):
+  #   docker compose --profile dev up -d
+  postgres-port:
+    image: alpine/socat:1.8.0.3
+    profiles: ["dev"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: TCP-LISTEN:5432,fork,reuseaddr TCP:postgres:5432
+    ports:
+      - "127.0.0.1:5432:5432"
 
 volumes:
   pgdata:

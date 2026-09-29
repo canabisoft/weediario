@@ -13,7 +13,7 @@ const STORAGE_KEY = 'wd-theme';
 /** Cor da barra do navegador/sistema em cada tema (a do modo noturno é preta, para não emitir luz). */
 const BROWSER_BAR_COLOR: Record<Theme, string> = {
   light: '#f5f7f4',
-  dark: '#0f1411',
+  dark: '#090d16',
   night: '#000000',
 };
 
@@ -55,7 +55,7 @@ export class ThemeService {
   private initialTheme(): Theme {
     // theme-init.js já aplicou o tema salvo antes do Angular carregar; aqui só lemos o resultado.
     const applied = this.document.documentElement.getAttribute('data-theme');
-    return isTheme(applied) ? applied : 'light';
+    return isTheme(applied) ? applied : 'dark';
   }
 
   private apply(theme: Theme): void {

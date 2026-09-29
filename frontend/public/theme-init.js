@@ -9,7 +9,8 @@
     // Armazenamento bloqueado (modo privado): segue a preferência do sistema.
   }
   if (theme !== 'light' && theme !== 'dark' && theme !== 'night') {
-    theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    // Padrão da marca é o escuro; só usa o claro se o sistema pedir explicitamente.
+    theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   }
   document.documentElement.setAttribute('data-theme', theme);
 })();

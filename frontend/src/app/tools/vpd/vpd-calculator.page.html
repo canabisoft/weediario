@@ -32,9 +32,9 @@
 
   <div>
     <label class="wd-label" for="stage">Fase da planta</label>
-    <select id="stage" class="wd-input" [value]="stage()" (change)="onStage($any($event.target).value)">
+    <select id="stage" class="wd-input" (change)="onStage($any($event.target).value)">
       @for (option of stages; track option.id) {
-        <option [value]="option.id">
+        <option [value]="option.id" [selected]="option.id === stage()">
           {{ option.label }} ({{ fmt(option.range.min, 1) }}–{{ fmt(option.range.max, 1) }} kPa)
         </option>
       }

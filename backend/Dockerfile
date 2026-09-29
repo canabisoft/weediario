@@ -16,4 +16,7 @@ WORKDIR /app
 COPY --from=build --chown=weediario:weediario /build/target/weediario-backend-*.jar app.jar
 USER weediario:weediario
 EXPOSE 8080
+# Rota pública e barata que também exercita o banco. start-period cobre as migrations na primeira subida.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=5 \
+    CMD wget -q --spider "http://127.0.0.1:8080/api/v1/feed/diaries?size=1" || exit 1
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-Djava.awt.headless=true", "-jar", "/app/app.jar"]

@@ -28,9 +28,9 @@ import { EC_GUIDELINES, EC_UNITS, EcUnit, convertToAll } from './ec';
       </div>
       <div>
         <label class="wd-label" for="ec-unit">Escala</label>
-        <select id="ec-unit" class="wd-input" [value]="unit()" (change)="unit.set($any($event.target).value)">
+        <select id="ec-unit" class="wd-input" (change)="unit.set($any($event.target).value)">
           @for (option of units; track option.id) {
-            <option [value]="option.id">{{ option.label }}</option>
+            <option [value]="option.id" [selected]="option.id === unit()">{{ option.label }}</option>
           }
         </select>
       </div>

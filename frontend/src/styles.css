@@ -30,26 +30,27 @@
   --wd-line: #d5ddd2;
   --wd-fg: #17201a;
   --wd-fg-muted: #56645a;
-  --wd-accent: #2f7d3b;
+  --wd-accent: #059669;
   --wd-accent-fg: #ffffff;
-  --wd-ok: #2f7d3b;
+  --wd-ok: #059669;
   --wd-warn: #9a6a00;
   --wd-danger: #b3261e;
 }
 
+/* Tema padrão da marca: grafite quase preto com destaque verde esmeralda. */
 [data-theme="dark"] {
   color-scheme: dark;
-  --wd-canvas: #0f1411;
-  --wd-surface: #161d18;
-  --wd-surface-raised: #1e2721;
-  --wd-line: #2c3830;
-  --wd-fg: #e3ebe4;
-  --wd-fg-muted: #9aab9e;
-  --wd-accent: #6cc47a;
-  --wd-accent-fg: #0b130d;
-  --wd-ok: #6cc47a;
-  --wd-warn: #e0b54a;
-  --wd-danger: #ef8a80;
+  --wd-canvas: #090d16;
+  --wd-surface: #0f1522;
+  --wd-surface-raised: #161e2e;
+  --wd-line: #1f2937;
+  --wd-fg: #e5e7eb;
+  --wd-fg-muted: #9ca3af;
+  --wd-accent: #10b981;
+  --wd-accent-fg: #03140e;
+  --wd-ok: #10b981;
+  --wd-warn: #f59e0b;
+  --wd-danger: #f87171;
 }
 
 /*
