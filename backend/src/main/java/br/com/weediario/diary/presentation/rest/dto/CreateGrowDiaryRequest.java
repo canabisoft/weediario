@@ -1,0 +1,29 @@
+package br.com.weediario.diary.presentation.rest.dto;
+
+import br.com.weediario.diary.domain.model.FloweringType;
+import br.com.weediario.diary.domain.model.GrowDiary;
+import br.com.weediario.diary.domain.model.GrowMedium;
+import br.com.weediario.diary.domain.model.SeedSex;
+import br.com.weediario.diary.domain.model.Strain;
+import br.com.weediario.diary.domain.model.Visibility;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Size;
+
+import java.time.LocalDate;
+
+/**
+ * Payload explícito (sem ownerId, status ou datas técnicas): o autor vem do JWT e o resto é definido pelo domínio,
+ * o que impede mass assignment.
+ */
+public record CreateGrowDiaryRequest(
+        @NotBlank @Size(max = GrowDiary.TITLE_MAX_LENGTH) String title,
+        @NotBlank @Size(max = Strain.NAME_MAX_LENGTH) String strainName,
+        @Size(max = Strain.BREEDER_MAX_LENGTH) String breeder,
+        @NotNull FloweringType floweringType,
+        @NotNull SeedSex seedSex,
+        @NotNull GrowMedium medium,
+        Visibility visibility,
+        @PastOrPresent LocalDate startedOn) {
+}

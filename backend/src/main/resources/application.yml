@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: weediario
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${WEEDIARIO_DB_URL:jdbc:postgresql://localhost:5432/weediario}
+    username: ${WEEDIARIO_DB_USER}
+    password: ${WEEDIARIO_DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      # Um pouco acima do limite de 12 MB do caso de uso, para a mensagem de erro vir do domínio.
+      max-file-size: 13MB
+      max-request-size: 14MB
+      file-size-threshold: 1MB
+  jackson:
+    deserialization:
+      # Payload estrito: campos desconhecidos são rejeitados (defesa contra mass assignment).
+      fail-on-unknown-properties: true
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+  # Sem stack trace, mensagem de exceção ou erros de binding nas respostas.
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+    include-exception: false
+  # Nunca registrar IPs: access log desativado explicitamente.
+  tomcat:
+    accesslog:
+      enabled: false
+  # Respeita X-Forwarded-Proto do proxy reverso (HTTPS/HSTS), mas o IP de origem não é persistido nem logado.
+  forward-headers-strategy: native
+
+weediario:
+  time-zone: America/Sao_Paulo
+  media:
+    storage-path: ${WEEDIARIO_MEDIA_PATH:./data/images}
+  security:
+    jwt:
+      issuer: ${WEEDIARIO_JWT_ISSUER:weediario}
+      secret: ${WEEDIARIO_JWT_SECRET}
+      access-token-ttl: 10m
+    refresh-token:
+      ttl: 7d
+      cookie-name: __Secure-wd_rt
+      cookie-path: /api/v1/auth
+    cors:
+      allowed-origins: ${WEEDIARIO_CORS_ORIGINS:http://localhost:4200}
+
+logging:
+  level:
+    root: INFO

@@ -1,0 +1,62 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# Java build and runtime artifacts
+*.class
+*.jar
+*.log
+hs_err_pid*
+replay_pid*
+
+# Local databases and encrypted account files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.wdb
+*.importing
+*.validate
+
+# Weediario local state
+.weediario/
+# Fotos enviadas em desenvolvimento
+data/
+accounts.properties
+sessions/
+session-*.db
+
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+*.secret
+*.key
+*.pem
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Local context notes (not for version control)
+/context/
+claude/
+/claude
+claude/*

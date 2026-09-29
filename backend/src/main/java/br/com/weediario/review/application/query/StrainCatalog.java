@@ -1,0 +1,51 @@
+package br.com.weediario.review.application.query;
+
+import br.com.weediario.shared.application.PageQuery;
+import br.com.weediario.shared.application.PageResult;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Lado de leitura do catálogo: médias agregadas por genética e as reviews publicadas.
+ * Só entram reviews de contas ativas.
+ */
+public interface StrainCatalog {
+
+    PageResult<StrainSummary> search(String nameQuery, PageQuery page);
+
+    Optional<StrainSummary> find(UUID strainId);
+
+    PageResult<ReviewView> reviewsOf(UUID strainId, PageQuery page);
+
+    record StrainSummary(
+            UUID id,
+            String name,
+            String breeder,
+            long reviewCount,
+            BigDecimal overall,
+            BigDecimal vigor,
+            BigDecimal pestResistance,
+            BigDecimal easeOfGrowth,
+            BigDecimal yield,
+            BigDecimal terpeneProfile) {
+    }
+
+    /**
+     * @param diaryId preenchido só se o diário for público; review de diário privado não leva até ele
+     */
+    record ReviewView(
+            UUID id,
+            String author,
+            UUID diaryId,
+            int vigor,
+            int pestResistance,
+            int easeOfGrowth,
+            int yield,
+            int terpeneProfile,
+            String report,
+            Instant createdAt) {
+    }
+}
