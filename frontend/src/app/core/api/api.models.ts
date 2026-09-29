@@ -1,0 +1,208 @@
+/**
+ * Tipos das respostas da API (espelham os records do backend). Campos nulos são omitidos pelo backend,
+ * por isso aparecem como opcionais.
+ */
+
+export interface Page<T> {
+  readonly items: T[];
+  readonly page: number;
+  readonly size: number;
+  readonly totalItems: number;
+  readonly totalPages: number;
+}
+
+export type GrowthStage = 'GERMINATION' | 'VEGETATIVE' | 'FLOWERING' | 'DRYING_CURING';
+export type GrowMedium = 'LIVING_SOIL' | 'MINERAL' | 'INERT';
+export type FloweringType = 'PHOTOPERIOD' | 'AUTOFLOWER';
+export type SeedSex = 'REGULAR' | 'FEMINIZED' | 'CLONE';
+export type DiaryStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type Visibility = 'PUBLIC' | 'PRIVATE';
+export type GrowEnvironment = 'INDOOR' | 'OUTDOOR' | 'GREENHOUSE';
+export type ReactionType = 'FIRE' | 'HERB' | 'CLAP';
+export type FeedSort = 'RECENTLY_UPDATED' | 'NEWEST' | 'MOST_REACTED';
+
+export interface Harvest {
+  readonly dryGrams: number;
+  readonly plants: number;
+}
+
+export interface SetupSpec {
+  readonly tentWidthCm?: number;
+  readonly tentDepthCm?: number;
+  readonly tentHeightCm?: number;
+  readonly lighting?: string;
+  readonly lightWattage?: number;
+  readonly medium?: GrowMedium;
+  readonly nutrients?: string;
+  readonly ventilation?: string;
+  readonly notes?: string;
+}
+
+export interface SetupSnapshot {
+  readonly name: string;
+  readonly environment: GrowEnvironment;
+  readonly spec: SetupSpec;
+}
+
+export interface GrowSetup extends SetupSnapshot {
+  readonly id: string;
+}
+
+/** Card do feed e cabeçalho do diário ({@code GET /diaries/{id}}). */
+export interface DiaryCard {
+  readonly id: string;
+  readonly title: string;
+  readonly author: string;
+  readonly strainName: string;
+  readonly breeder?: string;
+  readonly floweringType: FloweringType;
+  readonly seedSex: SeedSex;
+  readonly medium: GrowMedium;
+  readonly status: DiaryStatus;
+  readonly visibility: Visibility;
+  readonly currentStage: GrowthStage;
+  readonly startedOn: string;
+  readonly endedOn?: string;
+  readonly lastUpdateOn?: string;
+  readonly currentDay: number;
+  readonly currentWeek: number;
+  readonly harvest?: Harvest;
+  readonly updatesCount: number;
+  readonly commentsCount: number;
+  readonly reactionsCount: number;
+  readonly coverPhotoId?: string;
+  readonly setup?: SetupSnapshot;
+}
+
+/** Resposta das operações de escrita em diários. */
+export interface GrowDiaryView {
+  readonly id: string;
+  readonly status: DiaryStatus;
+  readonly visibility: Visibility;
+  readonly harvest?: Harvest;
+}
+
+export interface DiaryUpdate {
+  readonly id: string;
+  readonly stage: GrowthStage;
+  readonly recordedOn: string;
+  readonly day: number;
+  readonly week: number;
+  readonly note?: string;
+  readonly temperatureCelsius?: number;
+  readonly relativeHumidity?: number;
+  readonly wateringPh?: number;
+  readonly plantHeightCm?: number;
+  readonly photoIds: string[];
+}
+
+export interface Comment {
+  readonly id: string;
+  readonly author: string;
+  readonly authorHasAvatar: boolean;
+  readonly byDiaryAuthor: boolean;
+  readonly body: string;
+  readonly createdAt: string;
+  readonly deletable: boolean;
+}
+
+export interface ReactionSummary {
+  readonly counts: Record<ReactionType, number>;
+  readonly mine: ReactionType[];
+}
+
+export interface StrainSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly breeder?: string;
+  readonly reviewCount: number;
+  readonly overall: number;
+  readonly vigor: number;
+  readonly pestResistance: number;
+  readonly easeOfGrowth: number;
+  readonly yield: number;
+  readonly terpeneProfile: number;
+}
+
+export interface StrainReview {
+  readonly id: string;
+  readonly author: string;
+  readonly diaryId?: string;
+  readonly vigor: number;
+  readonly pestResistance: number;
+  readonly easeOfGrowth: number;
+  readonly yield: number;
+  readonly terpeneProfile: number;
+  readonly report: string;
+  readonly createdAt: string;
+}
+
+export interface SeedbankSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly reviewCount: number;
+  readonly overall: number;
+  readonly germination: number;
+  readonly stability: number;
+  readonly service: number;
+}
+
+export interface SeedbankReview {
+  readonly id: string;
+  readonly author: string;
+  readonly diaryId?: string;
+  readonly strain: string;
+  readonly germination: number;
+  readonly stability: number;
+  readonly service: number;
+  readonly report: string;
+  readonly createdAt: string;
+}
+
+export interface MyProfile {
+  readonly id: string;
+  readonly username: string;
+  readonly email: string;
+  readonly bio?: string;
+  readonly hasAvatar: boolean;
+  readonly role: string;
+}
+
+export interface GrowerProfile {
+  readonly username: string;
+  readonly bio?: string;
+  readonly hasAvatar: boolean;
+  readonly diaries: number;
+  readonly likes: number;
+  readonly gramsPerPlant?: number;
+  readonly followers: number;
+  readonly followedByViewer: boolean;
+  readonly isViewer: boolean;
+}
+
+export interface RankedGrowerDto {
+  readonly position: number;
+  readonly username: string;
+  readonly hasAvatar: boolean;
+  readonly diaries: number;
+  readonly likes: number;
+  readonly gramsPerPlant?: number;
+}
+
+export interface FollowedGrower {
+  readonly username: string;
+  readonly hasAvatar: boolean;
+}
+
+export interface UploadedImage {
+  readonly id: string;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** Corpo de erro RFC 9457 devolvido pelo backend. */
+export interface Problem {
+  readonly status: number;
+  readonly detail?: string;
+  readonly violations?: { field: string; message: string }[];
+}

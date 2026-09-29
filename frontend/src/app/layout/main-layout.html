@@ -116,14 +116,16 @@
         <app-icon name="moon" class="size-5" />
       </button>
 
-      <button
-        type="button"
-        class="grid size-11 place-items-center rounded-full bg-surface-raised text-sm font-semibold text-fg-muted ring-1 ring-line"
-        aria-label="Conta (entrar em breve)"
-        title="Conta"
-      >
-        <app-icon name="user" class="size-5" />
-      </button>
+      @if (auth.me(); as me) {
+        <a routerLink="/perfil" class="rounded-full" [attr.aria-label]="'Meu perfil (' + me.username + ')'">
+          <app-avatar class="size-11 text-sm" [username]="me.username" [hasAvatar]="me.hasAvatar" />
+        </a>
+      } @else {
+        <a routerLink="/entrar" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-3 text-sm font-semibold text-fg">
+          <app-icon name="user" class="size-5" />
+          <span class="hidden sm:inline">Entrar</span>
+        </a>
+      }
     </div>
 
     <!-- No celular a busca ganha a largura toda, abaixo da barra. -->

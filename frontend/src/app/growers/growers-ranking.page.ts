@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
-import { formatInteger } from '../shared/decimal';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { Router, RouterLink } from '@angular/router';
+import { catchError, debounceTime, map, of, startWith, switchMap } from 'rxjs';
+import { Avatar } from '../shared/avatar';
+import { formatCompact, formatInteger } from '../shared/decimal';
 import { Icon, IconName } from '../shared/icon';
-import { RANKING_SORTS, RankingEntry, RankingSort, buildRanking, initialOf } from './grower-ranking';
+import { RANKING_SORTS, RankingEntry, RankingResult, RankingSort } from './grower-ranking';
 import { GROWER_RANKING_SOURCE } from './grower-ranking.source';
 
 interface Metric {
@@ -20,12 +22,12 @@ interface Metric {
 @Component({
   selector: 'app-growers-ranking-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon],
+  imports: [Icon, RouterLink, Avatar],
   templateUrl: './growers-ranking.page.html',
 })
 export class GrowersRankingPage {
   private readonly router = inject(Router);
-  private readonly growers = toSignal(inject(GROWER_RANKING_SOURCE).load());
+  private readonly source = inject(GROWER_RANKING_SOURCE);
 
   /** Preenchidos pelo router a partir dos query params. */
   readonly q = input<string | undefined>();
@@ -38,16 +40,31 @@ export class GrowersRankingPage {
     return RANKING_SORTS.some((option) => option.id === requested) ? (requested as RankingSort) : 'diaries';
   });
 
-  protected readonly loading = computed(() => this.growers() === undefined);
-  protected readonly entries = computed(() => buildRanking(this.growers() ?? [], this.sort(), this.query()));
-  protected readonly total = computed(() => this.growers()?.length ?? 0);
+  /** null enquanto carrega. Busca com pequeno atraso para não consultar a cada tecla. */
+  private readonly result = toSignal(
+    toObservable(computed(() => ({ sort: this.sort(), query: this.query() }))).pipe(
+      debounceTime(200),
+      switchMap(({ sort, query }) =>
+        this.source.load(sort, query).pipe(
+          map((result): RankingResult | null => result),
+          startWith(null),
+          catchError(() => of<RankingResult>({ entries: [], total: 0 })),
+        ),
+      ),
+    ),
+    { initialValue: null },
+  );
+
+  protected readonly loading = computed(() => this.result() === null);
+  protected readonly entries = computed(() => this.result()?.entries ?? []);
+  protected readonly total = computed(() => this.result()?.total ?? 0);
 
   protected readonly metrics: readonly Metric[] = [
     {
       sort: 'gramsPerPlant',
       icon: 'scale',
       label: 'g/planta',
-      value: (entry) => (entry.grower.gramsPerPlant === null ? '—' : formatInteger(entry.grower.gramsPerPlant)),
+      value: (entry) => (entry.grower.gramsPerPlant === null ? '—' : formatCompact(entry.grower.gramsPerPlant)),
     },
     { sort: 'diaries', icon: 'diaries', label: 'Diários', value: (entry) => formatInteger(entry.grower.diaries) },
     { sort: 'likes', icon: 'flame', label: 'Curtidas', value: (entry) => formatInteger(entry.grower.likes) },
@@ -59,15 +76,6 @@ export class GrowersRankingPage {
 
   protected onSort(value: string): void {
     this.updateUrl({ ordem: value === 'diaries' ? null : value });
-  }
-
-  protected initial(username: string): string {
-    return initialOf(username);
-  }
-
-  /** Se a foto não carregar, some e o fallback com a inicial aparece no lugar. */
-  protected hideBrokenImage(event: Event): void {
-    (event.target as HTMLImageElement).hidden = true;
   }
 
   protected isTopLevel(entry: RankingEntry): boolean {

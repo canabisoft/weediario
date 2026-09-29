@@ -90,6 +90,11 @@ body {
   filter: grayscale(1) brightness(0.35) sepia(1) hue-rotate(60deg) saturate(3);
 }
 
+/* Emojis são coloridos e emitem luz: no modo noturno viram tons de verde escuro, como as fotos. */
+[data-theme="night"] .wd-emoji {
+  filter: grayscale(1) brightness(0.45) sepia(1) hue-rotate(60deg) saturate(3);
+}
+
 /* Foco sempre visível (teclado e leitores de tela), em qualquer tema. */
 :focus-visible {
   outline: 2px solid var(--wd-accent);

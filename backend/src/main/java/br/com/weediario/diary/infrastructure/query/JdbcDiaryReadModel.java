@@ -5,6 +5,7 @@ import br.com.weediario.diary.domain.model.DiaryStatus;
 import br.com.weediario.diary.domain.model.FloweringType;
 import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowthStage;
+import br.com.weediario.diary.domain.model.Harvest;
 import br.com.weediario.diary.domain.model.SeedSex;
 import br.com.weediario.diary.domain.model.SetupSnapshot;
 import br.com.weediario.diary.domain.model.Visibility;
@@ -38,6 +39,7 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
     private static final String SELECT = """
             select d.id, d.title, u.username, d.strain_name, d.breeder, d.flowering_type, d.seed_sex, d.medium,
                    d.status, d.visibility, d.current_stage, d.started_on, d.ended_on, d.last_update_on,
+                   d.harvest_dry_grams, d.harvest_plants,
                    (select count(*) from diary_updates du where du.diary_id = d.id) as updates_count,
                    (select count(*) from diary_comments dc where dc.diary_id = d.id and not dc.hidden) as comments_count,
                    (select count(*) from diary_reactions dr where dr.diary_id = d.id) as reactions_count,
@@ -78,13 +80,21 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
     }
 
     @Override
-    public PageResult<DiarySummary> publicFeed(FeedFilter filter, PageQuery page) {
+    public PageResult<DiarySummary> publicFeed(FeedFilter filter, Optional<UUID> viewerId, PageQuery page) {
         List<String> conditions = new ArrayList<>(List.of("d.visibility = 'PUBLIC'", "u.status = 'ACTIVE'"));
         MapSqlParameterSource params = new MapSqlParameterSource();
         addEquals(conditions, params, "d.current_stage", "stage", filter.stage());
         addEquals(conditions, params, "d.medium", "medium", filter.medium());
         addEquals(conditions, params, "d.status", "status", filter.status());
         addEquals(conditions, params, "d.flowering_type", "floweringType", filter.floweringType());
+        if (filter.following()) {
+            conditions.add("d.owner_id in (select f.followee_id from grower_follows f where f.follower_id = :viewerId)");
+            params.addValue("viewerId", viewerId.orElseThrow());
+        }
+        if (filter.author() != null) {
+            conditions.add("lower(u.username) = lower(:author)");
+            params.addValue("author", filter.author());
+        }
         if (filter.strain() != null) {
             conditions.add("d.strain_name ilike :strain escape '\\'");
             params.addValue("strain", "%" + escapeLike(filter.strain()) + "%");
@@ -145,11 +155,16 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
             toLocalDate(rs.getDate("started_on")),
             toLocalDate(rs.getDate("ended_on")),
             toLocalDate(rs.getDate("last_update_on")),
+            harvestOf(rs.getObject("harvest_dry_grams", Integer.class), rs.getObject("harvest_plants", Integer.class)),
             rs.getLong("updates_count"),
             rs.getLong("comments_count"),
             rs.getLong("reactions_count"),
             rs.getObject("cover_photo_id", UUID.class),
             parseSetup(rs.getString("setup_snapshot")));
+    }
+
+    private static Harvest harvestOf(Integer dryGrams, Integer plants) {
+        return dryGrams == null || plants == null ? null : new Harvest(dryGrams, plants);
     }
 
     private SetupSnapshot parseSetup(String raw) {

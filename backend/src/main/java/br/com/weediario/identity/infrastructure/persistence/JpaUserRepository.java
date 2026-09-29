@@ -34,6 +34,11 @@ public class JpaUserRepository implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByUsername(String username) {
+        return jpa.findByUsernameIgnoreCase(username).map(UserJpaEntity::toDomain);
+    }
+
+    @Override
     public boolean existsByUsername(Username username) {
         return jpa.existsByUsernameIgnoreCase(username.value());
     }

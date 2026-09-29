@@ -4,7 +4,9 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ConnectivityService } from '../core/network/connectivity.service';
+import { AuthService } from '../core/auth/auth.service';
 import { ThemeService } from '../core/theme/theme.service';
+import { Avatar } from '../shared/avatar';
 import { Icon, IconName } from '../shared/icon';
 
 interface NavItem {
@@ -24,12 +26,13 @@ const DESKTOP_QUERY = '(min-width: 1024px)';
 @Component({
   selector: 'app-main-layout',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet, Icon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet, Icon, Avatar],
   templateUrl: './main-layout.html',
   host: { '(document:keydown.escape)': 'closeMenu()' },
 })
 export class MainLayout {
   protected readonly theme = inject(ThemeService);
+  protected readonly auth = inject(AuthService);
   protected readonly connectivity = inject(ConnectivityService);
   private readonly router = inject(Router);
   /** Sem suporte a matchMedia (navegadores antigos), assume celular: a gaveta sempre funciona. */

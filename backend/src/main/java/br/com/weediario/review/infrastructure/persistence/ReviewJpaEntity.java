@@ -2,6 +2,7 @@ package br.com.weediario.review.infrastructure.persistence;
 
 import br.com.weediario.review.domain.model.Ratings;
 import br.com.weediario.review.domain.model.Review;
+import br.com.weediario.review.domain.model.SeedbankRatings;
 import br.com.weediario.review.domain.model.StrainId;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -42,6 +43,18 @@ public class ReviewJpaEntity {
     @Column(name = "terpene_profile", nullable = false)
     private short terpeneProfile;
 
+    @Column(name = "seedbank_id")
+    private UUID seedbankId;
+
+    @Column(name = "seedbank_germination")
+    private Short seedbankGermination;
+
+    @Column(name = "seedbank_stability")
+    private Short seedbankStability;
+
+    @Column(name = "seedbank_service")
+    private Short seedbankService;
+
     @Column(nullable = false, length = Review.REPORT_MAX_LENGTH)
     private String report;
 
@@ -62,6 +75,12 @@ public class ReviewJpaEntity {
         entity.easeOfGrowth = (short) review.ratings().easeOfGrowth();
         entity.yieldRating = (short) review.ratings().yield();
         entity.terpeneProfile = (short) review.ratings().terpeneProfile();
+        entity.seedbankId = review.seedbankId().orElse(null);
+        review.seedbankRatings().ifPresent(seedbank -> {
+            entity.seedbankGermination = (short) seedbank.germination();
+            entity.seedbankStability = (short) seedbank.stability();
+            entity.seedbankService = (short) seedbank.service();
+        });
         entity.report = review.report();
         entity.createdAt = review.createdAt();
         return entity;
@@ -69,6 +88,8 @@ public class ReviewJpaEntity {
 
     Review toDomain() {
         return Review.restore(id, new StrainId(strainId), diaryId, authorId,
-                new Ratings(vigor, pestResistance, easeOfGrowth, yieldRating, terpeneProfile), report, createdAt);
+                new Ratings(vigor, pestResistance, easeOfGrowth, yieldRating, terpeneProfile), seedbankId,
+                seedbankId == null ? null : new SeedbankRatings(seedbankGermination, seedbankStability, seedbankService),
+                report, createdAt);
     }
 }

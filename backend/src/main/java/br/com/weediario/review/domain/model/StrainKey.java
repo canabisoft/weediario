@@ -14,7 +14,7 @@ public record StrainKey(String name, String breeder) {
         return new StrainKey(normalize(name), breeder == null ? "" : normalize(breeder));
     }
 
-    static String normalize(String raw) {
+    public static String normalize(String raw) {
         String withoutAccents = Normalizer.normalize(raw, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         return withoutAccents.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").strip();
     }

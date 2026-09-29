@@ -4,6 +4,7 @@ import br.com.weediario.diary.application.query.DiaryReadModel.FeedFilter;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
 import br.com.weediario.shared.application.ResourceNotFoundException;
+import br.com.weediario.shared.domain.DomainException;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -21,9 +22,12 @@ public final class BrowseDiariesUseCase {
     }
 
     /** Feed da comunidade: apenas diários públicos de contas ativas. */
-    public PageResult<DiaryCard> feed(FeedFilter filter, PageQuery page) {
+    public PageResult<DiaryCard> feed(FeedFilter filter, Optional<UUID> viewerId, PageQuery page) {
+        if (filter.following() && viewerId.isEmpty()) {
+            throw new DomainException("Entre na sua conta para ver os diários de quem você segue");
+        }
         LocalDate today = LocalDate.now(clock);
-        return readModel.publicFeed(filter, page).map(summary -> DiaryCard.of(summary, today));
+        return readModel.publicFeed(filter, viewerId, page).map(summary -> DiaryCard.of(summary, today));
     }
 
     /** "Meus diários": inclui os privados. */

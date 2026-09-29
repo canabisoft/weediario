@@ -30,6 +30,7 @@ public final class GrowDiary {
     private Visibility visibility;
     private final LocalDate startedOn;
     private LocalDate endedOn;
+    private Harvest harvest;
     private GrowthStage currentStage;
     private LocalDate lastUpdateOn;
     private final Instant createdAt;
@@ -37,8 +38,8 @@ public final class GrowDiary {
 
     private GrowDiary(GrowDiaryId id, GrowerId ownerId, String title, Strain strain, FloweringType floweringType,
                       SeedSex seedSex, GrowMedium medium, SetupSnapshot setup, DiaryStatus status,
-                      Visibility visibility, LocalDate startedOn, LocalDate endedOn, GrowthStage currentStage,
-                      LocalDate lastUpdateOn, Instant createdAt, Instant updatedAt) {
+                      Visibility visibility, LocalDate startedOn, LocalDate endedOn, Harvest harvest,
+                      GrowthStage currentStage, LocalDate lastUpdateOn, Instant createdAt, Instant updatedAt) {
         this.id = Guard.notNull(id, "Id");
         this.ownerId = Guard.notNull(ownerId, "Autor");
         this.title = validTitle(title);
@@ -51,6 +52,7 @@ public final class GrowDiary {
         this.visibility = Guard.notNull(visibility, "Visibilidade");
         this.startedOn = Guard.notNull(startedOn, "Data de início");
         this.endedOn = endedOn;
+        this.harvest = harvest;
         this.currentStage = Guard.notNull(currentStage, "Estágio atual");
         this.lastUpdateOn = lastUpdateOn;
         this.createdAt = Guard.notNull(createdAt, "Data de criação");
@@ -75,17 +77,17 @@ public final class GrowDiary {
         }
         Instant now = clock.instant();
         return new GrowDiary(GrowDiaryId.newId(), ownerId, title, strain, floweringType, seedSex, medium, setup,
-                DiaryStatus.IN_PROGRESS, visibility, startedOn, null, GrowthStage.initialFor(seedSex), null, now, now);
+                DiaryStatus.IN_PROGRESS, visibility, startedOn, null, null, GrowthStage.initialFor(seedSex), null, now, now);
     }
 
     /** Reconstitui um diário já persistido; não aplica regras de criação. */
     public static GrowDiary restore(GrowDiaryId id, GrowerId ownerId, String title, Strain strain,
                                     FloweringType floweringType, SeedSex seedSex, GrowMedium medium,
                                     SetupSnapshot setup, DiaryStatus status, Visibility visibility, LocalDate startedOn,
-                                    LocalDate endedOn, GrowthStage currentStage, LocalDate lastUpdateOn,
-                                    Instant createdAt, Instant updatedAt) {
+                                    LocalDate endedOn, Harvest harvest, GrowthStage currentStage,
+                                    LocalDate lastUpdateOn, Instant createdAt, Instant updatedAt) {
         return new GrowDiary(id, ownerId, title, strain, floweringType, seedSex, medium, setup, status, visibility,
-                startedOn, endedOn, currentStage, lastUpdateOn, createdAt, updatedAt);
+                startedOn, endedOn, harvest, currentStage, lastUpdateOn, createdAt, updatedAt);
     }
 
     /**
@@ -134,7 +136,24 @@ public final class GrowDiary {
     }
 
     public void complete(LocalDate harvestedOn, Clock clock) {
+        complete(harvestedOn, null, clock);
+    }
+
+    /**
+     * @param harvest peso seco e plantas; pode ser {@code null} e registrado depois com {@link #recordHarvest},
+     *                já que o peso final só é conhecido após a secagem e a cura
+     */
+    public void complete(LocalDate harvestedOn, Harvest harvest, Clock clock) {
         finish(DiaryStatus.COMPLETED, harvestedOn, clock);
+        this.harvest = harvest;
+    }
+
+    public void recordHarvest(Harvest harvest, Clock clock) {
+        if (status != DiaryStatus.COMPLETED) {
+            throw new DomainException("A colheita só pode ser registrada em um diário concluído");
+        }
+        this.harvest = Guard.notNull(harvest, "Colheita");
+        touch(clock);
     }
 
     public void cancel(Clock clock) {
@@ -220,6 +239,10 @@ public final class GrowDiary {
 
     public LocalDate endedOn() {
         return endedOn;
+    }
+
+    public Optional<Harvest> harvest() {
+        return Optional.ofNullable(harvest);
     }
 
     public GrowthStage currentStage() {

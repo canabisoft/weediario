@@ -6,6 +6,7 @@ import br.com.weediario.diary.domain.model.FloweringType;
 import br.com.weediario.diary.domain.model.GrowAge;
 import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowthStage;
+import br.com.weediario.diary.domain.model.Harvest;
 import br.com.weediario.diary.domain.model.SeedSex;
 import br.com.weediario.diary.domain.model.SetupSnapshot;
 import br.com.weediario.diary.domain.model.Visibility;
@@ -34,6 +35,7 @@ public record DiaryCard(
         LocalDate lastUpdateOn,
         long currentDay,
         long currentWeek,
+        Harvest harvest,
         long updatesCount,
         long commentsCount,
         long reactionsCount,
@@ -45,7 +47,7 @@ public record DiaryCard(
         return new DiaryCard(summary.id(), summary.title(), summary.author(), summary.strainName(), summary.breeder(),
                 summary.floweringType(), summary.seedSex(), summary.medium(), summary.status(), summary.visibility(),
                 summary.currentStage(), summary.startedOn(), summary.endedOn(), summary.lastUpdateOn(),
-                age.day(), age.week(), summary.updatesCount(), summary.commentsCount(), summary.reactionsCount(),
+                age.day(), age.week(), summary.harvest(), summary.updatesCount(), summary.commentsCount(), summary.reactionsCount(),
                 summary.coverPhotoId(), summary.setup());
     }
 }

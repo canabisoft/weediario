@@ -147,6 +147,11 @@ class RefreshSessionUseCaseTest {
         }
 
         @Override
+        public Optional<User> findByUsername(String username) {
+            return store.values().stream().filter(u -> u.username().value().equalsIgnoreCase(username)).findFirst();
+        }
+
+        @Override
         public boolean existsByUsername(Username username) {
             return store.values().stream().anyMatch(u -> u.username().value().equalsIgnoreCase(username.value()));
         }

@@ -1,16 +1,16 @@
 /**
- * Ranking de growers: modelo e regras de ordenação/filtro, sem dependência de Angular.
+ * Ranking de growers: modelo e regras de apresentação, sem dependência de Angular.
+ * A ordenação e as posições vêm do backend (calculadas sobre todos os growers, antes da busca por nome).
  */
 
 export interface RankedGrower {
   /** Apelido público: a única identidade exibida (nunca nome real). */
   readonly username: string;
-  /** Opcional: a plataforma ainda não armazena fotos de perfil; a UI usa a inicial. */
-  readonly avatarUrl?: string;
+  readonly hasAvatar: boolean;
   readonly diaries: number;
-  /** Total de reações recebidas nos diários (🔥 🌿 👏). */
+  /** Total de reações recebidas nos diários públicos (🔥 🌿 👏). */
   readonly likes: number;
-  /** Média de gramas secas por planta nos cultivos concluídos; null se ainda não há colheita registrada. */
+  /** Gramas secas por planta nas colheitas registradas; null se ainda não há colheita. */
   readonly gramsPerPlant: number | null;
 }
 
@@ -27,7 +27,7 @@ export interface GrowerLevel {
   readonly minDiaries: number;
 }
 
-/** Nível pela quantidade de diários publicados (experiência acumulada), do mais alto para o mais baixo. */
+/** Nível pela quantidade de diários públicos (experiência acumulada), do mais alto para o mais baixo. */
 export const GROWER_LEVELS: readonly GrowerLevel[] = [
   { name: 'GrandMaster', minDiaries: 50 },
   { name: 'Guru', minDiaries: 25 },
@@ -46,35 +46,11 @@ export interface RankingEntry {
   readonly level: GrowerLevel;
 }
 
-/**
- * Ordena e numera o ranking. A posição reflete o critério escolhido sobre <em>todos</em> os growers;
- * a busca por nome filtra depois, então "#7" continua sendo o 7º mesmo quando é o único resultado.
- * Empates recebem a mesma posição (1, 2, 2, 4).
- */
-export function buildRanking(growers: readonly RankedGrower[], sort: RankingSort, query: string): RankingEntry[] {
-  const metric = (grower: RankedGrower) => grower[sort] ?? -1;
-  const sorted = [...growers].sort(
-    (a, b) => metric(b) - metric(a) || a.username.localeCompare(b.username, 'pt-BR'),
-  );
-
-  let previousValue: number | null = null;
-  let previousPosition = 0;
-  const ranked = sorted.map((grower, index) => {
-    const value = metric(grower);
-    const position = value === previousValue ? previousPosition : index + 1;
-    previousValue = value;
-    previousPosition = position;
-    return { position, grower, level: levelFor(grower.diaries) };
-  });
-
-  const normalizedQuery = normalize(query);
-  return normalizedQuery ? ranked.filter((entry) => normalize(entry.grower.username).includes(normalizedQuery)) : ranked;
+export interface RankingResult {
+  readonly entries: RankingEntry[];
+  readonly total: number;
 }
 
 export function initialOf(username: string): string {
   return (username.match(/[\p{L}\p{N}]/u)?.[0] ?? '?').toUpperCase();
-}
-
-function normalize(text: string): string {
-  return text.trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/\p{M}/gu, '');
 }

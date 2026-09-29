@@ -42,20 +42,44 @@ class ReviewTest {
         Strain strain = Strain.register("Gorilla Glue #4", null, CLOCK);
         Ratings ratings = new Ratings(4, 4, 4, 4, 4);
 
-        assertThatThrownBy(() -> Review.submit(grow(false), OWNER, strain, ratings, REPORT, CLOCK))
+        assertThatThrownBy(() -> Review.submit(grow(false), OWNER, strain, ratings, null, null, REPORT, CLOCK))
                 .isInstanceOf(DomainException.class)
                 .hasMessageContaining("concluir");
-        assertThatThrownBy(() -> Review.submit(grow(true), UUID.randomUUID(), strain, ratings, REPORT, CLOCK))
+        assertThatThrownBy(() -> Review.submit(grow(true), UUID.randomUUID(), strain, ratings, null, null, REPORT, CLOCK))
                 .isInstanceOf(DomainException.class);
-        assertThat(Review.submit(grow(true), OWNER, strain, ratings, REPORT, CLOCK).strainId()).isEqualTo(strain.id());
+        assertThat(Review.submit(grow(true), OWNER, strain, ratings, null, null, REPORT, CLOCK).strainId()).isEqualTo(strain.id());
     }
 
     @Test
     void reportNeedsMinimumContent() {
         Strain strain = Strain.register("Gorilla Glue #4", null, CLOCK);
 
-        assertThatThrownBy(() -> Review.submit(grow(true), OWNER, strain, new Ratings(4, 4, 4, 4, 4), "top", CLOCK))
+        assertThatThrownBy(() -> Review.submit(grow(true), OWNER, strain, new Ratings(4, 4, 4, 4, 4), null, null,
+                "top", CLOCK))
                 .isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void seedbankCanOnlyBeRatedWhenTheDiaryNamesOne() {
+        Strain strain = Strain.register("Gorilla Glue #4", null, CLOCK);
+        SeedbankRatings seedbankRatings = new SeedbankRatings(5, 4, 3);
+
+        assertThatThrownBy(() -> Review.submit(grow(true), OWNER, strain, new Ratings(4, 4, 4, 4, 4), null,
+                seedbankRatings, REPORT, CLOCK))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("banco de sementes");
+
+        Seedbank seedbank = Seedbank.register("GG Strains", CLOCK);
+        Review review = Review.submit(grow(true), OWNER, strain, new Ratings(4, 4, 4, 4, 4), seedbank,
+                seedbankRatings, REPORT, CLOCK);
+        assertThat(review.seedbankId()).contains(seedbank.id());
+        assertThat(seedbankRatings.average()).isEqualByComparingTo("4.0");
+    }
+
+    @Test
+    void seedbankNamesAreNormalizedLikeStrains() {
+        assertThat(Seedbank.keyOf("Royal Queen Seeds")).isEqualTo(Seedbank.keyOf("royal-queen  seeds"));
+        assertThatThrownBy(() -> new SeedbankRatings(0, 3, 3)).isInstanceOf(DomainException.class);
     }
 
     private static ReviewedGrow grow(boolean completed) {

@@ -6,6 +6,7 @@ import br.com.weediario.diary.domain.model.GrowAge;
 import br.com.weediario.diary.domain.model.GrowDiary;
 import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowthStage;
+import br.com.weediario.diary.domain.model.Harvest;
 import br.com.weediario.diary.domain.model.SeedSex;
 import br.com.weediario.diary.domain.model.SetupSnapshot;
 import br.com.weediario.diary.domain.model.Visibility;
@@ -29,6 +30,7 @@ public record GrowDiaryView(
         Visibility visibility,
         LocalDate startedOn,
         LocalDate endedOn,
+        Harvest harvest,
         GrowthStage currentStage,
         LocalDate lastUpdateOn,
         long currentDay,
@@ -49,6 +51,7 @@ public record GrowDiaryView(
                 diary.visibility(),
                 diary.startedOn(),
                 diary.endedOn(),
+                diary.harvest().orElse(null),
                 diary.currentStage(),
                 diary.lastUpdateOn(),
                 age.day(),

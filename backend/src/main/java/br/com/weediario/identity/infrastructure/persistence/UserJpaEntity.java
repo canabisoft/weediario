@@ -41,6 +41,12 @@ public class UserJpaEntity {
     @Column(nullable = false, length = 20)
     private AccountStatus status;
 
+    @Column(length = User.BIO_MAX_LENGTH)
+    private String bio;
+
+    @Column(name = "avatar_image_id")
+    private UUID avatarImageId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -58,6 +64,8 @@ public class UserJpaEntity {
         entity.passwordHash = user.passwordHash().value();
         entity.role = user.role();
         entity.status = user.status();
+        entity.bio = user.bio().orElse(null);
+        entity.avatarImageId = user.avatarImageId().orElse(null);
         entity.createdAt = user.createdAt();
         entity.updatedAt = user.updatedAt();
         return entity;
@@ -65,6 +73,6 @@ public class UserJpaEntity {
 
     User toDomain() {
         return User.restore(new UserId(id), new Username(username), new Email(email), new PasswordHash(passwordHash),
-                role, status, createdAt, updatedAt);
+                role, status, bio, avatarImageId, createdAt, updatedAt);
     }
 }

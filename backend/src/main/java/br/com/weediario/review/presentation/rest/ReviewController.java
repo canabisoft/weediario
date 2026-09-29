@@ -37,6 +37,9 @@ public class ReviewController {
                 request.easeOfGrowth(),
                 request.yield(),
                 request.terpeneProfile(),
+                request.seedbankGermination(),
+                request.seedbankStability(),
+                request.seedbankService(),
                 request.report()));
     }
 }

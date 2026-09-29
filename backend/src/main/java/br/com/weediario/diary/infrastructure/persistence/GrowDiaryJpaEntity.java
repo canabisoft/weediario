@@ -6,6 +6,7 @@ import br.com.weediario.diary.domain.model.GrowDiary;
 import br.com.weediario.diary.domain.model.GrowDiaryId;
 import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowthStage;
+import br.com.weediario.diary.domain.model.Harvest;
 import br.com.weediario.diary.domain.model.GrowerId;
 import br.com.weediario.diary.domain.model.SeedSex;
 import br.com.weediario.diary.domain.model.SetupSnapshot;
@@ -74,6 +75,12 @@ public class GrowDiaryJpaEntity {
     @Column(name = "ended_on")
     private LocalDate endedOn;
 
+    @Column(name = "harvest_dry_grams")
+    private Integer harvestDryGrams;
+
+    @Column(name = "harvest_plants")
+    private Integer harvestPlants;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "current_stage", nullable = false, length = 20)
     private GrowthStage currentStage;
@@ -105,6 +112,8 @@ public class GrowDiaryJpaEntity {
         entity.visibility = diary.visibility();
         entity.startedOn = diary.startedOn();
         entity.endedOn = diary.endedOn();
+        entity.harvestDryGrams = diary.harvest().map(Harvest::dryGrams).orElse(null);
+        entity.harvestPlants = diary.harvest().map(Harvest::plants).orElse(null);
         entity.currentStage = diary.currentStage();
         entity.lastUpdateOn = diary.lastUpdateOn();
         entity.createdAt = diary.createdAt();
@@ -114,7 +123,8 @@ public class GrowDiaryJpaEntity {
 
     GrowDiary toDomain() {
         return GrowDiary.restore(new GrowDiaryId(id), new GrowerId(ownerId), title, new Strain(strainName, breeder),
-                floweringType, seedSex, medium, setupSnapshot, status, visibility, startedOn, endedOn, currentStage, lastUpdateOn,
+                floweringType, seedSex, medium, setupSnapshot, status, visibility, startedOn, endedOn,
+                harvestDryGrams == null ? null : new Harvest(harvestDryGrams, harvestPlants), currentStage, lastUpdateOn,
                 createdAt, updatedAt);
     }
 }

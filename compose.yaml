@@ -65,6 +65,35 @@ services:
     tmpfs:
       - /tmp
 
+  # HTTPS com certificado automático (Let's Encrypt) na frente do nginx:
+  #   WEEDIARIO_DOMAIN=seu.dominio.com docker compose --profile https up -d
+  # Com WEEDIARIO_DOMAIN=localhost, usa uma CA local do Caddy para testar na máquina.
+  caddy:
+    image: caddy:2.10-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_healthy
+    environment:
+      WEEDIARIO_DOMAIN: ${WEEDIARIO_DOMAIN:-localhost}
+    ports:
+      - "${WEEDIARIO_HTTP_PUBLIC_PORT:-80}:80"
+      - "${WEEDIARIO_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
   # Banco acessível no host só quando pedido, para rodar o backend fora do Docker (mvn spring-boot:run):
   #   docker compose --profile dev up -d
   postgres-port:
@@ -80,3 +109,5 @@ services:
 volumes:
   pgdata:
   images:
+  caddy_data:
+  caddy_config:

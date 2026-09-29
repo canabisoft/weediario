@@ -4,6 +4,7 @@ import br.com.weediario.diary.domain.model.DiaryStatus;
 import br.com.weediario.diary.domain.model.FloweringType;
 import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowthStage;
+import br.com.weediario.diary.domain.model.Harvest;
 import br.com.weediario.diary.domain.model.SeedSex;
 import br.com.weediario.diary.domain.model.SetupSnapshot;
 import br.com.weediario.diary.domain.model.Visibility;
@@ -19,7 +20,10 @@ import java.util.UUID;
  */
 public interface DiaryReadModel {
 
-    PageResult<DiarySummary> publicFeed(FeedFilter filter, PageQuery page);
+    /**
+     * @param viewerId necessário para o filtro {@link FeedFilter#following()}
+     */
+    PageResult<DiarySummary> publicFeed(FeedFilter filter, Optional<UUID> viewerId, PageQuery page);
 
     PageResult<DiarySummary> ownedBy(UUID ownerId, PageQuery page);
 
@@ -31,9 +35,12 @@ public interface DiaryReadModel {
             DiaryStatus status,
             FloweringType floweringType,
             String strain,
-            FeedSort sort) {
+            FeedSort sort,
+            boolean following,
+            String author) {
 
         public FeedFilter {
+            author = author == null || author.isBlank() ? null : author.strip();
             strain = strain == null || strain.isBlank() ? null : strain.strip();
             sort = sort == null ? FeedSort.RECENTLY_UPDATED : sort;
         }
@@ -64,6 +71,7 @@ public interface DiaryReadModel {
             LocalDate startedOn,
             LocalDate endedOn,
             LocalDate lastUpdateOn,
+            Harvest harvest,
             long updatesCount,
             long commentsCount,
             long reactionsCount,

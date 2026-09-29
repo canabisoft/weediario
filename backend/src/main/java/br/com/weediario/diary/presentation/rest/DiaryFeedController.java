@@ -36,10 +36,13 @@ public class DiaryFeedController {
                                       @RequestParam(required = false) FloweringType floweringType,
                                       @RequestParam(required = false) @Size(max = Strain.NAME_MAX_LENGTH) String strain,
                                       @RequestParam(required = false) FeedSort sort,
+                                      @RequestParam(defaultValue = "false") boolean following,
+                                      @RequestParam(required = false) @Size(max = 30) String author,
+                                      @AuthenticationPrincipal Jwt principal,
                                       @RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "20") int size) {
-        return browseDiaries.feed(new FeedFilter(stage, medium, status, floweringType, strain, sort),
-                new PageQuery(page, size));
+        return browseDiaries.feed(new FeedFilter(stage, medium, status, floweringType, strain, sort, following, author),
+                Viewer.idOf(principal), new PageQuery(page, size));
     }
 
     @GetMapping("/api/v1/me/diaries")

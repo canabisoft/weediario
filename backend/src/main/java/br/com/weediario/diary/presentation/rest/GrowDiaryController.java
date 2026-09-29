@@ -9,6 +9,7 @@ import br.com.weediario.diary.application.usecase.FinishGrowDiaryUseCase;
 import br.com.weediario.diary.presentation.rest.dto.ChangeVisibilityRequest;
 import br.com.weediario.diary.presentation.rest.dto.CompleteGrowDiaryRequest;
 import br.com.weediario.diary.presentation.rest.dto.CreateGrowDiaryRequest;
+import br.com.weediario.diary.presentation.rest.dto.RecordHarvestRequest;
 import br.com.weediario.shared.presentation.Viewer;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -68,7 +69,13 @@ public class GrowDiaryController {
     public GrowDiaryView complete(@AuthenticationPrincipal Jwt principal, @PathVariable UUID diaryId,
                                   @Valid @RequestBody(required = false) CompleteGrowDiaryRequest request) {
         return finishGrowDiary.complete(diaryId, Viewer.requireId(principal),
-                request == null ? null : request.harvestedOn());
+                request == null ? null : request.harvestedOn(), request == null ? null : request.harvest());
+    }
+
+    @PutMapping("/{diaryId}/harvest")
+    public GrowDiaryView recordHarvest(@AuthenticationPrincipal Jwt principal, @PathVariable UUID diaryId,
+                                       @Valid @RequestBody RecordHarvestRequest request) {
+        return finishGrowDiary.recordHarvest(diaryId, Viewer.requireId(principal), request.harvest());
     }
 
     @PostMapping("/{diaryId}/cancel")

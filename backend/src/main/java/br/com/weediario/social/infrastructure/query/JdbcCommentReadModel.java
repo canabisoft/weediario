@@ -39,13 +39,15 @@ public class JdbcCommentReadModel implements CommentReadModel {
                 .addValue("offset", page.offset());
         Long total = jdbc.queryForObject("select count(*) " + FROM, params, Long.class);
         List<CommentView> items = jdbc.query("""
-                select c.id, u.username, c.author_id = d.owner_id as by_diary_author, c.body, c.created_at,
+                select c.id, u.username, u.avatar_image_id is not null as has_avatar,
+                       c.author_id = d.owner_id as by_diary_author, c.body, c.created_at,
                        coalesce(c.author_id = :viewerId or d.owner_id = :viewerId, false) as deletable
                 """ + FROM + " order by c.created_at, c.id limit :limit offset :offset",
                 params,
                 (rs, rowNum) -> new CommentView(
                         rs.getObject("id", UUID.class),
                         rs.getString("username"),
+                        rs.getBoolean("has_avatar"),
                         rs.getBoolean("by_diary_author"),
                         rs.getString("body"),
                         rs.getTimestamp("created_at").toInstant(),

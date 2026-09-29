@@ -5,6 +5,7 @@ import br.com.weediario.shared.domain.Guard;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -21,34 +22,49 @@ public final class Review {
     private final UUID diaryId;
     private final UUID authorId;
     private final Ratings ratings;
+    private final UUID seedbankId;
+    private final SeedbankRatings seedbankRatings;
     private final String report;
     private final Instant createdAt;
 
-    private Review(UUID id, StrainId strainId, UUID diaryId, UUID authorId, Ratings ratings, String report,
-                   Instant createdAt) {
+    private Review(UUID id, StrainId strainId, UUID diaryId, UUID authorId, Ratings ratings, UUID seedbankId,
+                   SeedbankRatings seedbankRatings, String report, Instant createdAt) {
         this.id = Guard.notNull(id, "Id");
         this.strainId = Guard.notNull(strainId, "Strain");
         this.diaryId = Guard.notNull(diaryId, "Diário");
         this.authorId = Guard.notNull(authorId, "Autor");
         this.ratings = Guard.notNull(ratings, "Notas");
+        if ((seedbankId == null) != (seedbankRatings == null)) {
+            throw new DomainException("Avaliação do banco de sementes incompleta");
+        }
+        this.seedbankId = seedbankId;
+        this.seedbankRatings = seedbankRatings;
         this.report = validReport(report);
         this.createdAt = Guard.notNull(createdAt, "Data de criação");
     }
 
-    public static Review submit(ReviewedGrow grow, UUID authorId, Strain strain, Ratings ratings, String report,
-                                Clock clock) {
+    /**
+     * @param seedbank        banco de sementes do diário; obrigatório quando houver {@code seedbankRatings}
+     * @param seedbankRatings notas do banco; opcionais
+     */
+    public static Review submit(ReviewedGrow grow, UUID authorId, Strain strain, Ratings ratings,
+                                Seedbank seedbank, SeedbankRatings seedbankRatings, String report, Clock clock) {
         if (!grow.ownerId().equals(authorId)) {
             throw new DomainException("Apenas o autor do diário pode avaliar o cultivo");
         }
         if (!grow.completed()) {
             throw new DomainException("Só é possível avaliar a genética depois de concluir o cultivo");
         }
-        return new Review(UUID.randomUUID(), strain.id(), grow.diaryId(), authorId, ratings, report, clock.instant());
+        if (seedbankRatings != null && seedbank == null) {
+            throw new DomainException("O diário não informa o banco de sementes, então ele não pode ser avaliado");
+        }
+        return new Review(UUID.randomUUID(), strain.id(), grow.diaryId(), authorId, ratings,
+                seedbankRatings == null ? null : seedbank.id(), seedbankRatings, report, clock.instant());
     }
 
     public static Review restore(UUID id, StrainId strainId, UUID diaryId, UUID authorId, Ratings ratings,
-                                 String report, Instant createdAt) {
-        return new Review(id, strainId, diaryId, authorId, ratings, report, createdAt);
+                                 UUID seedbankId, SeedbankRatings seedbankRatings, String report, Instant createdAt) {
+        return new Review(id, strainId, diaryId, authorId, ratings, seedbankId, seedbankRatings, report, createdAt);
     }
 
     /** Texto guardado como veio (o Angular faz o escape); só removemos caracteres de controle. */
@@ -75,6 +91,14 @@ public final class Review {
 
     public Ratings ratings() {
         return ratings;
+    }
+
+    public Optional<UUID> seedbankId() {
+        return Optional.ofNullable(seedbankId);
+    }
+
+    public Optional<SeedbankRatings> seedbankRatings() {
+        return Optional.ofNullable(seedbankRatings);
     }
 
     public String report() {

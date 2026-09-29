@@ -21,6 +21,11 @@ export function formatDecimal(value: number, decimals: number): string {
   );
 }
 
+/** Até {@code maxDecimals} casas, só quando necessárias: 120 → "120", 120.5 → "120,5". */
+export function formatCompact(value: number, maxDecimals = 1): string {
+  return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: maxDecimals }).format(value);
+}
+
 export function formatInteger(value: number): string {
   return pt.format(Math.round(value));
 }

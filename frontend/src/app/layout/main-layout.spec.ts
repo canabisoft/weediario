@@ -1,7 +1,10 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter, withComponentInputBinding } from '@angular/router';
+import { of } from 'rxjs';
 import { routes } from '../app.routes';
-import { GROWER_RANKING_SOURCE, SampleGrowerRankingSource } from '../growers/grower-ranking.source';
+import { GROWER_RANKING_SOURCE } from '../growers/grower-ranking.source';
 import { MainLayout } from './main-layout';
 
 describe('MainLayout', () => {
@@ -11,7 +14,9 @@ describe('MainLayout', () => {
       imports: [MainLayout],
       providers: [
         provideRouter(routes, withComponentInputBinding()),
-        { provide: GROWER_RANKING_SOURCE, useClass: SampleGrowerRankingSource },
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: GROWER_RANKING_SOURCE, useValue: { load: () => of({ entries: [], total: 0 }) } },
       ],
     }).compileComponents();
   });
@@ -63,6 +68,12 @@ describe('MainLayout', () => {
     await fixture.whenStable();
 
     expect(TestBed.inject(Router).url).toBe('/growers?q=kaya');
+  });
+
+  it('offers login when nobody is signed in', async () => {
+    const { root } = await render();
+
+    expect(root.querySelector('header a[href="/entrar"]')).not.toBeNull();
   });
 
   it('toggles night mode with one tap from the header', async () => {

@@ -2,6 +2,7 @@ package br.com.weediario.shared.presentation;
 
 import br.com.weediario.diary.application.exception.GrowerNotAllowedException;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
+import br.com.weediario.identity.application.exception.LoginThrottledException;
 import br.com.weediario.identity.application.exception.RegistrationRejectedException;
 import br.com.weediario.media.application.exception.InvalidImageException;
 import br.com.weediario.shared.application.ResourceNotFoundException;
@@ -45,6 +46,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     ProblemDetail handleNotFound(ResourceNotFoundException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(LoginThrottledException.class)
+    ResponseEntity<ProblemDetail> handleThrottled(LoginThrottledException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.retryAfter().toSeconds())))
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)

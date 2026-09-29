@@ -22,6 +22,21 @@ const PATHS = {
   flame: 'M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.7 1.2 2.7 2.5 3 0-3-1-5.5 0-8z',
   scale: 'M12 4v16M6 20h12M5 8h14M7 8l-3 6a3 3 0 0 0 6 0zM17 8l-3 6a3 3 0 0 0 6 0z',
   user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+  camera: 'M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  image: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15.5 9.5h.01',
+  trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+  eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  eyeOff: 'M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6',
+  chat: 'M4 5h16v11H9l-5 4z',
+  check: 'M5 12.5l4.5 4.5L19 7.5',
+  logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
+  edit: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',
+  star: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z',
+  arrowLeft: 'M19 12H5M11 6l-6 6 6 6',
+  flag: 'M5 21V4h11l-2 4 2 4H5',
+  send: 'M4 12l16-8-6 16-3-7z',
+  userPlus: 'M10 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM3 21a7 7 0 0 1 12.5-4.3M19 14v6M16 17h6',
+  scissors: 'M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.1 7.9 20 20M8.1 16.1 20 4',
 } as const;
 
 export type IconName = keyof typeof PATHS;
@@ -31,7 +46,13 @@ export type IconName = keyof typeof PATHS;
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { 'aria-hidden': 'true', class: 'inline-block shrink-0' },
   template: `
-    <svg viewBox="0 0 24 24" class="size-full fill-none stroke-current" [attr.stroke-width]="strokeWidth()">
+    <svg
+      viewBox="0 0 24 24"
+      class="size-full stroke-current"
+      [class.fill-none]="!filled()"
+      [class.fill-current]="filled()"
+      [attr.stroke-width]="strokeWidth()"
+    >
       <path [attr.d]="path()" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
   `,
@@ -39,6 +60,7 @@ export type IconName = keyof typeof PATHS;
 export class Icon {
   readonly name = input.required<IconName>();
   readonly strokeWidth = input(1.8);
+  readonly filled = input(false);
 
   protected readonly path = computed(() => PATHS[this.name()]);
 }

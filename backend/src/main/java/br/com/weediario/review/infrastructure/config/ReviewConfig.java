@@ -1,10 +1,13 @@
 package br.com.weediario.review.infrastructure.config;
 
 import br.com.weediario.review.application.port.ReviewedGrows;
+import br.com.weediario.review.application.query.BrowseSeedbanksUseCase;
 import br.com.weediario.review.application.query.BrowseStrainsUseCase;
+import br.com.weediario.review.application.query.SeedbankCatalog;
 import br.com.weediario.review.application.query.StrainCatalog;
 import br.com.weediario.review.application.usecase.SubmitReviewUseCase;
 import br.com.weediario.review.domain.repository.ReviewRepository;
+import br.com.weediario.review.domain.repository.SeedbankRepository;
 import br.com.weediario.review.domain.repository.StrainRepository;
 import br.com.weediario.shared.application.UnitOfWork;
 import org.springframework.context.annotation.Bean;
@@ -16,9 +19,15 @@ import java.time.Clock;
 public class ReviewConfig {
 
     @Bean
-    SubmitReviewUseCase submitReviewUseCase(ReviewedGrows grows, StrainRepository strains, ReviewRepository reviews,
+    SubmitReviewUseCase submitReviewUseCase(ReviewedGrows grows, StrainRepository strains,
+                                            SeedbankRepository seedbanks, ReviewRepository reviews,
                                             UnitOfWork unitOfWork, Clock clock) {
-        return new SubmitReviewUseCase(grows, strains, reviews, unitOfWork, clock);
+        return new SubmitReviewUseCase(grows, strains, seedbanks, reviews, unitOfWork, clock);
+    }
+
+    @Bean
+    BrowseSeedbanksUseCase browseSeedbanksUseCase(SeedbankCatalog catalog) {
+        return new BrowseSeedbanksUseCase(catalog);
     }
 
     @Bean

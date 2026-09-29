@@ -3,6 +3,7 @@ package br.com.weediario.diary.application.usecase;
 import br.com.weediario.diary.application.DiaryAccess;
 import br.com.weediario.diary.application.GrowDiaryView;
 import br.com.weediario.diary.domain.model.GrowDiary;
+import br.com.weediario.diary.domain.model.Harvest;
 import br.com.weediario.diary.domain.repository.GrowDiaryRepository;
 import br.com.weediario.shared.application.UnitOfWork;
 
@@ -27,10 +28,19 @@ public final class FinishGrowDiaryUseCase {
         this.clock = clock;
     }
 
-    public GrowDiaryView complete(UUID diaryId, UUID ownerId, LocalDate harvestedOn) {
+    public GrowDiaryView complete(UUID diaryId, UUID ownerId, LocalDate harvestedOn, Harvest harvest) {
         return unitOfWork.execute(() -> {
             GrowDiary diary = access.ownedBy(diaryId, ownerId);
-            diary.complete(harvestedOn == null ? LocalDate.now(clock) : harvestedOn, clock);
+            diary.complete(harvestedOn == null ? LocalDate.now(clock) : harvestedOn, harvest, clock);
+            return GrowDiaryView.of(diaries.save(diary), LocalDate.now(clock));
+        });
+    }
+
+    /** Peso seco informado depois da secagem/cura. */
+    public GrowDiaryView recordHarvest(UUID diaryId, UUID ownerId, Harvest harvest) {
+        return unitOfWork.execute(() -> {
+            GrowDiary diary = access.ownedBy(diaryId, ownerId);
+            diary.recordHarvest(harvest, clock);
             return GrowDiaryView.of(diaries.save(diary), LocalDate.now(clock));
         });
     }
