@@ -1,9 +1,12 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter, withComponentInputBinding } from '@angular/router';
 import { of } from 'rxjs';
 import { routes } from '../app.routes';
+import { AuthService } from '../core/auth/auth.service';
+import { NotificationCenter } from '../core/notifications/notification-center';
 import { GROWER_RANKING_SOURCE } from '../growers/grower-ranking.source';
 import { MainLayout } from './main-layout';
 
@@ -17,6 +20,8 @@ describe('MainLayout', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: GROWER_RANKING_SOURCE, useValue: { load: () => of({ entries: [], total: 0 }) } },
+        // Sem canal em tempo real nos testes: só o contador.
+        { provide: NotificationCenter, useValue: { unread: signal(7), live: signal(true) } },
       ],
     }).compileComponents();
   });
@@ -85,5 +90,20 @@ describe('MainLayout', () => {
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('night');
     expect(button.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('shows the notification bell with the unread counter, and the moderation link only to moderators', async () => {
+    const auth = TestBed.inject(AuthService);
+    auth.me.set({ id: 'u1', username: 'maria', email: 'm@example.org', hasAvatar: false, role: 'GROWER' });
+    const { fixture, root } = await render();
+
+    const bell = root.querySelector('header a[href="/notificacoes"]')!;
+    expect(bell.getAttribute('aria-label')).toBe('Notificações, 7 não lidas');
+    expect(bell.textContent).toContain('7');
+    expect(root.querySelector('nav a[href="/moderacao"]')).toBeNull();
+
+    auth.me.set({ id: 'u1', username: 'maria', email: 'm@example.org', hasAvatar: false, role: 'MODERATOR' });
+    await fixture.whenStable();
+    expect(root.querySelector('nav a[href="/moderacao"]')?.textContent).toContain('Moderação');
   });
 });

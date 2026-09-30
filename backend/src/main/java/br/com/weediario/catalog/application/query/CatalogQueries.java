@@ -4,7 +4,9 @@ import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,6 +36,15 @@ public interface CatalogQueries {
     Optional<BreederListItem> breeder(UUID id);
 
     PageResult<RankingRow> ranking(RankingKind kind, String category, PageQuery page);
+
+    /**
+     * Fila da moderação: itens cadastrados pela comunidade que ainda não foram verificados, mais novos primeiro,
+     * cada um com os itens parecidos que podem ser a mesma coisa.
+     */
+    PageResult<PendingItem> pending(RankingKind kind, PageQuery page);
+
+    /** Tamanho da fila da moderação por tipo. */
+    Map<RankingKind, Long> pendingCounts();
 
     enum RankingKind {
         STRAINS,
@@ -71,5 +82,13 @@ public interface CatalogQueries {
      */
     record RankingRow(long position, UUID id, String name, String parentName, String category, long diaries,
                       long growers, BigDecimal avgGramsPerPlant) {
+    }
+
+    /**
+     * @param usage   diários (strains, breeders, produtos) ou produtos (marcas) que já usam o item
+     * @param similar itens parecidos, candidatos a duplicata
+     */
+    record PendingItem(UUID id, String name, UUID parentId, String parentName, String category, Instant createdAt,
+                       long usage, List<Suggestion> similar) {
     }
 }

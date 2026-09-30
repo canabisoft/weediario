@@ -4,6 +4,7 @@ import br.com.weediario.diary.application.query.BrowseDiariesUseCase;
 import br.com.weediario.diary.application.query.DiaryCard;
 import br.com.weediario.diary.application.query.DiaryReadModel.FeedFilter;
 import br.com.weediario.diary.application.query.DiaryReadModel.FeedSort;
+import br.com.weediario.diary.application.query.DiaryReadModel.PublicSetup;
 import br.com.weediario.diary.domain.model.DiaryStatus;
 import br.com.weediario.diary.domain.model.FloweringType;
 import br.com.weediario.diary.domain.model.GrowMedium;
@@ -16,8 +17,11 @@ import jakarta.validation.constraints.Size;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 public class DiaryFeedController {
@@ -50,5 +54,11 @@ public class DiaryFeedController {
                                       @RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "20") int size) {
         return browseDiaries.mine(Viewer.requireId(principal), new PageQuery(page, size));
+    }
+
+    /** Perfil público: setups que o grower já usou em diários públicos (nada que não esteja já visível num diário). */
+    @GetMapping("/api/v1/growers/{username}/setups")
+    public List<PublicSetup> publicSetups(@PathVariable @Size(max = 30) String username) {
+        return browseDiaries.publicSetups(username);
     }
 }

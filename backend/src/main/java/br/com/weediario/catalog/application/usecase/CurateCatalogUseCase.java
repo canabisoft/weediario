@@ -1,10 +1,14 @@
 package br.com.weediario.catalog.application.usecase;
 
 import br.com.weediario.catalog.application.CatalogItem;
-import br.com.weediario.catalog.application.ModeratorOnlyException;
+import br.com.weediario.catalog.domain.model.Brand;
+import br.com.weediario.catalog.domain.model.Breeder;
 import br.com.weediario.catalog.domain.model.CatalogStrain;
+import br.com.weediario.catalog.domain.model.Product;
 import br.com.weediario.catalog.domain.model.StrainTraits;
 import br.com.weediario.catalog.domain.repository.CatalogRepository;
+import br.com.weediario.catalog.domain.repository.CatalogRepository.ItemKind;
+import br.com.weediario.shared.application.ModeratorOnlyException;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
@@ -78,24 +82,79 @@ public final class CurateCatalogUseCase {
     }
 
     /**
-     * Junta uma strain duplicada na principal. O nome da duplicada vira apelido, então quem digitar
-     * aquele nome no futuro cai direto na principal.
+     * Junta um item duplicado no principal. O nome do duplicado vira apelido, então quem digitar
+     * aquele nome no futuro cai direto no principal. Ao juntar breeders (ou marcas), strains (ou produtos)
+     * com o mesmo nome nos dois também são juntadas.
      */
-    public CatalogItem merge(UUID duplicateId, UUID targetId, boolean moderator) {
+    public CatalogItem merge(Kind kind, UUID duplicateId, UUID targetId, boolean moderator) {
         requireModerator(moderator);
         if (duplicateId.equals(targetId)) {
-            throw new DomainException("Escolha duas strains diferentes");
+            throw new DomainException("Escolha dois itens diferentes");
         }
-        return unitOfWork.execute(() -> {
-            CatalogStrain duplicate = strain(duplicateId);
-            CatalogStrain target = strain(targetId);
-            // Informações que só a duplicada tinha não se perdem.
-            if (target.enrich(duplicate.traits(), clock)) {
-                catalog.saveStrain(target);
+        return unitOfWork.execute(() -> switch (kind) {
+            case STRAIN -> CatalogItem.of(mergeStrains(duplicateId, targetId));
+            case BREEDER -> {
+                breeder(duplicateId);
+                Breeder target = breeder(targetId);
+                catalog.strainCollisions(duplicateId, targetId)
+                        .forEach(collision -> mergeStrains(collision.duplicateId(), collision.targetId()));
+                catalog.mergeBreeder(duplicateId, targetId);
+                yield CatalogItem.of(target);
             }
-            catalog.mergeStrain(duplicate.id(), target.id());
-            return CatalogItem.of(target);
+            case BRAND -> {
+                brand(duplicateId);
+                Brand target = brand(targetId);
+                catalog.productCollisions(duplicateId, targetId)
+                        .forEach(collision -> catalog.mergeProduct(collision.duplicateId(), collision.targetId()));
+                catalog.mergeBrand(duplicateId, targetId);
+                yield CatalogItem.of(target);
+            }
+            case PRODUCT -> {
+                product(duplicateId);
+                Product target = product(targetId);
+                catalog.mergeProduct(duplicateId, targetId);
+                yield CatalogItem.of(target, brand(target.brandId()));
+            }
         });
+    }
+
+    /** Recusa um cadastro errado ou spam. Só dá para apagar o que ninguém usa; o resto precisa ser juntado. */
+    public void reject(Kind kind, UUID id, boolean moderator) {
+        requireModerator(moderator);
+        unitOfWork.run(() -> {
+            switch (kind) {
+                case STRAIN -> strain(id);
+                case BREEDER -> breeder(id);
+                case BRAND -> brand(id);
+                case PRODUCT -> product(id);
+            }
+            if (!catalog.deleteIfUnused(ItemKind.valueOf(kind.name()), id)) {
+                throw new DomainException("Este item já está em uso. Junte-o com o item certo em vez de apagar.");
+            }
+        });
+    }
+
+    private CatalogStrain mergeStrains(UUID duplicateId, UUID targetId) {
+        CatalogStrain duplicate = strain(duplicateId);
+        CatalogStrain target = strain(targetId);
+        // Informações que só a duplicada tinha não se perdem.
+        if (target.enrich(duplicate.traits(), clock)) {
+            catalog.saveStrain(target);
+        }
+        catalog.mergeStrain(duplicate.id(), target.id());
+        return target;
+    }
+
+    private Breeder breeder(UUID id) {
+        return catalog.findBreeder(id).orElseThrow(() -> new ResourceNotFoundException("Breeder"));
+    }
+
+    private Brand brand(UUID id) {
+        return catalog.findBrand(id).orElseThrow(() -> new ResourceNotFoundException("Marca"));
+    }
+
+    private Product product(UUID id) {
+        return catalog.findProduct(id).orElseThrow(() -> new ResourceNotFoundException("Produto"));
     }
 
     private CatalogStrain strain(UUID id) {

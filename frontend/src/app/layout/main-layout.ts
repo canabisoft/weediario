@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ConnectivityService } from '../core/network/connectivity.service';
 import { AuthService } from '../core/auth/auth.service';
+import { NotificationCenter } from '../core/notifications/notification-center';
 import { ThemeService } from '../core/theme/theme.service';
 import { Avatar } from '../shared/avatar';
 import { Icon, IconName } from '../shared/icon';
@@ -35,6 +36,7 @@ export class MainLayout {
   protected readonly theme = inject(ThemeService);
   protected readonly auth = inject(AuthService);
   protected readonly connectivity = inject(ConnectivityService);
+  protected readonly notifications = inject(NotificationCenter);
   private readonly router = inject(Router);
   /** Sem suporte a matchMedia (navegadores antigos), assume celular: a gaveta sempre funciona. */
   private readonly desktopMedia = desktopMediaQuery(inject(DOCUMENT).defaultView);
@@ -50,6 +52,9 @@ export class MainLayout {
     { path: '/growers', label: 'Ranking de growers', icon: 'trophy' },
     { path: '/equipamentos', label: 'Equipamentos', icon: 'bulb' },
   ];
+
+  /** Só aparece para moderadores (o backend também exige o papel). */
+  protected readonly moderationNav: NavItem = { path: '/moderacao', label: 'Moderação', icon: 'shield' };
 
   protected readonly secondaryNav: readonly NavItem[] = [
     { path: '/ferramentas', label: 'Ferramentas', icon: 'tools' },

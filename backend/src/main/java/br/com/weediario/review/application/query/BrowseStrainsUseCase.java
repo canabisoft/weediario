@@ -1,5 +1,6 @@
 package br.com.weediario.review.application.query;
 
+import br.com.weediario.review.application.query.StrainCatalog.AuthoredReview;
 import br.com.weediario.review.application.query.StrainCatalog.ReviewView;
 import br.com.weediario.review.application.query.StrainCatalog.StrainSummary;
 import br.com.weediario.shared.application.PageQuery;
@@ -22,6 +23,10 @@ public final class BrowseStrainsUseCase {
 
     public StrainSummary detail(UUID strainId) {
         return catalog.find(strainId).orElseThrow(() -> new ResourceNotFoundException("Strain"));
+    }
+
+    public PageResult<AuthoredReview> reviewsBy(String username, PageQuery page) {
+        return catalog.reviewsBy(username, page);
     }
 
     /** Lista vazia para strains do catálogo que ainda não receberam review. */

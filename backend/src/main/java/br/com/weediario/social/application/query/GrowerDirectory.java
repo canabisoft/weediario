@@ -33,10 +33,11 @@ public interface GrowerDirectory {
     }
 
     /**
+     * @param harvests         colheitas registradas em diários públicos
      * @param followedByViewer se quem está vendo segue este grower (falso para visitantes)
      * @param isViewer         se é o próprio perfil de quem está vendo
      */
-    record GrowerProfile(String username, String bio, boolean hasAvatar, long diaries, long likes,
+    record GrowerProfile(String username, String bio, boolean hasAvatar, long diaries, long likes, long harvests,
                          BigDecimal gramsPerPlant, long followers, boolean followedByViewer, boolean isViewer) {
     }
 

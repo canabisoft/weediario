@@ -6,6 +6,7 @@ import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
 import br.com.weediario.social.application.port.DiaryAudience;
+import br.com.weediario.social.application.port.InteractionNotifier;
 import br.com.weediario.social.application.port.Pseudonymizer;
 import br.com.weediario.social.application.query.CommentReadModel;
 import br.com.weediario.social.application.query.CommentReadModel.CommentView;
@@ -32,15 +33,18 @@ public final class DiaryCommentsUseCase {
     private final CommentRepository comments;
     private final CommentReadModel readModel;
     private final Pseudonymizer pseudonymizer;
+    private final InteractionNotifier notifier;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public DiaryCommentsUseCase(DiaryAudience diaries, CommentRepository comments, CommentReadModel readModel,
-                                Pseudonymizer pseudonymizer, UnitOfWork unitOfWork, Clock clock) {
+                                Pseudonymizer pseudonymizer, InteractionNotifier notifier, UnitOfWork unitOfWork,
+                                Clock clock) {
         this.diaries = diaries;
         this.comments = comments;
         this.readModel = readModel;
         this.pseudonymizer = pseudonymizer;
+        this.notifier = notifier;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -57,7 +61,9 @@ public final class DiaryCommentsUseCase {
         return unitOfWork.execute(() -> {
             CommentableDiary diary = visibleDiary(diaryId, Optional.of(authorId));
             ensureWithinRateLimit(authorId);
-            return comments.save(Comment.post(diary, authorId, body, clock)).id();
+            UUID id = comments.save(Comment.post(diary, authorId, body, clock)).id();
+            notifier.commentPosted(diary, authorId);
+            return id;
         });
     }
 

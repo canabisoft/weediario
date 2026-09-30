@@ -59,4 +59,43 @@ public interface CatalogRepository {
      * e o nome da duplicada vira apelido dela.
      */
     void mergeStrain(UUID duplicateId, UUID targetId);
+
+    /**
+     * Strains do breeder duplicado que já existem com o mesmo nome no breeder principal
+     * (precisam ser juntadas antes de mover o resto).
+     */
+    List<Collision> strainCollisions(UUID duplicateBreederId, UUID targetBreederId);
+
+    /**
+     * Junta um breeder duplicado no principal: strains, diários e reviews passam para o principal,
+     * e o nome do duplicado vira apelido. Colisões de strains precisam ter sido resolvidas antes.
+     */
+    void mergeBreeder(UUID duplicateId, UUID targetId);
+
+    /** Produtos da marca duplicada que já existem com o mesmo nome na marca principal. */
+    List<Collision> productCollisions(UUID duplicateBrandId, UUID targetBrandId);
+
+    /** Junta uma marca duplicada na principal. Colisões de produtos precisam ter sido resolvidas antes. */
+    void mergeBrand(UUID duplicateId, UUID targetId);
+
+    /** Junta um produto duplicado no principal: setups e diários passam a usar o principal. */
+    void mergeProduct(UUID duplicateId, UUID targetId);
+
+    /**
+     * Apaga um item que ninguém usa (cadastro errado ou spam).
+     *
+     * @return {@code false} se o item está em uso (diário, review, setup, strain ou produto ligado a ele)
+     */
+    boolean deleteIfUnused(ItemKind kind, UUID id);
+
+    enum ItemKind {
+        STRAIN,
+        BREEDER,
+        BRAND,
+        PRODUCT
+    }
+
+    /** Par duplicado/principal com o mesmo nome. */
+    record Collision(UUID duplicateId, UUID targetId) {
+    }
 }

@@ -4,10 +4,8 @@ import br.com.weediario.support.IntegrationTestSupport;
 import br.com.weediario.support.TestImages;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.io.ByteArrayInputStream;
 import java.time.LocalDate;
@@ -24,9 +22,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
-
-    @Autowired
-    JdbcTemplate jdbc;
 
     @Test
     void bruteForceLocksTheAccountWithoutStoringEmailOrIp() throws Exception {

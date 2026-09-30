@@ -1,6 +1,6 @@
 package br.com.weediario.shared.presentation;
 
-import br.com.weediario.catalog.application.ModeratorOnlyException;
+import br.com.weediario.shared.application.ModeratorOnlyException;
 import br.com.weediario.diary.application.exception.GrowerNotAllowedException;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
 import br.com.weediario.identity.application.exception.LoginThrottledException;

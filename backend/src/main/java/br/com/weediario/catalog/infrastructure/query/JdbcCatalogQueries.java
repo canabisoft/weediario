@@ -12,6 +12,7 @@ import java.sql.Array;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -230,6 +231,77 @@ public class JdbcCatalogQueries implements CatalogQueries {
                         rs.getString("parent_name"), rs.getString("category"), rs.getLong("diaries"),
                         rs.getLong("growers"), rs.getBigDecimal("avg_gpp")));
         return PageResult.of(items, page, total == null ? 0 : total);
+    }
+
+    // ------------------------------------------------------------------------------------- moderação
+
+    /**
+     * Por tipo: a tabela com alias {@code i} (com as colunas de {@link Suggestion} e {@code created_at}) e a
+     * {@code name_key} usada na comparação de semelhança. Escolhido por enum, nunca por texto do usuário.
+     */
+    private static final Map<RankingKind, String> QUEUE_SOURCE = Map.of(
+            RankingKind.STRAINS, """
+                    select s.id, s.name, s.name_key, b.id as parent_id, b.name as parent_name, null as category,
+                           s.status, s.source, s.created_at,
+                           (select count(*) from grow_diaries d where d.strain_id = s.id) as usage
+                      from strains s left join breeders b on b.id = s.breeder_id""",
+            RankingKind.BREEDERS, """
+                    select b.id, b.name, b.name_key, null as parent_id, null as parent_name, null as category,
+                           b.status, b.source, b.created_at,
+                           (select count(*) from grow_diaries d where d.breeder_id = b.id) as usage
+                      from breeders b""",
+            RankingKind.BRANDS, """
+                    select br.id, br.name, br.name_key, null as parent_id, null as parent_name, null as category,
+                           br.status, br.source, br.created_at,
+                           (select count(*) from products p where p.brand_id = br.id) as usage
+                      from brands br""",
+            RankingKind.PRODUCTS, """
+                    select p.id, p.name, p.name_key, br.id as parent_id, br.name as parent_name, p.category,
+                           p.status, p.source, p.created_at,
+                           (select count(*) from diary_products dp where dp.product_id = p.id) as usage
+                      from products p join brands br on br.id = p.brand_id""");
+
+    private static final String PENDING = " where i.status = 'UNVERIFIED' and i.source = 'COMMUNITY'";
+    private static final double DUPLICATE_SIMILARITY = 0.4;
+    private static final int DUPLICATE_CANDIDATES = 3;
+
+    @Override
+    public PageResult<PendingItem> pending(RankingKind kind, PageQuery page) {
+        String source = "(" + QUEUE_SOURCE.get(kind) + ") i";
+        MapSqlParameterSource params = new MapSqlParameterSource("limit", page.size()).addValue("offset", page.offset());
+        Long total = jdbc.queryForObject("select count(*) from " + source + PENDING, params, Long.class);
+        List<PendingItem> items = jdbc.query("select i.* from " + source + PENDING
+                        + " order by i.created_at desc, i.id limit :limit offset :offset",
+                params,
+                (rs, n) -> new PendingItem(rs.getObject("id", UUID.class), rs.getString("name"),
+                        rs.getObject("parent_id", UUID.class), rs.getString("parent_name"), rs.getString("category"),
+                        rs.getTimestamp("created_at").toInstant(), rs.getLong("usage"), List.of()));
+        return PageResult.of(items.stream().map(item -> withSimilar(source, item)).toList(), page,
+                total == null ? 0 : total);
+    }
+
+    private PendingItem withSimilar(String source, PendingItem item) {
+        List<Suggestion> similar = jdbc.query("""
+                select i.* from %s, (select name_key from %s where i.id = :id) target
+                 where i.id <> :id and similarity(i.name_key, target.name_key) >= :min
+                 order by similarity(i.name_key, target.name_key) desc, i.usage desc, i.name
+                 limit :limit""".formatted(source, source),
+                new MapSqlParameterSource("id", item.id()).addValue("min", DUPLICATE_SIMILARITY)
+                        .addValue("limit", DUPLICATE_CANDIDATES),
+                (rs, n) -> suggestion(rs));
+        return new PendingItem(item.id(), item.name(), item.parentId(), item.parentName(), item.category(),
+                item.createdAt(), item.usage(), similar);
+    }
+
+    @Override
+    public Map<RankingKind, Long> pendingCounts() {
+        Map<RankingKind, Long> counts = new EnumMap<>(RankingKind.class);
+        for (RankingKind kind : RankingKind.values()) {
+            Long count = jdbc.queryForObject("select count(*) from (" + QUEUE_SOURCE.get(kind) + ") i" + PENDING,
+                    new MapSqlParameterSource(), Long.class);
+            counts.put(kind, count == null ? 0 : count);
+        }
+        return counts;
     }
 
     // ----------------------------------------------------------------------------------------- helpers

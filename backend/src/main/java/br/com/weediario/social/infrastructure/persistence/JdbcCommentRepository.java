@@ -70,6 +70,12 @@ public class JdbcCommentRepository implements CommentRepository {
         return total == null ? 0 : total;
     }
 
+    @Override
+    public void clearReports(UUID commentId) {
+        jdbc.update("delete from comment_reports where comment_id = :commentId",
+                new MapSqlParameterSource("commentId", commentId));
+    }
+
     private static final RowMapper<Comment> MAPPER = (rs, rowNum) -> Comment.restore(
             rs.getObject("id", UUID.class),
             rs.getObject("diary_id", UUID.class),

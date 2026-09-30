@@ -55,6 +55,22 @@ de acesso e não repassa o IP do visitante. O cookie de sessão é `Secure` e s�
 - Containers somente leitura e sem capabilities; app, API e nginx rodam sem root (o Caddy só tem a permissão de
   abrir as portas 80/443).
 - Segredos só no `.env` (fora do git), gerados aleatoriamente pelo script.
+- Notificações guardam só ids (nunca quem reagiu ou quem seguiu) e são apagadas depois de 90 dias. O canal em
+  tempo real (Server-Sent Events) só transmite o contador de não lidas.
+
+### Moderação
+
+O painel `/moderacao` (denúncias de comentários e cadastros da comunidade no catálogo) aparece para contas com papel
+`MODERATOR` ou `ADMIN`. Ainda não há tela para promover alguém; use o banco e peça para a pessoa entrar de novo
+(o papel vai no token de acesso):
+
+```sh
+docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "update users set role = '"'"'MODERATOR'"'"' where username = '"'"'apelido'"'"'"'
+```
+
+O canal de notificações guarda as conexões abertas em memória: com mais de uma instância do backend, cada uma só
+avisa quem está conectado nela (para escalar, trocar o `SseNotificationHub` por um pub/sub, como o LISTEN/NOTIFY
+do Postgres).
 
 ## Desenvolvimento local
 

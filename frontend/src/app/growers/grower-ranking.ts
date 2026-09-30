@@ -40,6 +40,25 @@ export function levelFor(diaries: number): GrowerLevel {
   return GROWER_LEVELS.find((level) => diaries >= level.minDiaries) ?? GROWER_LEVELS[GROWER_LEVELS.length - 1];
 }
 
+export interface LevelProgress {
+  readonly next: GrowerLevel;
+  /** Diários públicos que faltam para o próximo nível. */
+  readonly missing: number;
+  /** Andamento entre o nível atual e o próximo, de 0 a 1. */
+  readonly progress: number;
+}
+
+/** Quanto falta para o próximo nível; nulo para quem já é GrandMaster. */
+export function nextLevel(diaries: number): LevelProgress | null {
+  const current = levelFor(diaries);
+  const next = [...GROWER_LEVELS].reverse().find((level) => level.minDiaries > diaries);
+  if (!next) {
+    return null;
+  }
+  const span = next.minDiaries - current.minDiaries;
+  return { next, missing: next.minDiaries - diaries, progress: (diaries - current.minDiaries) / span };
+}
+
 export interface RankingEntry {
   readonly position: number;
   readonly grower: RankedGrower;

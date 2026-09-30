@@ -6,7 +6,10 @@ import br.com.weediario.shared.domain.Guard;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Aggregate root de um cultivo.
@@ -25,7 +28,7 @@ public final class GrowDiary {
     private final FloweringType floweringType;
     private final SeedSex seedSex;
     private final GrowMedium medium;
-    private final SetupSnapshot setup;
+    private SetupSnapshot setup;
     private DiaryStatus status;
     private Visibility visibility;
     private final LocalDate startedOn;
@@ -132,6 +135,23 @@ public final class GrowDiary {
 
     public void changeVisibility(Visibility newVisibility, Clock clock) {
         this.visibility = Guard.notNull(newVisibility, "Visibilidade");
+        touch(clock);
+    }
+
+    /**
+     * Corrige os produtos usados no cultivo (fertilizantes, substratos...), inclusive depois de encerrado:
+     * são eles que alimentam o ranking de produtos, então o grower precisa poder completar o que esqueceu.
+     * O restante da cópia do setup continua congelado.
+     */
+    public void changeProducts(List<ProductSnapshot> products, Clock clock) {
+        List<ProductSnapshot> distinct = List.copyOf(Guard.notNull(products, "Produtos").stream()
+                .collect(Collectors.toMap(ProductSnapshot::id, product -> product, (first, repeated) -> first,
+                        LinkedHashMap::new))
+                .values());
+        if (distinct.size() > GrowSetup.MAX_PRODUCTS) {
+            throw new DomainException("Máximo de " + GrowSetup.MAX_PRODUCTS + " produtos por cultivo");
+        }
+        setup = setup == null ? SetupSnapshot.productsOnly(distinct) : setup.withProducts(distinct);
         touch(clock);
     }
 

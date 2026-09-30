@@ -246,7 +246,7 @@ export class CatalogDetailPage {
   protected readonly source = SOURCE_LABEL;
   protected readonly dominanceOptions = options(DOMINANCE_LABEL);
   protected readonly speedOptions = options(SPEED_LABEL);
-  protected readonly moderator = computed(() => ['MODERATOR', 'ADMIN'].includes(this.auth.me()?.role ?? ''));
+  protected readonly moderator = this.auth.isModerator;
   protected readonly busy = signal(false);
   protected readonly message = signal<string | null>(null);
   protected readonly modMessage = signal<string | null>(null);
@@ -306,7 +306,7 @@ export class CatalogDetailPage {
     if (!target || !confirm(`Juntar "${detail.name}" em "${target.name}"? Esta página deixará de existir.`)) {
       return;
     }
-    this.catalog.merge(detail.id, target.id).subscribe({
+    this.catalog.merge('strains', detail.id, target.id).subscribe({
       next: (merged) => this.router.navigate(['/strains', merged.id]),
       error: (error) => this.modMessage.set(problemMessage(error)),
     });

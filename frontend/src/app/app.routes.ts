@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth/auth.guard';
+import { authGuard, guestGuard, moderatorGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -84,6 +84,18 @@ export const routes: Routes = [
     title: 'Meu perfil · weediário',
     canActivate: [authGuard],
     loadComponent: () => import('./profile/my-profile.page').then((m) => m.MyProfilePage),
+  },
+  {
+    path: 'notificacoes',
+    title: 'Notificações · weediário',
+    canActivate: [authGuard],
+    loadComponent: () => import('./notifications/notifications.page').then((m) => m.NotificationsPage),
+  },
+  {
+    path: 'moderacao',
+    title: 'Moderação · weediário',
+    canActivate: [moderatorGuard],
+    loadComponent: () => import('./moderation/moderation.page').then((m) => m.ModerationPage),
   },
   {
     path: 'ferramentas',

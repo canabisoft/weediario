@@ -25,12 +25,12 @@ public class JdbcReactionRepository implements ReactionRepository {
     }
 
     @Override
-    public void add(UUID diaryId, ReactorPseudonym reactor, ReactionType type, Instant at) {
-        jdbc.update("""
+    public boolean add(UUID diaryId, ReactorPseudonym reactor, ReactionType type, Instant at) {
+        return jdbc.update("""
                 insert into diary_reactions (diary_id, reactor, type, created_at)
                 values (:diaryId, :reactor, :type, :at)
                 on conflict do nothing""",
-                params(diaryId, reactor).addValue("type", type.name()).addValue("at", Timestamp.from(at)));
+                params(diaryId, reactor).addValue("type", type.name()).addValue("at", Timestamp.from(at))) > 0;
     }
 
     @Override

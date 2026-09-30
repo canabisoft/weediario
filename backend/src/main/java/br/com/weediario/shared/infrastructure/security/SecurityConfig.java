@@ -1,5 +1,6 @@
 package br.com.weediario.shared.infrastructure.security;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -60,6 +61,9 @@ public class SecurityConfig {
     SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         applyCommonHardening(http);
         http.authorizeHttpRequests(auth -> auth
+                        // Redespacho assíncrono de uma requisição que já passou pela autorização (fim do canal SSE
+                        // de notificações): sem isso, o fechamento do canal viraria um 401/403 em resposta já enviada.
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
                         // Leitura de conteúdo público liberada para visitantes. A visibilidade de cada diário
@@ -67,6 +71,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/feed/**", "/api/v1/diaries/**", "/api/v1/strains/**",
                                 "/api/v1/seedbanks/**", "/api/v1/growers/**", "/api/v1/catalog/**")
                         .permitAll()
+                        // Dupla checagem: os casos de uso de moderação também exigem o papel.
+                        .requestMatchers("/api/v1/moderation/**").hasAnyRole("MODERATOR", "ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));

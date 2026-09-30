@@ -23,6 +23,7 @@ export class AuthService {
   private readonly token = signal<string | null>(null);
   readonly me = signal<MyProfile | null>(null);
   readonly isLoggedIn = computed(() => this.me() !== null);
+  readonly isModerator = computed(() => ['MODERATOR', 'ADMIN'].includes(this.me()?.role ?? ''));
 
   private refreshInFlight: Observable<string | null> | null = null;
 

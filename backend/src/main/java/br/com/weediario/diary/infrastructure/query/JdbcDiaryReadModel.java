@@ -164,6 +164,22 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
             parseSetup(rs.getString("setup_snapshot")));
     }
 
+    @Override
+    public List<PublicSetup> publicSetupsOf(String username, int limit) {
+        return jdbc.query("""
+                select d.setup_snapshot::text as setup_snapshot, count(*) as diaries, max(d.started_on) as last_started_on
+                  from grow_diaries d
+                  join users u on u.id = d.owner_id and u.status = 'ACTIVE'
+                 where lower(u.username) = lower(:username) and d.visibility = 'PUBLIC'
+                   and d.setup_snapshot ->> 'name' is not null
+                 group by d.setup_snapshot
+                 order by last_started_on desc, diaries desc
+                 limit :limit""",
+                new MapSqlParameterSource("username", username).addValue("limit", limit),
+                (rs, rowNum) -> new PublicSetup(parseSetup(rs.getString("setup_snapshot")), rs.getLong("diaries"),
+                        toLocalDate(rs.getDate("last_started_on"))));
+    }
+
     private static Harvest harvestOf(Integer dryGrams, Integer plants) {
         return dryGrams == null || plants == null ? null : new Harvest(dryGrams, plants);
     }

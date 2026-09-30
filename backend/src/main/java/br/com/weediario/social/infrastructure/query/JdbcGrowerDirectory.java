@@ -26,6 +26,9 @@ public class JdbcGrowerDirectory implements GrowerDirectory {
                      where d.owner_id = u.id and d.visibility = 'PUBLIC') as diaries,
                    (select count(*) from diary_reactions r join grow_diaries d on d.id = r.diary_id
                      where d.owner_id = u.id and d.visibility = 'PUBLIC') as likes,
+                   (select count(*) from grow_diaries d
+                     where d.owner_id = u.id and d.visibility = 'PUBLIC' and d.harvest_dry_grams is not null)
+                       as harvests,
                    (select round(sum(d.harvest_dry_grams)::numeric / nullif(sum(d.harvest_plants), 0), 1)
                       from grow_diaries d
                      where d.owner_id = u.id and d.visibility = 'PUBLIC' and d.harvest_dry_grams is not null)
@@ -96,6 +99,7 @@ public class JdbcGrowerDirectory implements GrowerDirectory {
                         rs.getBoolean("has_avatar"),
                         rs.getLong("diaries"),
                         rs.getLong("likes"),
+                        rs.getLong("harvests"),
                         rs.getBigDecimal("grams_per_plant"),
                         rs.getLong("followers"),
                         rs.getBoolean("followed_by_viewer"),

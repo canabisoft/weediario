@@ -10,8 +10,12 @@ import java.util.UUID;
 
 public interface ReactionRepository {
 
-    /** Idempotente: reagir duas vezes com o mesmo tipo não duplica. */
-    void add(UUID diaryId, ReactorPseudonym reactor, ReactionType type, Instant at);
+    /**
+     * Idempotente: reagir duas vezes com o mesmo tipo não duplica.
+     *
+     * @return {@code true} se a reação é nova
+     */
+    boolean add(UUID diaryId, ReactorPseudonym reactor, ReactionType type, Instant at);
 
     void remove(UUID diaryId, ReactorPseudonym reactor, ReactionType type);
 

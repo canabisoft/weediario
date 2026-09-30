@@ -20,6 +20,9 @@ public interface StrainCatalog {
 
     PageResult<ReviewView> reviewsOf(UUID strainId, PageQuery page);
 
+    /** Reviews publicados por um grower (perfil público), mais recentes primeiro. */
+    PageResult<AuthoredReview> reviewsBy(String username, PageQuery page);
+
     record StrainSummary(
             UUID id,
             String name,
@@ -31,6 +34,21 @@ public interface StrainCatalog {
             BigDecimal easeOfGrowth,
             BigDecimal yield,
             BigDecimal terpeneProfile) {
+    }
+
+    /**
+     * @param overall média dos cinco critérios da strain
+     * @param diaryId preenchido só se o diário for público; review de diário privado não leva até ele
+     */
+    record AuthoredReview(
+            UUID id,
+            UUID strainId,
+            String strain,
+            String breeder,
+            UUID diaryId,
+            BigDecimal overall,
+            String report,
+            Instant createdAt) {
     }
 
     /**

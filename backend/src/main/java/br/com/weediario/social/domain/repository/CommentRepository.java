@@ -19,4 +19,7 @@ public interface CommentRepository {
 
     /** Registra a denúncia e devolve o total de denúncias distintas do comentário. Denúncia repetida é ignorada. */
     long report(UUID commentId, ReactorPseudonym reporter, Instant at);
+
+    /** Descarta as denúncias já analisadas pela moderação. */
+    void clearReports(UUID commentId);
 }

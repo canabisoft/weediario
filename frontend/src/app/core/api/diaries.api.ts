@@ -11,6 +11,7 @@ import {
   GrowMedium,
   GrowthStage,
   Page,
+  ProductSnapshot,
   SeedSex,
   Visibility,
 } from './api.models';
@@ -98,6 +99,11 @@ export class DiariesApi {
 
   deleteUpdate(diaryId: string, updateId: string): Observable<void> {
     return this.http.delete<void>(`/api/v1/diaries/${diaryId}/updates/${updateId}`);
+  }
+
+  /** Substitui os produtos usados no cultivo (só o autor). */
+  changeProducts(diaryId: string, productIds: string[]): Observable<ProductSnapshot[]> {
+    return this.http.put<ProductSnapshot[]>(`/api/v1/diaries/${diaryId}/products`, { productIds });
   }
 
   /** Fotos de diários privados precisam do token, que uma tag img não envia: baixa como blob. */

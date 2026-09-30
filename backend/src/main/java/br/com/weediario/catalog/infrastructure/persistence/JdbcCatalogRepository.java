@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -135,6 +136,115 @@ public class JdbcCatalogRepository implements CatalogRepository {
         jdbc.update("delete from strains where id = :dup", params);
     }
 
+    @Override
+    public List<Collision> strainCollisions(UUID duplicateBreederId, UUID targetBreederId) {
+        return jdbc.query("""
+                select d.id as dup, t.id as target
+                  from strains d
+                  join strains t on t.breeder_id = :target and t.name_key = d.name_key
+                 where d.breeder_id = :dup""",
+                new MapSqlParameterSource("dup", duplicateBreederId).addValue("target", targetBreederId),
+                (rs, n) -> new Collision(rs.getObject("dup", UUID.class), rs.getObject("target", UUID.class)));
+    }
+
+    @Override
+    public void mergeBreeder(UUID duplicateId, UUID targetId) {
+        MapSqlParameterSource params = new MapSqlParameterSource("dup", duplicateId).addValue("target", targetId);
+        // Apelidos de strains ficam presos à chave do breeder: passam para a chave do principal (sem duplicar).
+        jdbc.update("""
+                delete from strain_aliases a
+                 using breeders d, breeders t
+                 where d.id = :dup and t.id = :target and a.breeder_key = d.name_key
+                   and exists (select 1 from strain_aliases o where o.breeder_key = t.name_key and o.alias_key = a.alias_key)""",
+                params);
+        jdbc.update("""
+                update strain_aliases a set breeder_key = t.name_key
+                  from breeders d, breeders t
+                 where d.id = :dup and t.id = :target and a.breeder_key = d.name_key""", params);
+        jdbc.update("""
+                update strains s set breeder_id = t.id, breeder = t.name, breeder_key = t.name_key
+                  from breeders t
+                 where t.id = :target and s.breeder_id = :dup""", params);
+        jdbc.update("update grow_diaries set breeder_id = :target where breeder_id = :dup", params);
+        jdbc.update("update reviews set seedbank_id = :target where seedbank_id = :dup", params);
+        jdbc.update("""
+                insert into breeder_aliases (alias_key, breeder_id)
+                select name_key, :target from breeders where id = :dup
+                on conflict (alias_key) do update set breeder_id = excluded.breeder_id""", params);
+        jdbc.update("update breeder_aliases set breeder_id = :target where breeder_id = :dup", params);
+        jdbc.update("delete from breeders where id = :dup", params);
+    }
+
+    @Override
+    public List<Collision> productCollisions(UUID duplicateBrandId, UUID targetBrandId) {
+        return jdbc.query("""
+                select d.id as dup, t.id as target
+                  from products d
+                  join products t on t.brand_id = :target and t.name_key = d.name_key
+                 where d.brand_id = :dup""",
+                new MapSqlParameterSource("dup", duplicateBrandId).addValue("target", targetBrandId),
+                (rs, n) -> new Collision(rs.getObject("dup", UUID.class), rs.getObject("target", UUID.class)));
+    }
+
+    @Override
+    public void mergeBrand(UUID duplicateId, UUID targetId) {
+        MapSqlParameterSource params = new MapSqlParameterSource("dup", duplicateId).addValue("target", targetId);
+        jdbc.update("""
+                delete from product_aliases a
+                 where a.brand_id = :dup
+                   and exists (select 1 from product_aliases o where o.brand_id = :target and o.alias_key = a.alias_key)""",
+                params);
+        jdbc.update("update product_aliases set brand_id = :target where brand_id = :dup", params);
+        jdbc.update("update products set brand_id = :target where brand_id = :dup", params);
+        jdbc.update("""
+                insert into brand_aliases (alias_key, brand_id)
+                select name_key, :target from brands where id = :dup
+                on conflict (alias_key) do update set brand_id = excluded.brand_id""", params);
+        jdbc.update("update brand_aliases set brand_id = :target where brand_id = :dup", params);
+        jdbc.update("delete from brands where id = :dup", params);
+    }
+
+    @Override
+    public void mergeProduct(UUID duplicateId, UUID targetId) {
+        MapSqlParameterSource params = new MapSqlParameterSource("dup", duplicateId).addValue("target", targetId);
+        jdbc.update("""
+                insert into diary_products (diary_id, product_id)
+                select diary_id, :target from diary_products where product_id = :dup
+                on conflict do nothing""", params);
+        jdbc.update("delete from diary_products where product_id = :dup", params);
+        jdbc.update("update grow_setup_products set product_id = :target where product_id = :dup", params);
+        jdbc.update("""
+                insert into product_aliases (brand_id, alias_key, product_id)
+                select brand_id, name_key, :target from products where id = :dup
+                on conflict (brand_id, alias_key) do update set product_id = excluded.product_id""", params);
+        jdbc.update("update product_aliases set product_id = :target where product_id = :dup", params);
+        jdbc.update("delete from products where id = :dup", params);
+    }
+
+    /** Referências que impedem apagar um item (tabela e coluna, nunca texto do usuário). */
+    private static final Map<ItemKind, String> IN_USE = Map.of(
+            ItemKind.STRAIN, """
+                    exists (select 1 from grow_diaries where strain_id = :id)
+                    or exists (select 1 from reviews where strain_id = :id)""",
+            ItemKind.BREEDER, """
+                    exists (select 1 from grow_diaries where breeder_id = :id)
+                    or exists (select 1 from reviews where seedbank_id = :id)
+                    or exists (select 1 from strains where breeder_id = :id)""",
+            ItemKind.BRAND, "exists (select 1 from products where brand_id = :id)",
+            ItemKind.PRODUCT, """
+                    exists (select 1 from diary_products where product_id = :id)
+                    or exists (select 1 from grow_setup_products where product_id = :id)""");
+
+    private static final Map<ItemKind, String> TABLE = Map.of(
+            ItemKind.STRAIN, "strains", ItemKind.BREEDER, "breeders", ItemKind.BRAND, "brands",
+            ItemKind.PRODUCT, "products");
+
+    @Override
+    public boolean deleteIfUnused(ItemKind kind, UUID id) {
+        return jdbc.update("delete from " + TABLE.get(kind) + " where id = :id and not (" + IN_USE.get(kind) + ")",
+                new MapSqlParameterSource("id", id)) > 0;
+    }
+
     // --------------------------------------------------------------------------------------- breeders
 
     @Override
@@ -145,8 +255,13 @@ public class JdbcCatalogRepository implements CatalogRepository {
 
     @Override
     public Optional<Breeder> findBreederByKey(String nameKey) {
-        return first(jdbc.query("select * from breeders where name_key = :key", new MapSqlParameterSource("key", nameKey),
-                (rs, n) -> breeder(rs, "")));
+        return first(jdbc.query("""
+                select * from breeders
+                 where name_key = :key
+                    or id = (select a.breeder_id from breeder_aliases a where a.alias_key = :key)
+                 order by (name_key = :key) desc
+                 limit 1""",
+                new MapSqlParameterSource("key", nameKey), (rs, n) -> breeder(rs, "")));
     }
 
     @Override
@@ -178,8 +293,13 @@ public class JdbcCatalogRepository implements CatalogRepository {
 
     @Override
     public Optional<Brand> findBrandByKey(String nameKey) {
-        return first(jdbc.query("select * from brands where name_key = :key", new MapSqlParameterSource("key", nameKey),
-                this::brand));
+        return first(jdbc.query("""
+                select * from brands
+                 where name_key = :key
+                    or id = (select a.brand_id from brand_aliases a where a.alias_key = :key)
+                 order by (name_key = :key) desc
+                 limit 1""",
+                new MapSqlParameterSource("key", nameKey), this::brand));
     }
 
     @Override
@@ -220,7 +340,12 @@ public class JdbcCatalogRepository implements CatalogRepository {
 
     @Override
     public Optional<Product> findProductByKey(UUID brandId, String nameKey) {
-        return first(jdbc.query("select * from products where brand_id = :brandId and name_key = :key",
+        return first(jdbc.query("""
+                select * from products
+                 where (brand_id = :brandId and name_key = :key)
+                    or id = (select a.product_id from product_aliases a where a.brand_id = :brandId and a.alias_key = :key)
+                 order by (brand_id = :brandId and name_key = :key) desc
+                 limit 1""",
                 new MapSqlParameterSource("brandId", brandId).addValue("key", nameKey), this::product));
     }
 

@@ -6,6 +6,7 @@ import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
 import br.com.weediario.social.application.port.GrowerLookup;
+import br.com.weediario.social.application.port.InteractionNotifier;
 import br.com.weediario.social.application.query.GrowerDirectory;
 import br.com.weediario.social.application.query.GrowerDirectory.FollowedGrower;
 import br.com.weediario.social.application.query.GrowerDirectory.GrowerProfile;
@@ -28,14 +29,16 @@ public final class GrowersUseCase {
     private final GrowerDirectory directory;
     private final GrowerLookup growers;
     private final FollowRepository follows;
+    private final InteractionNotifier notifier;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public GrowersUseCase(GrowerDirectory directory, GrowerLookup growers, FollowRepository follows,
-                          UnitOfWork unitOfWork, Clock clock) {
+                          InteractionNotifier notifier, UnitOfWork unitOfWork, Clock clock) {
         this.directory = directory;
         this.growers = growers;
         this.follows = follows;
+        this.notifier = notifier;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -63,7 +66,9 @@ public final class GrowersUseCase {
             if (follows.countFollowing(followerId) >= MAX_FOLLOWING) {
                 throw new DomainException("Limite de " + MAX_FOLLOWING + " growers seguidos atingido");
             }
-            follows.follow(followerId, followee, clock.instant());
+            if (follows.follow(followerId, followee, clock.instant())) {
+                notifier.followed(followee, followerId);
+            }
         });
     }
 

@@ -11,9 +11,9 @@ import { MEDIUM_LABEL, STAGE_LABEL, STATUS_LABEL } from '../shared/labels';
   imports: [RouterLink, DiaryPhoto, Icon],
   template: `
     @let d = diary();
-    <a
-      [routerLink]="['/diarios', d.id]"
-      class="group block overflow-hidden rounded-2xl border border-line bg-surface transition-colors hover:border-accent/50"
+    <!-- O título é o link do diário e se estica sobre o card inteiro; o apelido do autor é outro link, por cima. -->
+    <article
+      class="group relative overflow-hidden rounded-2xl border border-line bg-surface transition-colors focus-within:border-accent hover:border-accent/50"
     >
       <div class="relative aspect-[4/3]">
         @if (d.coverThumbnailUrl) {
@@ -33,10 +33,12 @@ import { MEDIUM_LABEL, STAGE_LABEL, STATUS_LABEL } from '../shared/labels';
         }
       </div>
       <div class="p-3">
-        <p class="truncate font-semibold group-hover:text-accent">{{ d.title }}</p>
+        <a [routerLink]="['/diarios', d.id]" class="block truncate font-semibold outline-none after:absolute after:inset-0 group-hover:text-accent">
+          {{ d.title }}
+        </a>
         <p class="truncate text-sm text-fg-muted">{{ d.strainName }}{{ d.breeder ? ' · ' + d.breeder : '' }}</p>
         <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-muted">
-          <span>{{ d.author }}</span>
+          <a [routerLink]="['/growers', d.author]" class="relative z-10 font-medium text-fg hover:text-accent">{{ d.author }}</a>
           <span>{{ medium[d.medium] }}</span>
           @if (d.status !== 'IN_PROGRESS') {
             <span class="font-medium text-accent">{{ status[d.status] }}</span>
@@ -47,7 +49,7 @@ import { MEDIUM_LABEL, STAGE_LABEL, STATUS_LABEL } from '../shared/labels';
           </span>
         </p>
       </div>
-    </a>
+    </article>
   `,
 })
 export class DiaryCardComponent {

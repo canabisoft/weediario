@@ -3,11 +3,13 @@ package br.com.weediario.diary.application.usecase;
 import br.com.weediario.diary.application.DiaryAccess;
 import br.com.weediario.diary.application.DiaryUpdateView;
 import br.com.weediario.diary.application.port.PhotoLibrary;
+import br.com.weediario.diary.application.port.UpdateNotifier;
 import br.com.weediario.diary.domain.model.DiaryUpdate;
 import br.com.weediario.diary.domain.model.GrowDiary;
 import br.com.weediario.diary.domain.model.GrowMetrics;
 import br.com.weediario.diary.domain.model.GrowerId;
 import br.com.weediario.diary.domain.model.GrowthStage;
+import br.com.weediario.diary.domain.model.Visibility;
 import br.com.weediario.diary.domain.repository.DiaryUpdateRepository;
 import br.com.weediario.diary.domain.repository.GrowDiaryRepository;
 import br.com.weediario.shared.application.UnitOfWork;
@@ -28,15 +30,18 @@ public final class PublishDiaryUpdateUseCase {
     private final GrowDiaryRepository diaries;
     private final DiaryUpdateRepository updates;
     private final PhotoLibrary photos;
+    private final UpdateNotifier notifier;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public PublishDiaryUpdateUseCase(DiaryAccess access, GrowDiaryRepository diaries, DiaryUpdateRepository updates,
-                                     PhotoLibrary photos, UnitOfWork unitOfWork, Clock clock) {
+                                     PhotoLibrary photos, UpdateNotifier notifier, UnitOfWork unitOfWork,
+                                     Clock clock) {
         this.access = access;
         this.diaries = diaries;
         this.updates = updates;
         this.photos = photos;
+        this.notifier = notifier;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -57,7 +62,10 @@ public final class PublishDiaryUpdateUseCase {
                     clock);
             photos.attach(author, update.photoIds());
             diaries.save(diary);
-            return DiaryUpdateView.of(updates.save(update), diary);
+            DiaryUpdateView view = DiaryUpdateView.of(updates.save(update), diary);
+            notifier.updatePublished(diary.id().value(), diary.ownerId().value(),
+                    diary.visibility() == Visibility.PUBLIC);
+            return view;
         });
     }
 

@@ -1,12 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { GrowEnvironment, GrowMedium, GrowSetup, ProductSnapshot } from '../core/api/api.models';
-import { CatalogItem, ProductCategory } from '../core/api/catalog-db.api';
 import { AccountApi, SetupInput } from '../core/api/account.api';
 import { problemMessage } from '../core/api/problem';
-import { CatalogPicker } from '../shared/catalog-picker';
 import { Icon } from '../shared/icon';
-import { CATEGORY_LABEL, ENVIRONMENT_LABEL, MEDIUM_LABEL, categoryLabel, options } from '../shared/labels';
+import { ProductListEditor } from '../shared/product-list-editor';
+import { ENVIRONMENT_LABEL, MEDIUM_LABEL, categoryLabel, options } from '../shared/labels';
 
 /**
  * Equipamentos: setups salvos do grower (tenda, luz, substrato...) para reutilizar a cada novo diário.
@@ -15,7 +14,7 @@ import { CATEGORY_LABEL, ENVIRONMENT_LABEL, MEDIUM_LABEL, categoryLabel, options
 @Component({
   selector: 'app-setups-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, Icon, CatalogPicker],
+  imports: [ReactiveFormsModule, Icon, ProductListEditor],
   template: `
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
@@ -72,10 +71,6 @@ import { CATEGORY_LABEL, ENVIRONMENT_LABEL, MEDIUM_LABEL, categoryLabel, options
               }
             </select>
           </div>
-          <div>
-            <label class="wd-label" for="s-nutrients">Nutrientes</label>
-            <input id="s-nutrients" class="wd-input" formControlName="nutrients" maxlength="120" />
-          </div>
         </div>
         <div>
           <label class="wd-label" for="s-vent">Ventilação</label>
@@ -83,41 +78,16 @@ import { CATEGORY_LABEL, ENVIRONMENT_LABEL, MEDIUM_LABEL, categoryLabel, options
         </div>
         <fieldset class="grid gap-3 rounded-xl border border-line p-3">
           <legend class="px-1 font-semibold">Produtos (fertilizantes, substratos...)</legend>
-          @if (products().length) {
-            <ul class="flex flex-wrap gap-2">
-              @for (product of products(); track product.id) {
-                <li class="flex items-center gap-1 rounded-full bg-surface-raised py-1 pl-3 pr-1 text-sm">
-                  {{ product.brand }} · {{ product.name }}
-                  <button type="button" class="grid size-7 place-items-center rounded-full text-fg-muted" [attr.aria-label]="'Remover ' + product.name" (click)="removeProduct(product.id)">
-                    <app-icon name="close" class="size-3.5" />
-                  </button>
-                </li>
-              }
-            </ul>
+          @if (form.controls.nutrients.value; as legacy) {
+            <div class="rounded-lg bg-surface-raised p-3 text-sm">
+              <p>
+                Anotação antiga de nutrientes: <strong>{{ legacy }}</strong>. Ela não conta no ranking: cadastre os
+                nutrientes abaixo como produtos.
+              </p>
+              <button type="button" class="mt-1 text-accent underline" (click)="form.controls.nutrients.setValue('')">Apagar anotação</button>
+            </div>
           }
-          <div>
-            <label class="wd-label" for="p-category">Categoria</label>
-            <select id="p-category" class="wd-input" (change)="category.set($any($event.target).value)">
-              @for (o of categoryOptions; track o.value) {
-                <option [value]="o.value" [selected]="category() === o.value">{{ o.label }}</option>
-              }
-            </select>
-          </div>
-          <app-catalog-picker kind="brands" label="Marca" placeholder="Ex.: BioBizz" [(value)]="brand" />
-          @if (brand(); as selectedBrand) {
-            <app-catalog-picker
-              kind="products"
-              label="Produto"
-              placeholder="Ex.: Bio-Grow"
-              [brandId]="selectedBrand.id"
-              [category]="category()"
-              [(value)]="product"
-            />
-          }
-          <button type="button" class="wd-button bg-surface-raised text-fg" [disabled]="!product()" (click)="addProduct()">
-            <app-icon name="plus" class="size-5" /> Adicionar ao setup
-          </button>
-          <p class="text-xs text-fg-muted">Os produtos entram no catálogo da comunidade e alimentam o ranking dos mais usados.</p>
+          <app-product-list-editor [(products)]="products" />
         </fieldset>
         <div>
           <label class="wd-label" for="s-notes">Observações</label>
@@ -179,14 +149,10 @@ export class SetupsPage {
   protected readonly medium = MEDIUM_LABEL;
   protected readonly environmentOptions = options(ENVIRONMENT_LABEL);
   protected readonly mediumOptions = options(MEDIUM_LABEL);
-  protected readonly categoryOptions = options(CATEGORY_LABEL);
   protected readonly categoryLabel = categoryLabel;
 
-  /** Produtos do setup em edição e a escolha em andamento (categoria → marca → produto). */
+  /** Produtos do setup em edição. */
   protected readonly products = signal<ProductSnapshot[]>([]);
-  protected readonly category = signal<ProductCategory>('NUTRIENT');
-  protected readonly brand = signal<CatalogItem | null>(null);
-  protected readonly product = signal<CatalogItem | null>(null);
 
   protected readonly setups = signal<GrowSetup[]>([]);
   /** null = lista; 'new' = criando; id = editando. */
@@ -246,24 +212,6 @@ export class SetupsPage {
         this.busy.set(false);
       },
     });
-  }
-
-  protected addProduct(): void {
-    const chosen = this.product();
-    if (!chosen) {
-      return;
-    }
-    if (!this.products().some((product) => product.id === chosen.id)) {
-      this.products.update((list) => [
-        ...list,
-        { id: chosen.id, name: chosen.name, brand: chosen.parentName ?? '', category: chosen.category ?? this.category() },
-      ]);
-    }
-    this.product.set(null);
-  }
-
-  protected removeProduct(id: string): void {
-    this.products.update((list) => list.filter((product) => product.id !== id));
   }
 
   protected remove(setup: GrowSetup): void {

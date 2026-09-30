@@ -2,10 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
+  AuthoredReview,
   Comment,
   FollowedGrower,
   GrowerProfile,
   Page,
+  PublicSetup,
   RankedGrowerDto,
   ReactionSummary,
   ReactionType,
@@ -55,6 +57,17 @@ export class SocialApi {
 
   profile(username: string): Observable<GrowerProfile> {
     return this.http.get<GrowerProfile>(`/api/v1/growers/${encodeURIComponent(username)}`);
+  }
+
+  /** Setups já usados em diários públicos do grower. */
+  publicSetups(username: string): Observable<PublicSetup[]> {
+    return this.http.get<PublicSetup[]>(`/api/v1/growers/${encodeURIComponent(username)}/setups`);
+  }
+
+  reviewsBy(username: string, page = 0): Observable<Page<AuthoredReview>> {
+    return this.http.get<Page<AuthoredReview>>(`/api/v1/growers/${encodeURIComponent(username)}/reviews`, {
+      params: { page, size: 10 },
+    });
   }
 
   follow(username: string): Observable<void> {

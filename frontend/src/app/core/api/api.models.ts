@@ -45,15 +45,19 @@ export interface ProductSnapshot {
   readonly category: string;
 }
 
+/** Sem nome/ambiente/spec quando o cultivo não partiu de um setup e só teve produtos informados depois. */
 export interface SetupSnapshot {
-  readonly name: string;
-  readonly environment: GrowEnvironment;
-  readonly spec: SetupSpec;
+  readonly name?: string;
+  readonly environment?: GrowEnvironment;
+  readonly spec?: SetupSpec;
   /** Produtos do catálogo (fertilizantes, substratos...). */
   readonly products?: ProductSnapshot[];
 }
 
 export interface GrowSetup extends SetupSnapshot {
+  readonly name: string;
+  readonly environment: GrowEnvironment;
+  readonly spec: SetupSpec;
   readonly id: string;
 }
 
@@ -198,6 +202,8 @@ export interface GrowerProfile {
   readonly hasAvatar: boolean;
   readonly diaries: number;
   readonly likes: number;
+  /** Colheitas registradas em diários públicos. */
+  readonly harvests: number;
   readonly gramsPerPlant?: number;
   readonly followers: number;
   readonly followedByViewer: boolean;
@@ -229,4 +235,23 @@ export interface Problem {
   readonly status: number;
   readonly detail?: string;
   readonly violations?: { field: string; message: string }[];
+}
+
+/** Setup que o grower já usou em diários públicos (a cópia congelada do cultivo). */
+export interface PublicSetup {
+  readonly setup: SetupSnapshot;
+  readonly diaries: number;
+  readonly lastStartedOn: string;
+}
+
+/** Review no perfil de quem escreveu. {@code diaryId} só vem se o diário for público. */
+export interface AuthoredReview {
+  readonly id: string;
+  readonly strainId: string;
+  readonly strain: string;
+  readonly breeder?: string;
+  readonly diaryId?: string;
+  readonly overall: number;
+  readonly report: string;
+  readonly createdAt: string;
 }

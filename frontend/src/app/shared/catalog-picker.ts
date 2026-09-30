@@ -76,16 +76,18 @@ let nextId = 0;
                 }
               </li>
             }
-            <li
-              [id]="listId + '-' + suggestions().length"
-              role="option"
-              [attr.aria-selected]="active() === suggestions().length"
-              class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-accent"
-              [class.bg-surface-raised]="active() === suggestions().length"
-              (mousedown)="$event.preventDefault(); create(false)"
-            >
-              <app-icon name="plus" class="size-4" /> Adicionar "{{ query().trim() }}"
-            </li>
+            @if (allowCreate()) {
+              <li
+                [id]="listId + '-' + suggestions().length"
+                role="option"
+                [attr.aria-selected]="active() === suggestions().length"
+                class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-accent"
+                [class.bg-surface-raised]="active() === suggestions().length"
+                (mousedown)="$event.preventDefault(); create(false)"
+              >
+                <app-icon name="plus" class="size-4" /> Adicionar "{{ query().trim() }}"
+              </li>
+            }
           </ul>
         }
       </div>
@@ -129,6 +131,8 @@ export class CatalogPicker {
   readonly brandId = input<string | undefined>();
   /** Categoria usada ao cadastrar um produto novo. */
   readonly category = input<ProductCategory | undefined>();
+  /** Falso quando só vale escolher algo que já existe (ex.: alvo de uma junção na moderação). */
+  readonly allowCreate = input(true);
   readonly value = model<CatalogItem | null>(null);
 
   protected readonly inputId = `catalog-picker-${nextId++}`;
@@ -170,7 +174,8 @@ export class CatalogPicker {
   }
 
   protected onKey(event: KeyboardEvent): void {
-    const last = this.suggestions().length; // a opção "Adicionar" fica depois das sugestões
+    // A opção "Adicionar" fica depois das sugestões; sem ela, a última opção é a última sugestão.
+    const last = this.allowCreate() ? this.suggestions().length : this.suggestions().length - 1;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       this.open.set(true);
@@ -181,9 +186,9 @@ export class CatalogPicker {
     } else if (event.key === 'Enter' && this.open()) {
       event.preventDefault();
       const index = this.active();
-      if (index >= 0 && index < last) {
+      if (index >= 0 && index < this.suggestions().length) {
         this.pick(this.suggestions()[index]);
-      } else if (index === last) {
+      } else if (index === last && this.allowCreate()) {
         this.create(false);
       }
     } else if (event.key === 'Escape') {

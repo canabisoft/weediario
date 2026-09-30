@@ -1,4 +1,4 @@
-package br.com.weediario.catalog.application;
+package br.com.weediario.shared.application;
 
 public class ModeratorOnlyException extends RuntimeException {
 

@@ -16,6 +16,22 @@ public interface CommentReadModel {
      * @param byDiaryAuthor destaque "autor do diário" na conversa
      * @param deletable     se quem está vendo pode apagar (autor do comentário ou dono do diário)
      */
+    /** Fila da moderação: comentários com denúncia, ocultados primeiro, depois os mais denunciados. */
+    PageResult<ReportedComment> reportedComments(PageQuery page);
+
+    /** Quantos comentários têm denúncia pendente e quantos deles já foram ocultados automaticamente. */
+    ReportCounts reportCounts();
+
+    /**
+     * @param reports denúncias distintas (quem denunciou nunca é exposto, nem para a moderação)
+     */
+    record ReportedComment(UUID id, UUID diaryId, String diaryTitle, String author, String body, long reports,
+                           boolean hidden, Instant createdAt) {
+    }
+
+    record ReportCounts(long reported, long hidden) {
+    }
+
     record CommentView(UUID id, String author, boolean authorHasAvatar, boolean byDiaryAuthor, String body,
                        Instant createdAt, boolean deletable) {
 

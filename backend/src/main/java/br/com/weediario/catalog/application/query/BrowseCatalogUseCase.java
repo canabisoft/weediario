@@ -1,6 +1,7 @@
 package br.com.weediario.catalog.application.query;
 
 import br.com.weediario.catalog.application.query.CatalogQueries.BreederListItem;
+import br.com.weediario.catalog.application.query.CatalogQueries.PendingItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.ProductListItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.RankingKind;
 import br.com.weediario.catalog.application.query.CatalogQueries.RankingRow;
@@ -8,11 +9,13 @@ import br.com.weediario.catalog.application.query.CatalogQueries.StrainDetail;
 import br.com.weediario.catalog.application.query.CatalogQueries.StrainListItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.Suggestion;
 import br.com.weediario.catalog.domain.model.CatalogKey;
+import br.com.weediario.shared.application.ModeratorOnlyException;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class BrowseCatalogUseCase {
@@ -65,6 +68,23 @@ public final class BrowseCatalogUseCase {
 
     public PageResult<RankingRow> ranking(RankingKind kind, String category, PageQuery page) {
         return queries.ranking(kind, category, page);
+    }
+
+    /** Fila da moderação: cadastros da comunidade ainda não verificados. */
+    public PageResult<PendingItem> pending(RankingKind kind, PageQuery page, boolean moderator) {
+        requireModerator(moderator);
+        return queries.pending(kind, page);
+    }
+
+    public Map<RankingKind, Long> pendingCounts(boolean moderator) {
+        requireModerator(moderator);
+        return queries.pendingCounts();
+    }
+
+    private static void requireModerator(boolean moderator) {
+        if (!moderator) {
+            throw new ModeratorOnlyException();
+        }
     }
 
     private static boolean tooShort(String query) {

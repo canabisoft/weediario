@@ -10,7 +10,6 @@ import { formatCompact } from '../shared/decimal';
 import { Icon } from '../shared/icon';
 import {
   ENVIRONMENT_LABEL,
-  categoryLabel,
   FLOWERING_LABEL,
   MEDIUM_LABEL,
   SEED_SEX_LABEL,
@@ -20,6 +19,7 @@ import {
 } from '../shared/labels';
 import { DiaryComments } from './detail/diary-comments';
 import { DiaryOwnerPanel } from './detail/diary-owner-panel';
+import { DiaryProducts } from './detail/diary-products';
 import { DiaryReactions } from './detail/diary-reactions';
 import { DiaryTimeline } from './detail/diary-timeline';
 import { ReviewForm } from './detail/review-form';
@@ -29,7 +29,7 @@ type Loaded = { diary: DiaryCard; error: null } | { diary: null; error: string }
 @Component({
   selector: 'app-diary-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, DiaryComments, DiaryOwnerPanel, DiaryReactions, DiaryTimeline, ReviewForm],
+  imports: [RouterLink, Icon, DiaryComments, DiaryOwnerPanel, DiaryProducts, DiaryReactions, DiaryTimeline, ReviewForm],
   template: `
     @if (loaded(); as state) {
       @if (state.diary; as d) {
@@ -67,30 +67,35 @@ type Loaded = { diary: DiaryCard; error: null } | { diary: null; error: string }
             }
           </dl>
 
-          @if (d.setup; as setup) {
+          @if (d.setup?.name && d.setup?.spec && d.setup?.environment) {
+            @let setup = d.setup!;
+            @let spec = setup.spec!;
             <details class="wd-card">
-              <summary class="cursor-pointer font-semibold">Setup: {{ setup.name }} ({{ environment[setup.environment] }})</summary>
+              <summary class="cursor-pointer font-semibold">Setup: {{ setup.name }} ({{ environment[setup.environment!] }})</summary>
               <dl class="mt-3 grid gap-1 text-sm sm:grid-cols-2">
-                @if (setup.spec.tentWidthCm) {
-                  <div><dt class="inline text-fg-muted">Tenda: </dt><dd class="inline">{{ setup.spec.tentWidthCm }}×{{ setup.spec.tentDepthCm ?? '?' }}×{{ setup.spec.tentHeightCm ?? '?' }} cm</dd></div>
+                @if (spec.tentWidthCm) {
+                  <div><dt class="inline text-fg-muted">Tenda: </dt><dd class="inline">{{ spec.tentWidthCm }}×{{ spec.tentDepthCm ?? '?' }}×{{ spec.tentHeightCm ?? '?' }} cm</dd></div>
                 }
-                @if (setup.spec.lighting) {
-                  <div><dt class="inline text-fg-muted">Luz: </dt><dd class="inline">{{ setup.spec.lighting }}{{ setup.spec.lightWattage ? ' · ' + setup.spec.lightWattage + ' W' : '' }}</dd></div>
+                @if (spec.lighting) {
+                  <div><dt class="inline text-fg-muted">Luz: </dt><dd class="inline">{{ spec.lighting }}{{ spec.lightWattage ? ' · ' + spec.lightWattage + ' W' : '' }}</dd></div>
                 }
-                @if (setup.spec.nutrients) {
-                  <div><dt class="inline text-fg-muted">Nutrientes: </dt><dd class="inline">{{ setup.spec.nutrients }}</dd></div>
+                @if (spec.nutrients) {
+                  <div><dt class="inline text-fg-muted">Nutrientes: </dt><dd class="inline">{{ spec.nutrients }}</dd></div>
                 }
-                @if (setup.spec.ventilation) {
-                  <div><dt class="inline text-fg-muted">Ventilação: </dt><dd class="inline">{{ setup.spec.ventilation }}</dd></div>
+                @if (spec.ventilation) {
+                  <div><dt class="inline text-fg-muted">Ventilação: </dt><dd class="inline">{{ spec.ventilation }}</dd></div>
                 }
-                @for (product of setup.products ?? []; track product.id) {
-                  <div><dt class="inline text-fg-muted">{{ categoryLabel(product.category) }}: </dt><dd class="inline">{{ product.brand }} · {{ product.name }}</dd></div>
-                }
-                @if (setup.spec.notes) {
-                  <div class="sm:col-span-2"><dt class="inline text-fg-muted">Observações: </dt><dd class="inline whitespace-pre-line">{{ setup.spec.notes }}</dd></div>
+                @if (spec.notes) {
+                  <div class="sm:col-span-2"><dt class="inline text-fg-muted">Observações: </dt><dd class="inline whitespace-pre-line">{{ spec.notes }}</dd></div>
                 }
               </dl>
             </details>
+          }
+
+          @if (isOwner() || d.setup?.products?.length) {
+            <section class="wd-card">
+              <app-diary-products [diaryId]="d.id" [products]="d.setup?.products ?? []" [isOwner]="isOwner()" />
+            </section>
           }
 
           @if (isOwner()) {
@@ -131,7 +136,6 @@ export class DiaryDetailPage {
   protected readonly flowering = FLOWERING_LABEL;
   protected readonly seedSex = SEED_SEX_LABEL;
   protected readonly environment = ENVIRONMENT_LABEL;
-  protected readonly categoryLabel = categoryLabel;
 
   private readonly reload$ = new BehaviorSubject<void>(undefined);
 

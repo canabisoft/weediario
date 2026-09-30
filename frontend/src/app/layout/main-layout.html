@@ -45,6 +45,13 @@
         </li>
       }
     </ul>
+    @if (auth.isModerator()) {
+      <ul class="mt-1 grid gap-1">
+        <li>
+          <ng-container *ngTemplateOutlet="navLink; context: { $implicit: moderationNav }" />
+        </li>
+      </ul>
+    }
     <p class="mb-1 mt-6 px-3 text-xs font-semibold uppercase tracking-wider text-fg-muted">Utilitários</p>
     <ul class="grid gap-1">
       @for (item of secondaryNav; track item.path) {
@@ -109,6 +116,19 @@
       </button>
 
       @if (auth.me(); as me) {
+        <a
+          routerLink="/notificacoes"
+          class="relative grid size-11 place-items-center rounded-xl border border-line text-fg"
+          [attr.aria-label]="notifications.unread() ? 'Notificações, ' + notifications.unread() + ' não lidas' : 'Notificações'"
+        >
+          <app-icon name="bell" class="size-5" />
+          @if (notifications.unread(); as n) {
+            <span
+              class="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-bold tabular-nums text-accent-fg"
+              aria-hidden="true"
+            >{{ n > 99 ? '99+' : n }}</span>
+          }
+        </a>
         <a routerLink="/perfil" class="rounded-full" [attr.aria-label]="'Meu perfil (' + me.username + ')'">
           <app-avatar class="size-11 text-sm" [username]="me.username" [hasAvatar]="me.hasAvatar" />
         </a>

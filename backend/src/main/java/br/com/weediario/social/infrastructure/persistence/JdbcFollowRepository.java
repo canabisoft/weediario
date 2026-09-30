@@ -19,11 +19,11 @@ public class JdbcFollowRepository implements FollowRepository {
     }
 
     @Override
-    public void follow(UUID followerId, UUID followeeId, Instant at) {
-        jdbc.update("""
+    public boolean follow(UUID followerId, UUID followeeId, Instant at) {
+        return jdbc.update("""
                 insert into grower_follows (follower_id, followee_id, created_at) values (:follower, :followee, :at)
                 on conflict do nothing""",
-                params(followerId, followeeId).addValue("at", Timestamp.from(at)));
+                params(followerId, followeeId).addValue("at", Timestamp.from(at))) > 0;
     }
 
     @Override

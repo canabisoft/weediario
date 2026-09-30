@@ -12,6 +12,7 @@ import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,6 +29,19 @@ public interface DiaryReadModel {
     PageResult<DiarySummary> ownedBy(UUID ownerId, PageQuery page);
 
     Optional<DiarySummary> findVisible(UUID diaryId, Optional<UUID> viewerId);
+
+    /**
+     * Setups que o grower usou em diários públicos (a cópia congelada de cada cultivo, sem repetir as iguais),
+     * do uso mais recente para o mais antigo. Setups nunca usados em diário público não aparecem.
+     */
+    List<PublicSetup> publicSetupsOf(String username, int limit);
+
+    /**
+     * @param diaries       diários públicos feitos com este setup
+     * @param lastStartedOn início do cultivo mais recente com ele
+     */
+    record PublicSetup(SetupSnapshot setup, long diaries, LocalDate lastStartedOn) {
+    }
 
     record FeedFilter(
             GrowthStage stage,

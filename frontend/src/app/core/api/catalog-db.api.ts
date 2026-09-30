@@ -152,7 +152,13 @@ export class CatalogDbApi {
     return this.http.post<void>(`/api/v1/catalog/${kind}/${id}/verify`, {});
   }
 
-  merge(duplicateId: string, targetId: string): Observable<CatalogItem> {
-    return this.http.post<CatalogItem>(`/api/v1/catalog/strains/${duplicateId}/merge`, { targetId });
+  /** Junta o item duplicado no principal (moderação); o nome do duplicado vira apelido. */
+  merge(kind: CatalogKind, duplicateId: string, targetId: string): Observable<CatalogItem> {
+    return this.http.post<CatalogItem>(`/api/v1/catalog/${kind}/${duplicateId}/merge`, { targetId });
+  }
+
+  /** Recusa um cadastro que ninguém usa (moderação). */
+  reject(kind: CatalogKind, id: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/catalog/${kind}/${id}`);
   }
 }

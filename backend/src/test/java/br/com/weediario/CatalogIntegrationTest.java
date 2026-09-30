@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
@@ -26,9 +25,6 @@ class CatalogIntegrationTest extends IntegrationTestSupport {
 
     @Autowired
     ImportDatasetUseCase importDataset;
-
-    @Autowired
-    JdbcTemplate jdbc;
 
     @BeforeEach
     void importSample() throws Exception {
@@ -215,14 +211,5 @@ class CatalogIntegrationTest extends IntegrationTestSupport {
 
     private String strainIdByName(String name) {
         return jdbc.queryForObject("select id::text from strains where name = ? order by created_at limit 1", String.class, name);
-    }
-
-    private Session moderator() throws Exception {
-        Session session = newGrower();
-        jdbc.update("update users set role = 'MODERATOR' where username = ?", session.username());
-        MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"%s@example.org\",\"password\":\"%s\"}".formatted(session.username(), PASSWORD)))
-                .andExpect(status().isOk()).andReturn();
-        return new Session(session.username(), body(login).get("accessToken").asText());
     }
 }

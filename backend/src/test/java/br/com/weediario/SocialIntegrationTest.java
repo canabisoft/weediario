@@ -3,9 +3,7 @@ package br.com.weediario;
 import br.com.weediario.support.IntegrationTestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -20,9 +18,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class SocialIntegrationTest extends IntegrationTestSupport {
-
-    @Autowired
-    JdbcTemplate jdbc;
 
     @Test
     void reactionsAreAnonymousAndIdempotent() throws Exception {

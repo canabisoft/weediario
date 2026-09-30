@@ -4,8 +4,10 @@ import br.com.weediario.diary.application.DiaryAccess;
 import br.com.weediario.diary.application.port.CatalogLookup;
 import br.com.weediario.diary.application.port.GrowerDirectory;
 import br.com.weediario.diary.application.port.PhotoLibrary;
+import br.com.weediario.diary.application.port.UpdateNotifier;
 import br.com.weediario.diary.application.query.BrowseDiariesUseCase;
 import br.com.weediario.diary.application.query.DiaryReadModel;
+import br.com.weediario.diary.application.usecase.ChangeDiaryProductsUseCase;
 import br.com.weediario.diary.application.usecase.ChangeDiaryVisibilityUseCase;
 import br.com.weediario.diary.application.usecase.CreateGrowDiaryUseCase;
 import br.com.weediario.diary.application.usecase.DeleteDiaryUpdateUseCase;
@@ -64,8 +66,8 @@ public class DiaryUseCaseConfig {
     @Bean
     PublishDiaryUpdateUseCase publishDiaryUpdateUseCase(DiaryAccess access, GrowDiaryRepository diaries,
                                                         DiaryUpdateRepository updates, PhotoLibrary photos,
-                                                        UnitOfWork unitOfWork, Clock clock) {
-        return new PublishDiaryUpdateUseCase(access, diaries, updates, photos, unitOfWork, clock);
+                                                        UpdateNotifier notifier, UnitOfWork unitOfWork, Clock clock) {
+        return new PublishDiaryUpdateUseCase(access, diaries, updates, photos, notifier, unitOfWork, clock);
     }
 
     @Bean
@@ -85,5 +87,11 @@ public class DiaryUseCaseConfig {
     GetDiaryPhotoUseCase getDiaryPhotoUseCase(DiaryAccess access, DiaryUpdateRepository updates, PhotoLibrary photos,
                                               UnitOfWork unitOfWork) {
         return new GetDiaryPhotoUseCase(access, updates, photos, unitOfWork);
+    }
+
+    @Bean
+    ChangeDiaryProductsUseCase changeDiaryProductsUseCase(DiaryAccess access, GrowDiaryRepository diaries,
+                                                          CatalogLookup catalog, UnitOfWork unitOfWork, Clock clock) {
+        return new ChangeDiaryProductsUseCase(access, diaries, catalog, unitOfWork, clock);
     }
 }

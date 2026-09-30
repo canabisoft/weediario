@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -42,6 +43,9 @@ public abstract class IntegrationTestSupport {
     @Autowired
     protected ObjectMapper json;
 
+    @Autowired
+    protected JdbcTemplate jdbc;
+
     public record Session(String username, String accessToken) {
         public String bearer() {
             return "Bearer " + accessToken;
@@ -61,6 +65,18 @@ public abstract class IntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andReturn();
         return new Session(username, body(login).get("accessToken").asText());
+    }
+
+    /** Grower promovido a moderador; o novo login traz o papel no access token. */
+    protected Session moderator() throws Exception {
+        Session session = newGrower();
+        jdbc.update("update users set role = 'MODERATOR' where username = ?", session.username());
+        MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s@example.org","password":"%s"}""".formatted(session.username(), PASSWORD)))
+                .andExpect(status().isOk())
+                .andReturn();
+        return new Session(session.username(), body(login).get("accessToken").asText());
     }
 
     protected UUID createDiary(Session session, String strain, String visibility, String startedOn) throws Exception {

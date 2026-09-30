@@ -31,6 +31,7 @@ import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -170,17 +171,29 @@ public class CatalogController {
     @PostMapping("/{kind}/{id}/verify")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void verify(@AuthenticationPrincipal Jwt principal, @PathVariable String kind, @PathVariable UUID id) {
-        Kind parsed = KINDS.get(kind);
+        curate.verify(kindOf(kind), id, Viewer.isModerator(principal));
+    }
+
+    /** Junta o item {@code id} (duplicado) no {@code targetId} (principal). */
+    @PostMapping("/{kind}/{id}/merge")
+    public CatalogItem merge(@AuthenticationPrincipal Jwt principal, @PathVariable String kind, @PathVariable UUID id,
+                             @Valid @RequestBody MergeRequest request) {
+        return curate.merge(kindOf(kind), id, request.targetId(), Viewer.isModerator(principal));
+    }
+
+    /** Recusa um cadastro que ninguém usa (erro de digitação, spam). */
+    @DeleteMapping("/{kind}/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void reject(@AuthenticationPrincipal Jwt principal, @PathVariable String kind, @PathVariable UUID id) {
+        curate.reject(kindOf(kind), id, Viewer.isModerator(principal));
+    }
+
+    static Kind kindOf(String path) {
+        Kind parsed = KINDS.get(path);
         if (parsed == null) {
             throw new ResourceNotFoundException("Tipo de item");
         }
-        curate.verify(parsed, id, Viewer.isModerator(principal));
-    }
-
-    @PostMapping("/strains/{id}/merge")
-    public CatalogItem merge(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id,
-                             @Valid @RequestBody MergeRequest request) {
-        return curate.merge(id, request.targetId(), Viewer.isModerator(principal));
+        return parsed;
     }
 
     // ------------------------------------------------------------------------------------ DTOs

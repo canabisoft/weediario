@@ -61,6 +61,11 @@ public final class Comment {
         }
     }
 
+    /** Um moderador revisou as denúncias e decidiu manter o comentário: ele volta a aparecer. */
+    public void keepAfterReview() {
+        hidden = false;
+    }
+
     /** Texto guardado como veio (o Angular faz o escape); só removemos caracteres de controle. */
     private static String validBody(String body) {
         String cleaned = Guard.notBlank(body, "Comentário").replaceAll("[\\p{Cntrl}&&[^\n\t]]", "").strip();
