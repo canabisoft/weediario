@@ -44,22 +44,26 @@ public final class Review {
     }
 
     /**
-     * @param seedbank        banco de sementes do diário; obrigatório quando houver {@code seedbankRatings}
-     * @param seedbankRatings notas do banco; opcionais
+     * A genética e o banco avaliados são sempre os do diário (vêm do catálogo).
+     *
+     * @param seedbankRatings notas do banco de sementes; opcionais
      */
-    public static Review submit(ReviewedGrow grow, UUID authorId, Strain strain, Ratings ratings,
-                                Seedbank seedbank, SeedbankRatings seedbankRatings, String report, Clock clock) {
+    public static Review submit(ReviewedGrow grow, UUID authorId, Ratings ratings, SeedbankRatings seedbankRatings,
+                                String report, Clock clock) {
         if (!grow.ownerId().equals(authorId)) {
             throw new DomainException("Apenas o autor do diário pode avaliar o cultivo");
         }
         if (!grow.completed()) {
             throw new DomainException("Só é possível avaliar a genética depois de concluir o cultivo");
         }
-        if (seedbankRatings != null && seedbank == null) {
+        if (grow.strainId() == null) {
+            throw new DomainException("Este diário não está ligado a uma strain do catálogo");
+        }
+        if (seedbankRatings != null && grow.breederId() == null) {
             throw new DomainException("O diário não informa o banco de sementes, então ele não pode ser avaliado");
         }
-        return new Review(UUID.randomUUID(), strain.id(), grow.diaryId(), authorId, ratings,
-                seedbankRatings == null ? null : seedbank.id(), seedbankRatings, report, clock.instant());
+        return new Review(UUID.randomUUID(), new StrainId(grow.strainId()), grow.diaryId(), authorId, ratings,
+                seedbankRatings == null ? null : grow.breederId(), seedbankRatings, report, clock.instant());
     }
 
     public static Review restore(UUID id, StrainId strainId, UUID diaryId, UUID authorId, Ratings ratings,

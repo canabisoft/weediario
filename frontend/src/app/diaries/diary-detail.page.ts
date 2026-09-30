@@ -10,6 +10,7 @@ import { formatCompact } from '../shared/decimal';
 import { Icon } from '../shared/icon';
 import {
   ENVIRONMENT_LABEL,
+  categoryLabel,
   FLOWERING_LABEL,
   MEDIUM_LABEL,
   SEED_SEX_LABEL,
@@ -45,7 +46,12 @@ type Loaded = { diary: DiaryCard; error: null } | { diary: null; error: string }
             </div>
             <h1 class="text-2xl font-bold sm:text-3xl">{{ d.title }}</h1>
             <p class="text-fg-muted">
-              {{ d.strainName }}{{ d.breeder ? ' · ' + d.breeder : '' }} · por
+              @if (d.strainId) {
+                <a [routerLink]="['/strains', d.strainId]" class="text-fg underline decoration-accent/50">{{ d.strainName }}</a>
+              } @else {
+                {{ d.strainName }}
+              }
+              {{ d.breeder ? ' · ' + d.breeder : '' }} · por
               <a [routerLink]="['/growers', d.author]" class="font-semibold text-fg">{{ d.author }}</a>
             </p>
           </header>
@@ -76,6 +82,9 @@ type Loaded = { diary: DiaryCard; error: null } | { diary: null; error: string }
                 }
                 @if (setup.spec.ventilation) {
                   <div><dt class="inline text-fg-muted">Ventilação: </dt><dd class="inline">{{ setup.spec.ventilation }}</dd></div>
+                }
+                @for (product of setup.products ?? []; track product.id) {
+                  <div><dt class="inline text-fg-muted">{{ categoryLabel(product.category) }}: </dt><dd class="inline">{{ product.brand }} · {{ product.name }}</dd></div>
                 }
                 @if (setup.spec.notes) {
                   <div class="sm:col-span-2"><dt class="inline text-fg-muted">Observações: </dt><dd class="inline whitespace-pre-line">{{ setup.spec.notes }}</dd></div>
@@ -122,6 +131,7 @@ export class DiaryDetailPage {
   protected readonly flowering = FLOWERING_LABEL;
   protected readonly seedSex = SEED_SEX_LABEL;
   protected readonly environment = ENVIRONMENT_LABEL;
+  protected readonly categoryLabel = categoryLabel;
 
   private readonly reload$ = new BehaviorSubject<void>(undefined);
 

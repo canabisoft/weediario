@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { CatalogItem } from '../core/api/catalog-db.api';
+import { CatalogPicker } from '../shared/catalog-picker';
 import { catchError, of } from 'rxjs';
 import { FloweringType, GrowMedium, GrowSetup, SeedSex, Visibility } from '../core/api/api.models';
 import { AccountApi } from '../core/api/account.api';
@@ -12,7 +14,7 @@ import { FLOWERING_LABEL, MEDIUM_LABEL, SEED_SEX_LABEL, options, today } from '.
 @Component({
   selector: 'app-new-diary-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, CatalogPicker],
   template: `
     <section class="mx-auto max-w-xl">
       <a routerLink="/diarios" class="text-sm text-fg-muted">← Diários</a>
@@ -23,15 +25,22 @@ import { FLOWERING_LABEL, MEDIUM_LABEL, SEED_SEX_LABEL, options, today } from '.
           <label class="wd-label" for="title">Nome do cultivo</label>
           <input id="title" class="wd-input" formControlName="title" maxlength="100" placeholder="Ex.: Tenda 80x80 – ciclo 3" />
         </div>
+        <app-catalog-picker
+          kind="breeders"
+          label="Banco / breeder (opcional)"
+          placeholder="Ex.: Barneys Farm"
+          hint="Escolha o banco primeiro para ver só as strains dele."
+          [(value)]="breeder"
+        />
+        <app-catalog-picker
+          kind="strains"
+          label="Strain"
+          placeholder="Ex.: Bubba Kush"
+          hint="Busca no catálogo da comunidade. Se não achar, é só adicionar."
+          [breederId]="breeder()?.id"
+          [(value)]="strain"
+        />
         <div class="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label class="wd-label" for="strain">Strain</label>
-            <input id="strain" class="wd-input" formControlName="strainName" maxlength="80" />
-          </div>
-          <div>
-            <label class="wd-label" for="breeder">Banco / breeder (opcional)</label>
-            <input id="breeder" class="wd-input" formControlName="breeder" maxlength="80" />
-          </div>
           <div>
             <label class="wd-label" for="flowering">Floração</label>
             <select id="flowering" class="wd-input" formControlName="floweringType">
@@ -95,7 +104,7 @@ import { FLOWERING_LABEL, MEDIUM_LABEL, SEED_SEX_LABEL, options, today } from '.
         @if (error()) {
           <p role="alert" class="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{{ error() }}</p>
         }
-        <button type="submit" class="wd-button" [disabled]="form.invalid || busy()">Criar diário</button>
+        <button type="submit" class="wd-button" [disabled]="form.invalid || !strain() || busy()">Criar diário</button>
       </form>
     </section>
   `,
@@ -114,8 +123,6 @@ export class NewDiaryPage {
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(100)]],
-    strainName: ['', [Validators.required, Validators.maxLength(80)]],
-    breeder: ['', Validators.maxLength(80)],
     floweringType: ['PHOTOPERIOD' as FloweringType],
     seedSex: ['FEMINIZED' as SeedSex],
     setupId: [''],
@@ -123,6 +130,8 @@ export class NewDiaryPage {
     startedOn: [today()],
     visibility: ['PUBLIC' as Visibility],
   });
+  protected readonly breeder = signal<CatalogItem | null>(null);
+  protected readonly strain = signal<CatalogItem | null>(null);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -133,6 +142,7 @@ export class NewDiaryPage {
     this.api
       .create({
         ...value,
+        strainId: this.strain()!.id,
         setupId: value.setupId || undefined,
         // Com setup, o meio vem dele (a menos que o grower mude depois no setup).
         medium: value.setupId ? undefined : value.medium,

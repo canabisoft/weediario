@@ -25,7 +25,6 @@ public final class BrowseSeedbanksUseCase {
     }
 
     public PageResult<SeedbankReviewView> reviews(UUID seedbankId, PageQuery page) {
-        detail(seedbankId);
         return catalog.reviewsOf(seedbankId, page);
     }
 }

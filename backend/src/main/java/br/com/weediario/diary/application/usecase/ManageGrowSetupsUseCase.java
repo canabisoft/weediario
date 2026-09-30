@@ -1,6 +1,7 @@
 package br.com.weediario.diary.application.usecase;
 
 import br.com.weediario.diary.application.GrowSetupView;
+import br.com.weediario.diary.application.port.CatalogLookup;
 import br.com.weediario.diary.domain.model.GrowEnvironment;
 import br.com.weediario.diary.domain.model.GrowSetup;
 import br.com.weediario.diary.domain.model.GrowSetupId;
@@ -23,18 +24,21 @@ public final class ManageGrowSetupsUseCase {
     public static final int MAX_SETUPS_PER_GROWER = 10;
 
     private final GrowSetupRepository setups;
+    private final CatalogLookup catalog;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
-    public ManageGrowSetupsUseCase(GrowSetupRepository setups, UnitOfWork unitOfWork, Clock clock) {
+    public ManageGrowSetupsUseCase(GrowSetupRepository setups, CatalogLookup catalog, UnitOfWork unitOfWork,
+                                   Clock clock) {
         this.setups = setups;
+        this.catalog = catalog;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
 
     public List<GrowSetupView> list(UUID ownerId) {
         return unitOfWork.execute(() -> setups.findByOwner(new GrowerId(ownerId)).stream()
-                .map(GrowSetupView::of)
+                .map(this::view)
                 .toList());
     }
 
@@ -44,16 +48,20 @@ public final class ManageGrowSetupsUseCase {
             if (setups.countByOwner(owner) >= MAX_SETUPS_PER_GROWER) {
                 throw new DomainException("Limite de " + MAX_SETUPS_PER_GROWER + " setups atingido");
             }
-            GrowSetup setup = GrowSetup.create(owner, details.name(), details.environment(), details.spec(), clock);
-            return GrowSetupView.of(setups.save(setup));
+            // Descrever os produtos também valida que todos existem no catálogo.
+            catalog.products(details.productIds());
+            GrowSetup setup = GrowSetup.create(owner, details.name(), details.environment(), details.spec(),
+                    details.productIds(), clock);
+            return view(setups.save(setup));
         });
     }
 
     public GrowSetupView revise(UUID ownerId, UUID setupId, Details details) {
         return unitOfWork.execute(() -> {
             GrowSetup setup = owned(ownerId, setupId);
-            setup.revise(details.name(), details.environment(), details.spec(), clock);
-            return GrowSetupView.of(setups.save(setup));
+            catalog.products(details.productIds());
+            setup.revise(details.name(), details.environment(), details.spec(), details.productIds(), clock);
+            return view(setups.save(setup));
         });
     }
 
@@ -62,12 +70,20 @@ public final class ManageGrowSetupsUseCase {
         unitOfWork.run(() -> setups.delete(owned(ownerId, setupId).id()));
     }
 
+    private GrowSetupView view(GrowSetup setup) {
+        return GrowSetupView.of(setup, catalog.products(setup.productIds()));
+    }
+
     private GrowSetup owned(UUID ownerId, UUID setupId) {
         return setups.findById(new GrowSetupId(setupId))
                 .filter(setup -> setup.isOwnedBy(new GrowerId(ownerId)))
                 .orElseThrow(() -> new ResourceNotFoundException("Setup"));
     }
 
-    public record Details(String name, GrowEnvironment environment, SetupSpec spec) {
+    public record Details(String name, GrowEnvironment environment, SetupSpec spec, List<UUID> productIds) {
+
+        public Details {
+            productIds = productIds == null ? List.of() : productIds;
+        }
     }
 }

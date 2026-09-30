@@ -2,6 +2,7 @@ package br.com.weediario.diary.application.usecase;
 
 import br.com.weediario.diary.application.DiaryAccess;
 import br.com.weediario.diary.application.port.PhotoLibrary;
+import br.com.weediario.diary.application.port.PhotoLibrary.PhotoFile;
 import br.com.weediario.diary.application.port.PhotoLibrary.PhotoSize;
 import br.com.weediario.diary.domain.model.GrowDiary;
 import br.com.weediario.diary.domain.model.Visibility;
@@ -39,11 +40,11 @@ public final class GetDiaryPhotoUseCase {
             }
             return found;
         });
-        byte[] content = photos.open(photoId, size).orElseThrow(() -> new ResourceNotFoundException("Foto"));
-        return new Photo(content, diary.visibility() == Visibility.PUBLIC);
+        PhotoFile file = photos.open(photoId, size).orElseThrow(() -> new ResourceNotFoundException("Foto"));
+        return new Photo(file.content(), file.mediaType(), diary.visibility() == Visibility.PUBLIC);
     }
 
     /** {@code publiclyCacheable} permite cache em CDN/proxy apenas para diários públicos. */
-    public record Photo(byte[] content, boolean publiclyCacheable) {
+    public record Photo(byte[] content, String mediaType, boolean publiclyCacheable) {
     }
 }

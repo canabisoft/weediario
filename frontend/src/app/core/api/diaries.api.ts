@@ -29,7 +29,9 @@ export interface FeedQuery {
 
 export interface NewDiary {
   readonly title: string;
-  readonly strainName: string;
+  /** Strain escolhida no catálogo (preferível) ou, na falta dela, o nome digitado. */
+  readonly strainId?: string;
+  readonly strainName?: string;
   readonly breeder?: string;
   readonly floweringType: FloweringType;
   readonly seedSex: SeedSex;
@@ -49,8 +51,6 @@ export interface NewUpdate {
   readonly plantHeightCm?: number;
   readonly photoIds: string[];
 }
-
-export type PhotoSize = 'FULL' | 'THUMBNAIL';
 
 @Injectable({ providedIn: 'root' })
 export class DiariesApi {
@@ -100,13 +100,9 @@ export class DiariesApi {
     return this.http.delete<void>(`/api/v1/diaries/${diaryId}/updates/${updateId}`);
   }
 
-  photoUrl(diaryId: string, photoId: string, size: PhotoSize): string {
-    return `/api/v1/diaries/${diaryId}/photos/${photoId}?size=${size}`;
-  }
-
   /** Fotos de diários privados precisam do token, que uma tag img não envia: baixa como blob. */
-  photoBlob(diaryId: string, photoId: string, size: PhotoSize): Observable<Blob> {
-    return this.http.get(this.photoUrl(diaryId, photoId, size), { responseType: 'blob' });
+  photoBlob(url: string): Observable<Blob> {
+    return this.http.get(url, { responseType: 'blob' });
   }
 }
 

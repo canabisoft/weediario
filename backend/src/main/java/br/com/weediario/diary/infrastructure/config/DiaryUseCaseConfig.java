@@ -1,6 +1,7 @@
 package br.com.weediario.diary.infrastructure.config;
 
 import br.com.weediario.diary.application.DiaryAccess;
+import br.com.weediario.diary.application.port.CatalogLookup;
 import br.com.weediario.diary.application.port.GrowerDirectory;
 import br.com.weediario.diary.application.port.PhotoLibrary;
 import br.com.weediario.diary.application.query.BrowseDiariesUseCase;
@@ -37,13 +38,15 @@ public class DiaryUseCaseConfig {
 
     @Bean
     CreateGrowDiaryUseCase createGrowDiaryUseCase(GrowDiaryRepository diaries, GrowSetupRepository setups,
-                                                  GrowerDirectory growers, UnitOfWork unitOfWork, Clock clock) {
-        return new CreateGrowDiaryUseCase(diaries, setups, growers, unitOfWork, clock);
+                                                  CatalogLookup catalog, GrowerDirectory growers,
+                                                  UnitOfWork unitOfWork, Clock clock) {
+        return new CreateGrowDiaryUseCase(diaries, setups, catalog, growers, unitOfWork, clock);
     }
 
     @Bean
-    ManageGrowSetupsUseCase manageGrowSetupsUseCase(GrowSetupRepository setups, UnitOfWork unitOfWork, Clock clock) {
-        return new ManageGrowSetupsUseCase(setups, unitOfWork, clock);
+    ManageGrowSetupsUseCase manageGrowSetupsUseCase(GrowSetupRepository setups, CatalogLookup catalog,
+                                                    UnitOfWork unitOfWork, Clock clock) {
+        return new ManageGrowSetupsUseCase(setups, catalog, unitOfWork, clock);
     }
 
     @Bean

@@ -64,7 +64,7 @@ const MAX_PHOTOS = 10;
               <input type="file" accept="image/jpeg,image/png,image/webp" multiple class="sr-only" [disabled]="photos().length >= maxPhotos" (change)="addFiles($event)" />
             </label>
           </div>
-          <p class="mt-1 text-xs text-fg-muted">GPS, modelo do celular e data da foto são removidos no servidor antes de publicar.</p>
+          <p class="mt-1 text-xs text-fg-muted">Relaxa: GPS, modelo do celular e data da foto somem antes de postar.</p>
 
           @if (photos().length) {
             <ul class="mt-3 grid grid-cols-3 gap-2">

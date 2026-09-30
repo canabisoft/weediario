@@ -43,12 +43,17 @@ class PhotoAndTimelineIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.day").value(21))
                 .andExpect(jsonPath("$.week").value(3))
-                .andExpect(jsonPath("$.photoIds[0]").value(photoId.toString()));
+                .andExpect(jsonPath("$.photoIds[0]").value(photoId.toString()))
+                .andExpect(jsonPath("$.photos[0].id").value(photoId.toString()))
+                .andExpect(jsonPath("$.photos[0].thumbnailUrl")
+                        .value("/api/v1/diaries/%s/photos/%s?size=THUMBNAIL".formatted(diaryId, photoId)))
+                .andExpect(jsonPath("$.photos[0].fullUrl")
+                        .value("/api/v1/diaries/%s/photos/%s?size=FULL".formatted(diaryId, photoId)));
 
         // Visitante anônimo vê a foto de um diário público, sem nenhum metadado de origem.
         MvcResult photo = mvc.perform(get("/api/v1/diaries/{d}/photos/{p}", diaryId, photoId))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Type", "image/jpeg"))
+                .andExpect(header().string("Content-Type", "image/webp"))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
                 .andReturn();
         byte[] served = photo.getResponse().getContentAsByteArray();

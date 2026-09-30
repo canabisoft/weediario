@@ -59,6 +59,6 @@ public class GrowSetupController {
     }
 
     private static Details details(GrowSetupRequest request) {
-        return new Details(request.name(), request.environment(), request.spec());
+        return new Details(request.name(), request.environment(), request.spec(), request.productIds());
     }
 }

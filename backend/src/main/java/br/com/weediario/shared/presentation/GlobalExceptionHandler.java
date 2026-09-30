@@ -1,5 +1,6 @@
 package br.com.weediario.shared.presentation;
 
+import br.com.weediario.catalog.application.ModeratorOnlyException;
 import br.com.weediario.diary.application.exception.GrowerNotAllowedException;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
 import br.com.weediario.identity.application.exception.LoginThrottledException;
@@ -65,7 +66,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler({GrowerNotAllowedException.class, AccessDeniedException.class})
+    @ExceptionHandler({GrowerNotAllowedException.class, AccessDeniedException.class, ModeratorOnlyException.class})
     ProblemDetail handleForbidden(RuntimeException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Acesso negado");
     }

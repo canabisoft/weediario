@@ -8,6 +8,7 @@ import { AuthService } from '../core/auth/auth.service';
 import { ThemeService } from '../core/theme/theme.service';
 import { Avatar } from '../shared/avatar';
 import { Icon, IconName } from '../shared/icon';
+import { PrivacyNote } from '../shared/privacy-note';
 
 interface NavItem {
   readonly path: string;
@@ -26,7 +27,7 @@ const DESKTOP_QUERY = '(min-width: 1024px)';
 @Component({
   selector: 'app-main-layout',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet, Icon, Avatar],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet, Icon, Avatar, PrivacyNote],
   templateUrl: './main-layout.html',
   host: { '(document:keydown.escape)': 'closeMenu()' },
 })
@@ -44,7 +45,8 @@ export class MainLayout {
   protected readonly primaryNav: readonly NavItem[] = [
     { path: '/', label: 'Home', icon: 'home', exact: true },
     { path: '/diarios', label: 'Diários', icon: 'diaries' },
-    { path: '/strains', label: 'Strains', icon: 'leaf' },
+    { path: '/strains', label: 'Catálogo', icon: 'leaf' },
+    { path: '/mais-usados', label: 'Mais usados', icon: 'flame' },
     { path: '/growers', label: 'Ranking de growers', icon: 'trophy' },
     { path: '/equipamentos', label: 'Equipamentos', icon: 'bulb' },
   ];

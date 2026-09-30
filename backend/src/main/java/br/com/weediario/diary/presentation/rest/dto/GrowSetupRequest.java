@@ -10,6 +10,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+import java.util.UUID;
+
 public record GrowSetupRequest(
         @NotBlank @Size(max = GrowSetup.NAME_MAX_LENGTH) String name,
         @NotNull GrowEnvironment environment,
@@ -21,7 +24,8 @@ public record GrowSetupRequest(
         GrowMedium medium,
         @Size(max = SetupSpec.TEXT_MAX_LENGTH) String nutrients,
         @Size(max = SetupSpec.TEXT_MAX_LENGTH) String ventilation,
-        @Size(max = SetupSpec.NOTES_MAX_LENGTH) String notes) {
+        @Size(max = SetupSpec.NOTES_MAX_LENGTH) String notes,
+        @Size(max = GrowSetup.MAX_PRODUCTS) List<@NotNull UUID> productIds) {
 
     public SetupSpec spec() {
         return new SetupSpec(tentWidthCm, tentDepthCm, tentHeightCm, lighting, lightWattage, medium,

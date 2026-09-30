@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * A foto de perfil usa a variante miniatura (até 480px), suficiente para avatar e bem mais leve.
+ * A foto de perfil usa a variante miniatura (até 400px de largura), suficiente para avatar e bem mais leve.
  */
 @Component
 public class MediaAvatarImages implements AvatarImages {
@@ -32,7 +32,8 @@ public class MediaAvatarImages implements AvatarImages {
     }
 
     @Override
-    public Optional<byte[]> open(UUID imageId) {
-        return images.open(imageId, ImageVariant.THUMBNAIL);
+    public Optional<AvatarFile> open(UUID imageId) {
+        return images.open(imageId, ImageVariant.THUMBNAIL)
+                .map(image -> new AvatarFile(image.content(), image.mediaType()));
     }
 }

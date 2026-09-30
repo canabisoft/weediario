@@ -1,0 +1,86 @@
+<div
+  class="fixed inset-0 z-50 overflow-hidden bg-black/95 text-white"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="hasMany() ? 'Foto ' + (index() + 1) + ' de ' + photos().length : 'Foto ampliada'"
+>
+  <!-- Palco: recebe todos os gestos. Os controles ficam fora dele para que um toque num botão não vire gesto. -->
+  <div
+    class="absolute inset-0 grid touch-none select-none place-items-center"
+    [class.cursor-zoom-in]="!zoomed()"
+    [class.cursor-grab]="zoomed()"
+    (pointerdown)="onPointerDown($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp($event)"
+    (pointercancel)="onPointerUp($event)"
+    (wheel)="onWheel($event)"
+  >
+    <div
+      #frame
+      class="relative will-change-transform"
+      [class.opacity-0]="!ratio()"
+      [class.transition-transform]="animating()"
+      [class.duration-200]="animating()"
+      [class.ease-out]="animating()"
+      [style.width]="frameWidth()"
+      [style.aspect-ratio]="ratio() ?? 1"
+      [style.transform]="transform()"
+    >
+      @if (thumbSrc(); as src) {
+        <!-- Miniatura já em cache: aparece na hora enquanto a versão em alta chega. -->
+        <img [src]="src" alt="" aria-hidden="true" draggable="false" class="absolute inset-0 size-full object-contain" (load)="measure($event)" />
+      }
+      @if (fullSrc(); as src) {
+        <img
+          [src]="src"
+          [alt]="alt()"
+          draggable="false"
+          decoding="async"
+          class="absolute inset-0 size-full object-contain transition-opacity duration-300"
+          [class.opacity-0]="!fullLoaded()"
+          (load)="onFullLoad($event)"
+          (error)="fullFailed.set(true)"
+        />
+      }
+    </div>
+  </div>
+
+  <div class="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+    <p class="rounded-full bg-black/50 px-3 py-1 text-sm tabular-nums" [class.invisible]="!hasMany()" aria-hidden="true">
+      {{ index() + 1 }} / {{ photos().length }}
+    </p>
+    <div class="pointer-events-auto flex items-center gap-2">
+      <button type="button" class="hidden size-11 place-items-center rounded-full bg-black/60 sm:grid" aria-label="Diminuir zoom" [disabled]="!zoomed()" [class.opacity-40]="!zoomed()" (click)="zoomBy(1 / 1.5)">
+        <app-icon name="zoomOut" class="size-5" />
+      </button>
+      <button type="button" class="hidden size-11 place-items-center rounded-full bg-black/60 sm:grid" aria-label="Aumentar zoom" (click)="zoomBy(1.5)">
+        <app-icon name="zoomIn" class="size-5" />
+      </button>
+      <button #closeButton type="button" class="grid size-11 place-items-center rounded-full bg-black/60 focus-visible:outline-2 focus-visible:outline-white" aria-label="Fechar" (click)="close()">
+        <app-icon name="close" class="size-6" />
+      </button>
+    </div>
+  </div>
+
+  @if (hasMany()) {
+    <button type="button" class="absolute left-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/60" aria-label="Foto anterior" (click)="previous()">
+      <app-icon name="chevronLeft" class="size-6" />
+    </button>
+    <button type="button" class="absolute right-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-black/60" aria-label="Próxima foto" (click)="next()">
+      <app-icon name="chevronRight" class="size-6" />
+    </button>
+  }
+
+  <div class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]" aria-live="polite">
+    @if (fullFailed()) {
+      <p class="rounded-full bg-black/70 px-3 py-1.5 text-xs">Não deu para carregar a alta resolução. Mostrando a miniatura.</p>
+    } @else if (!fullLoaded()) {
+      <p class="inline-flex items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-xs">
+        <span class="size-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true"></span>
+        Carregando alta resolução…
+      </p>
+    } @else if (!zoomed()) {
+      <p class="rounded-full bg-black/50 px-3 py-1.5 text-xs text-white/80">Toque duas vezes ou use a pinça para ampliar</p>
+    }
+  </div>
+</div>

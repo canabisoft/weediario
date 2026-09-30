@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, catchError, combineLatest, map, of, scan, switchMap } from 'rxjs';
-import { DiaryUpdate } from '../../core/api/api.models';
+import { DiaryPhotoRef, DiaryUpdate } from '../../core/api/api.models';
 import { DiariesApi } from '../../core/api/diaries.api';
 import { problemMessage } from '../../core/api/problem';
 import { formatDecimal } from '../../shared/decimal';
 import { DiaryPhoto } from '../../shared/diary-photo';
 import { Icon } from '../../shared/icon';
+import { ImageLightbox } from '../../shared/image-lightbox';
 import { STAGE_LABEL, formatDate } from '../../shared/labels';
 
 interface TimelineState {
@@ -15,12 +16,12 @@ interface TimelineState {
 }
 
 /**
- * Linha do tempo do cultivo, mais recente primeiro. Tocar numa foto abre a versão grande.
+ * Linha do tempo do cultivo, mais recente primeiro. Tocar numa foto abre o lightbox com as fotos do update.
  */
 @Component({
   selector: 'app-diary-timeline',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DiaryPhoto, Icon],
+  imports: [DiaryPhoto, Icon, ImageLightbox],
   template: `
     <h2 class="text-lg font-semibold">Linha do tempo</h2>
 
@@ -47,11 +48,17 @@ interface TimelineState {
               }
             </p>
 
-            @if (update.photoIds.length) {
+            @if (update.photos.length) {
               <div class="mt-2 grid grid-cols-3 gap-1.5">
-                @for (photo of update.photoIds; track photo) {
-                  <button type="button" class="aspect-square overflow-hidden rounded-xl" (click)="open.set(photo)">
-                    <app-diary-photo class="size-full" [diaryId]="diaryId()" [photoId]="photo" [isPublic]="isPublic()" alt="Foto do update" />
+                @for (photo of update.photos; track photo.id; let i = $index) {
+                  <button
+                    type="button"
+                    class="aspect-square overflow-hidden rounded-xl"
+                    [attr.aria-label]="'Ampliar foto ' + (i + 1) + ' de ' + update.photos.length"
+                    (click)="viewer.set({ photos: update.photos, index: i })"
+                  >
+                    <!-- Só a miniatura aqui; a versão em alta é baixada ao abrir o lightbox. -->
+                    <app-diary-photo class="size-full" [url]="photo.thumbnailUrl" [isPublic]="isPublic()" alt="Foto do update" />
                   </button>
                 }
               </div>
@@ -88,20 +95,8 @@ interface TimelineState {
       <p role="alert" class="mt-2 text-sm text-danger">{{ error() }}</p>
     }
 
-    @if (open(); as photo) {
-      <div
-        class="fixed inset-0 z-50 grid place-items-center bg-black/90 p-2"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Foto ampliada"
-        (click)="open.set(null)"
-        (keydown.escape)="open.set(null)"
-      >
-        <app-diary-photo class="max-h-full w-full max-w-3xl bg-transparent [&_img]:object-contain" [diaryId]="diaryId()" [photoId]="photo" size="FULL" [isPublic]="isPublic()" alt="Foto ampliada" />
-        <button type="button" class="absolute right-3 top-3 grid size-11 place-items-center rounded-full bg-black/60 text-white" aria-label="Fechar">
-          <app-icon name="close" class="size-6" />
-        </button>
-      </div>
+    @if (viewer(); as v) {
+      <app-image-lightbox [photos]="v.photos" [startIndex]="v.index" [isPublic]="isPublic()" alt="Foto do update" (closed)="viewer.set(null)" />
     }
   `,
 })
@@ -115,7 +110,7 @@ export class DiaryTimeline {
   readonly changed = output<void>();
 
   protected readonly stage = STAGE_LABEL;
-  protected readonly open = signal<string | null>(null);
+  protected readonly viewer = signal<{ photos: DiaryPhotoRef[]; index: number } | null>(null);
   protected readonly error = signal<string | null>(null);
   private readonly reload$ = new BehaviorSubject<void>(undefined);
   private readonly page$ = new BehaviorSubject<number>(0);

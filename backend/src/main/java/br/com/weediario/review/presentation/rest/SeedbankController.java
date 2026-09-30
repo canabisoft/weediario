@@ -3,7 +3,6 @@ package br.com.weediario.review.presentation.rest;
 import br.com.weediario.review.application.query.BrowseSeedbanksUseCase;
 import br.com.weediario.review.application.query.SeedbankCatalog.SeedbankReviewView;
 import br.com.weediario.review.application.query.SeedbankCatalog.SeedbankSummary;
-import br.com.weediario.review.domain.model.Seedbank;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
 import jakarta.validation.constraints.Size;
@@ -30,7 +29,7 @@ public class SeedbankController {
 
     @GetMapping
     public PageResult<SeedbankSummary> search(
-            @RequestParam(required = false) @Size(max = Seedbank.NAME_MAX_LENGTH) String query,
+            @RequestParam(required = false) @Size(max = 80) String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return browseSeedbanks.search(query, new PageQuery(page, size));

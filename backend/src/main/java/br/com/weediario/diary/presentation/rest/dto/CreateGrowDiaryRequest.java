@@ -17,15 +17,17 @@ import java.util.UUID;
 /**
  * Payload explícito (sem ownerId, status ou datas técnicas): o autor vem do JWT e o resto é definido pelo domínio,
  * o que impede mass assignment. Com {@code setupId}, o meio de cultivo pode ser omitido (vem do setup).
+ * A strain vem por {@code strainId} (escolhida no catálogo) ou por {@code strainName} (achada ou cadastrada).
  */
 public record CreateGrowDiaryRequest(
         @NotBlank @Size(max = GrowDiary.TITLE_MAX_LENGTH) String title,
-        @NotBlank @Size(max = Strain.NAME_MAX_LENGTH) String strainName,
+        @Size(max = Strain.NAME_MAX_LENGTH) String strainName,
         @Size(max = Strain.BREEDER_MAX_LENGTH) String breeder,
         @NotNull FloweringType floweringType,
         @NotNull SeedSex seedSex,
         GrowMedium medium,
         Visibility visibility,
         @PastOrPresent LocalDate startedOn,
-        UUID setupId) {
+        UUID setupId,
+        UUID strainId) {
 }

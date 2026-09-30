@@ -28,7 +28,7 @@ public class DiaryReviewedGrows implements ReviewedGrows {
                 diary.id().value(),
                 diary.ownerId().value(),
                 diary.status() == DiaryStatus.COMPLETED,
-                diary.strain().name(),
-                diary.strain().breeder()));
+                diary.strain().catalogId(),
+                diary.strain().breederId()));
     }
 }

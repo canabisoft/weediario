@@ -3,32 +3,42 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, catchError, debounceTime, map, of, startWith, switchMap } from 'rxjs';
 import { Page } from '../core/api/api.models';
-import { CatalogApi } from '../core/api/catalog.api';
+import { CatalogDbApi, ProductCategory } from '../core/api/catalog-db.api';
 import { formatDecimal } from '../shared/decimal';
 import { Icon } from '../shared/icon';
+import { CATEGORY_LABEL, DOMINANCE_LABEL, SOURCE_LABEL, options } from '../shared/labels';
 
-type Tab = 'strains' | 'bancos';
+type Tab = 'strains' | 'bancos' | 'produtos';
 
 interface Row {
   readonly id: string;
+  readonly link: string[];
   readonly name: string;
-  readonly subtitle?: string;
-  readonly reviewCount: number;
-  readonly overall: number;
+  readonly subtitle: string;
+  readonly source: 'DATASET' | 'COMMUNITY';
+  readonly verified: boolean;
+  readonly usage: number;
+  readonly score?: number;
 }
 
 /**
- * Catálogo da comunidade: strains e bancos de sementes, ordenados pelos mais avaliados.
+ * Catálogo da comunidade: strains, bancos de sementes e produtos. Tudo o que já foi cadastrado (base pública
+ * importada + comunidade), com uso nos diários e nota média quando houver reviews.
  */
 @Component({
   selector: 'app-catalog-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Icon],
   template: `
-    <h1 class="text-2xl font-bold">Genéticas</h1>
-    <p class="text-fg-muted">Notas dadas por quem cultivou até a colheita.</p>
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold">Catálogo</h1>
+        <p class="text-fg-muted">Genéticas, bancos e insumos que a comunidade usa.</p>
+      </div>
+      <a routerLink="/mais-usados" class="text-sm font-semibold text-accent">Mais usados →</a>
+    </div>
 
-    <div class="mt-4 flex gap-2" role="tablist" aria-label="Catálogo">
+    <div class="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Catálogo">
       @for (option of tabs; track option.id) {
         <button
           type="button"
@@ -36,95 +46,172 @@ interface Row {
           class="min-h-11 rounded-full px-4 text-sm font-semibold"
           [class]="tab() === option.id ? 'bg-accent text-accent-fg' : 'bg-surface-raised text-fg-muted'"
           [attr.aria-selected]="tab() === option.id"
-          (click)="navigate({ aba: option.id === 'strains' ? null : option.id, q: null })"
+          (click)="navigate({ aba: option.id === 'strains' ? null : option.id, q: null, categoria: null })"
         >
           {{ option.label }}
         </button>
       }
     </div>
 
-    <div class="relative mt-4">
-      <label for="catalog-search" class="sr-only">Buscar</label>
-      <app-icon name="search" class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-fg-muted" />
-      <input
-        id="catalog-search"
-        type="search"
-        maxlength="80"
-        class="wd-input pl-10 text-base"
-        [placeholder]="tab() === 'strains' ? 'Buscar strain' : 'Buscar banco de sementes'"
-        [value]="query()"
-        (input)="navigate({ q: $any($event.target).value || null })"
-      />
+    <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+      <div class="relative flex-1">
+        <label for="catalog-search" class="sr-only">Buscar</label>
+        <app-icon name="search" class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-fg-muted" />
+        <input
+          id="catalog-search"
+          type="search"
+          maxlength="80"
+          class="wd-input pl-10 text-base"
+          [placeholder]="placeholder()"
+          [value]="query()"
+          (input)="navigate({ q: $any($event.target).value || null })"
+        />
+      </div>
+      @if (tab() === 'produtos') {
+        <label class="sr-only" for="catalog-category">Categoria</label>
+        <select id="catalog-category" class="wd-input text-base sm:w-56" (change)="navigate({ categoria: $any($event.target).value || null })">
+          <option value="">Todas as categorias</option>
+          @for (o of categoryOptions; track o.value) {
+            <option [value]="o.value" [selected]="categoria() === o.value">{{ o.label }}</option>
+          }
+        </select>
+      }
     </div>
 
     @if (result(); as page) {
-      @if (page.items.length === 0) {
-        <div class="wd-card mt-4 text-center">
-          <p class="font-medium">Nada avaliado por aqui ainda.</p>
-          <p class="text-sm text-fg-muted">As genéticas entram no catálogo quando alguém conclui um cultivo e publica a review.</p>
-        </div>
-      }
-      <ul class="mt-4 grid gap-2">
+      <p class="mt-3 text-sm text-fg-muted">{{ page.totalItems }} {{ page.totalItems === 1 ? 'item' : 'itens' }}</p>
+      <ul class="mt-2 grid gap-2">
         @for (row of page.items; track row.id) {
           <li>
-            <a [routerLink]="[tab() === 'strains' ? '/strains' : '/bancos', row.id]" class="wd-card flex items-center gap-3 hover:border-accent/50">
-              <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent">
-                <app-icon [name]="tab() === 'strains' ? 'leaf' : 'star'" class="size-5" />
-              </span>
+            <a [routerLink]="row.link" class="wd-card flex items-center gap-3 hover:border-accent/50">
               <span class="min-w-0 flex-1">
-                <span class="block truncate font-semibold">{{ row.name }}</span>
-                <span class="block truncate text-sm text-fg-muted">
-                  {{ row.subtitle ? row.subtitle + ' · ' : '' }}{{ row.reviewCount }} {{ row.reviewCount === 1 ? 'avaliação' : 'avaliações' }}
+                <span class="flex items-center gap-2">
+                  <span class="truncate font-semibold">{{ row.name }}</span>
+                  @if (row.verified) {
+                    <app-icon name="check" class="size-4 text-accent" />
+                  }
                 </span>
+                <span class="block truncate text-sm text-fg-muted">{{ row.subtitle }}</span>
+                <span class="mt-1 inline-block rounded-full bg-surface-raised px-2 text-[11px] text-fg-muted">{{ source[row.source] }}</span>
               </span>
-              <span class="inline-flex items-center gap-1 text-lg font-bold tabular-nums">
-                <app-icon name="star" class="size-4 text-accent" [filled]="true" /> {{ score(row.overall) }}
+              <span class="text-right text-sm">
+                @if (row.score != null) {
+                  <span class="flex items-center justify-end gap-1 font-bold"><app-icon name="star" class="size-4 text-accent" [filled]="true" />{{ num(row.score) }}</span>
+                }
+                <span class="block text-xs text-fg-muted">{{ row.usage }} {{ row.usage === 1 ? 'diário' : 'diários' }}</span>
               </span>
             </a>
           </li>
+        } @empty {
+          <li class="wd-card text-center text-fg-muted">Nada encontrado. Dá para cadastrar ao iniciar um diário ou editar um setup.</li>
         }
       </ul>
+      @if (page.totalPages > 1) {
+        <nav class="mt-4 flex items-center justify-center gap-3" aria-label="Paginação">
+          <button type="button" class="wd-button bg-surface-raised text-fg" [disabled]="page.page === 0" (click)="navigate({ pagina: page.page - 1 || null })">Anterior</button>
+          <span class="text-sm text-fg-muted">{{ page.page + 1 }} / {{ page.totalPages }}</span>
+          <button type="button" class="wd-button bg-surface-raised text-fg" [disabled]="page.page + 1 >= page.totalPages" (click)="navigate({ pagina: page.page + 1 })">Próxima</button>
+        </nav>
+      }
     } @else {
       <div class="mt-4 h-40 animate-pulse rounded-2xl bg-surface" aria-busy="true"></div>
     }
   `,
 })
 export class CatalogPage {
-  private readonly api = inject(CatalogApi);
+  private readonly api = inject(CatalogDbApi);
   private readonly router = inject(Router);
 
   readonly aba = input<string | undefined>();
   readonly q = input<string | undefined>();
+  readonly categoria = input<ProductCategory | undefined>();
+  readonly pagina = input<string | undefined>();
 
+  protected readonly source = SOURCE_LABEL;
+  protected readonly categoryOptions = options(CATEGORY_LABEL);
   protected readonly tabs: readonly { id: Tab; label: string }[] = [
     { id: 'strains', label: 'Strains' },
     { id: 'bancos', label: 'Bancos de sementes' },
+    { id: 'produtos', label: 'Produtos' },
   ];
-  protected readonly tab = computed<Tab>(() => (this.aba() === 'bancos' ? 'bancos' : 'strains'));
+  protected readonly tab = computed<Tab>(() => (this.aba() === 'bancos' || this.aba() === 'produtos' ? this.aba() as Tab : 'strains'));
   protected readonly query = computed(() => this.q() ?? '');
+  protected readonly placeholder = computed(() =>
+    ({ strains: 'Buscar strain ou breeder', bancos: 'Buscar banco de sementes', produtos: 'Buscar produto ou marca' })[this.tab()],
+  );
 
   protected readonly result = toSignal(
-    toObservable(computed(() => ({ tab: this.tab(), query: this.query() }))).pipe(
+    toObservable(computed(() => ({ tab: this.tab(), q: this.query(), category: this.categoria(), page: Number(this.pagina() ?? 0) }))).pipe(
       debounceTime(250),
-      switchMap(({ tab, query }) => this.load(tab, query).pipe(startWith(null))),
+      switchMap(({ tab, q, category, page }) => this.load(tab, q, category, page).pipe(startWith(null))),
     ),
   );
 
-  protected navigate(params: Record<string, string | null>): void {
-    this.router.navigate([], { queryParams: params, queryParamsHandling: 'merge', replaceUrl: true });
+  protected navigate(params: Record<string, string | number | null>): void {
+    const resetPage = !('pagina' in params);
+    this.router.navigate([], {
+      queryParams: resetPage ? { ...params, pagina: null } : params,
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
-  protected score(value: number): string {
+  protected num(value: number): string {
     return formatDecimal(value, 1);
   }
 
-  private load(tab: Tab, query: string): Observable<Page<Row> | null> {
-    const request: Observable<Page<Row>> =
-      tab === 'strains'
-        ? this.api.strains(query).pipe(
-            map((page) => ({ ...page, items: page.items.map((s) => ({ ...s, subtitle: s.breeder })) })),
-          )
-        : this.api.seedbanks(query);
-    return request.pipe(catchError(() => of({ items: [], page: 0, size: 0, totalItems: 0, totalPages: 0 })));
+  private load(tab: Tab, q: string, category: ProductCategory | undefined, page: number): Observable<Page<Row> | null> {
+    const empty: Page<Row> = { items: [], page: 0, size: 0, totalItems: 0, totalPages: 0 };
+    let request: Observable<Page<Row>>;
+    if (tab === 'strains') {
+      request = this.api.strains(q, page).pipe(
+        map((result) => ({
+          ...result,
+          items: result.items.map((s) => ({
+            id: s.id,
+            link: ['/strains', s.id],
+            name: s.name,
+            subtitle: [s.breeder ?? 'sem breeder informado', s.dominance ? DOMINANCE_LABEL[s.dominance] : null,
+              s.floweringType === 'AUTOFLOWER' ? 'automática' : null].filter(Boolean).join(' · '),
+            source: s.source,
+            verified: s.status === 'VERIFIED',
+            usage: s.diaries,
+            score: s.reviewCount ? s.overall : undefined,
+          })),
+        })),
+      );
+    } else if (tab === 'bancos') {
+      request = this.api.breeders(q, page).pipe(
+        map((result) => ({
+          ...result,
+          items: result.items.map((b) => ({
+            id: b.id,
+            link: ['/bancos', b.id],
+            name: b.name,
+            subtitle: `${b.strains} ${b.strains === 1 ? 'strain' : 'strains'} no catálogo`,
+            source: b.source,
+            verified: b.status === 'VERIFIED',
+            usage: b.diaries,
+            score: b.reviewCount ? b.overall : undefined,
+          })),
+        })),
+      );
+    } else {
+      request = this.api.products(q, category, page).pipe(
+        map((result) => ({
+          ...result,
+          items: result.items.map((p) => ({
+            id: p.id,
+            link: ['/mais-usados'],
+            name: p.name,
+            subtitle: `${p.brand} · ${CATEGORY_LABEL[p.category]}`,
+            source: p.source,
+            verified: p.status === 'VERIFIED',
+            usage: p.diaries,
+          })),
+        })),
+      );
+    }
+    return request.pipe(catchError(() => of(empty)));
   }
 }

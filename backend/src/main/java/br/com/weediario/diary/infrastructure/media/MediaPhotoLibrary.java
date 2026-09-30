@@ -30,8 +30,9 @@ public class MediaPhotoLibrary implements PhotoLibrary {
     }
 
     @Override
-    public Optional<byte[]> open(UUID photoId, PhotoSize size) {
-        return images.open(photoId, size == PhotoSize.FULL ? ImageVariant.FULL : ImageVariant.THUMBNAIL);
+    public Optional<PhotoFile> open(UUID photoId, PhotoSize size) {
+        return images.open(photoId, size == PhotoSize.FULL ? ImageVariant.FULL : ImageVariant.THUMBNAIL)
+                .map(image -> new PhotoFile(image.content(), image.mediaType()));
     }
 
     @Override

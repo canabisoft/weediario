@@ -41,7 +41,7 @@ import { Icon } from '../shared/icon';
             <button type="button" class="wd-button bg-surface-raised text-fg" (click)="removeAvatar()">Remover foto</button>
           }
         </div>
-        <p class="text-xs text-fg-muted">A foto passa pelo mesmo filtro das fotos dos diários: sai sem GPS, aparelho ou data. Prefira uma imagem que não mostre seu rosto.</p>
+        <p class="text-xs text-fg-muted">Sua foto passa pela mesma faxina das fotos dos diários: sem GPS, sem modelo do celular, sem data. Dica: evite mostrar o rosto.</p>
 
         <form class="grid gap-2" (submit)="$event.preventDefault(); saveBio()">
           <label class="wd-label" for="bio">Bio</label>

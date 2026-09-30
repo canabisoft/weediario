@@ -1,5 +1,6 @@
 package br.com.weediario.media.application.port;
 
+import br.com.weediario.media.application.EncodedImage;
 import br.com.weediario.media.domain.model.ImageId;
 import br.com.weediario.media.domain.model.ImageVariant;
 
@@ -10,9 +11,9 @@ import java.util.Optional;
  */
 public interface ImageStorage {
 
-    void store(ImageId id, ImageVariant variant, byte[] content);
+    void store(ImageId id, ImageVariant variant, EncodedImage image);
 
-    Optional<byte[]> load(ImageId id, ImageVariant variant);
+    Optional<EncodedImage> load(ImageId id, ImageVariant variant);
 
     void delete(ImageId id);
 }

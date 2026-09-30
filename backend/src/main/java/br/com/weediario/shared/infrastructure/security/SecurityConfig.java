@@ -65,7 +65,7 @@ public class SecurityConfig {
                         // Leitura de conteúdo público liberada para visitantes. A visibilidade de cada diário
                         // (público/privado) é decidida nos casos de uso, não aqui.
                         .requestMatchers(HttpMethod.GET, "/api/v1/feed/**", "/api/v1/diaries/**", "/api/v1/strains/**",
-                                "/api/v1/seedbanks/**", "/api/v1/growers/**")
+                                "/api/v1/seedbanks/**", "/api/v1/growers/**", "/api/v1/catalog/**")
                         .permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

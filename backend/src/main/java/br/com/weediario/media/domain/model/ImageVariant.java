@@ -1,8 +1,8 @@
 package br.com.weediario.media.domain.model;
 
 public enum ImageVariant {
-    /** Até 2048px no maior lado: visualização em tela cheia. */
+    /** Até 1600px de largura: inspeção em tela cheia (tricomas, pistilos, folhas). */
     FULL,
-    /** Até 480px no maior lado: cards do feed e da linha do tempo. */
+    /** Até 400px de largura: cards do feed, linha do tempo e avatar. */
     THUMBNAIL
 }

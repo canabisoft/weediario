@@ -37,7 +37,7 @@ import java.util.UUID;
 public class JdbcDiaryReadModel implements DiaryReadModel {
 
     private static final String SELECT = """
-            select d.id, d.title, u.username, d.strain_name, d.breeder, d.flowering_type, d.seed_sex, d.medium,
+            select d.id, d.title, u.username, d.strain_name, d.breeder, d.strain_id, d.flowering_type, d.seed_sex, d.medium,
                    d.status, d.visibility, d.current_stage, d.started_on, d.ended_on, d.last_update_on,
                    d.harvest_dry_grams, d.harvest_plants,
                    (select count(*) from diary_updates du where du.diary_id = d.id) as updates_count,
@@ -146,6 +146,7 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
             rs.getString("username"),
             rs.getString("strain_name"),
             rs.getString("breeder"),
+            rs.getObject("strain_id", UUID.class),
             FloweringType.valueOf(rs.getString("flowering_type")),
             SeedSex.valueOf(rs.getString("seed_sex")),
             GrowMedium.valueOf(rs.getString("medium")),

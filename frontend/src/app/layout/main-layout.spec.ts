@@ -31,10 +31,10 @@ describe('MainLayout', () => {
     const { root } = await render();
     const nav = root.querySelector('nav[aria-label="Navegação principal"]')!;
 
-    for (const label of ['Home', 'Diários', 'Strains', 'Equipamentos', 'Ranking de growers', 'Ferramentas']) {
+    for (const label of ['Home', 'Diários', 'Catálogo', 'Mais usados', 'Equipamentos', 'Ranking de growers', 'Ferramentas']) {
       expect(nav.textContent).toContain(label);
     }
-    expect(root.querySelector('aside')!.textContent).toContain('Sem logs de IP ou localização');
+    expect(root.querySelector('aside app-privacy-note')!.textContent).toContain('Sua privacidade vem primeiro');
   });
 
   it('has a highlighted quick action to start a diary', async () => {

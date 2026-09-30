@@ -3,16 +3,16 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
-import { Icon } from '../shared/icon';
+import { PrivacyNote } from '../shared/privacy-note';
 
 @Component({
   selector: 'app-register-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Icon],
+  imports: [ReactiveFormsModule, RouterLink, PrivacyNote],
   template: `
     <section class="mx-auto max-w-md">
       <h1 class="text-2xl font-bold">Criar conta</h1>
-      <p class="mt-1 text-fg-muted">Você aparece para a comunidade só pelo apelido.</p>
+      <p class="mt-1 text-fg-muted">Pra galera você é só o seu apelido. Nada de nome real.</p>
 
       <form class="wd-card mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
         <div>
@@ -47,10 +47,7 @@ import { Icon } from '../shared/icon';
         </button>
       </form>
 
-      <div class="mt-4 flex gap-2 rounded-2xl border border-accent/30 bg-accent/10 p-4 text-xs text-fg-muted">
-        <app-icon name="lock" class="size-4 text-accent" />
-        <p>Não guardamos IP nem localização, e as fotos são publicadas sem metadados.</p>
-      </div>
+      <app-privacy-note class="mt-4" title="Relaxa, aqui é tranquilo" />
 
       <p class="mt-4 text-center text-sm text-fg-muted">
         Já tem conta? <a routerLink="/entrar" class="font-semibold text-accent">Entrar</a>

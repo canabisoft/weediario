@@ -1,5 +1,7 @@
 package br.com.weediario.media.application.port;
 
+import br.com.weediario.media.application.EncodedImage;
+
 /**
  * Converte o arquivo enviado em imagens novas, geradas a partir dos pixels, sem nenhum metadado de origem
  * (EXIF, GPS, XMP, IPTC, perfil ICC, comentários e miniaturas embutidas).
@@ -11,6 +13,7 @@ public interface ImageSanitizer {
      */
     SanitizedImage sanitize(byte[] content);
 
-    record SanitizedImage(byte[] full, int width, int height, byte[] thumbnail) {
+    /** {@code width}/{@code height} são as dimensões da variante {@code full}. */
+    record SanitizedImage(EncodedImage full, int width, int height, EncodedImage thumbnail) {
     }
 }

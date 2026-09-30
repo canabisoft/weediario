@@ -7,6 +7,7 @@ import { compact } from './diaries.api';
 export interface SetupInput extends SetupSpec {
   readonly name: string;
   readonly environment: GrowEnvironment;
+  readonly productIds?: string[];
 }
 
 /** Progresso de upload (0–100) e, ao final, a imagem já sanitizada pelo servidor. */

@@ -25,9 +25,16 @@ public class JdbcSeedbankCatalog implements SeedbankCatalog {
                    round(avg(r.seedbank_germination), 1) as germination,
                    round(avg(r.seedbank_stability), 1) as stability,
                    round(avg(r.seedbank_service), 1) as service
-              from seedbanks b
+            """;
+    private static final String REVIEWED = """
+              from breeders b
               join reviews r on r.seedbank_id = b.id
               join users u on u.id = r.author_id and u.status = 'ACTIVE'
+            """;
+    /** Qualquer breeder do catálogo, mesmo sem reviews (contagem zero e médias nulas). */
+    private static final String ANY = """
+              from breeders b
+              left join (reviews r join users u on u.id = r.author_id and u.status = 'ACTIVE') on r.seedbank_id = b.id
             """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -48,11 +55,11 @@ public class JdbcSeedbankCatalog implements SeedbankCatalog {
         }
         Long total = jdbc.queryForObject("""
                 select count(distinct b.id)
-                  from seedbanks b
+                  from breeders b
                   join reviews r on r.seedbank_id = b.id
                   join users u on u.id = r.author_id and u.status = 'ACTIVE'
                 """ + where, params, Long.class);
-        List<SeedbankSummary> items = jdbc.query(SUMMARY + where
+        List<SeedbankSummary> items = jdbc.query(SUMMARY + REVIEWED + where
                         + " group by b.id order by review_count desc, overall desc, b.name limit :limit offset :offset",
                 params, SUMMARY_MAPPER);
         return PageResult.of(items, page, total == null ? 0 : total);
@@ -60,7 +67,7 @@ public class JdbcSeedbankCatalog implements SeedbankCatalog {
 
     @Override
     public Optional<SeedbankSummary> find(UUID seedbankId) {
-        return jdbc.query(SUMMARY + " where b.id = :id group by b.id", new MapSqlParameterSource("id", seedbankId),
+        return jdbc.query(SUMMARY + ANY + " where b.id = :id group by b.id", new MapSqlParameterSource("id", seedbankId),
                 SUMMARY_MAPPER).stream().findFirst();
     }
 

@@ -15,20 +15,8 @@ class ReviewTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-09-29T12:00:00Z"), ZoneOffset.UTC);
     private static final UUID OWNER = UUID.randomUUID();
+    private static final UUID STRAIN = UUID.randomUUID();
     private static final String REPORT = "Planta vigorosa, flora de 9 semanas, aroma cítrico marcante.";
-
-    @Test
-    void strainKeyIgnoresCaseAccentsAndPunctuation() {
-        assertThat(StrainKey.of("Gorilla Glue #4", "GG Strains"))
-                .isEqualTo(StrainKey.of("gorilla-glue  4", "gg strains"));
-        assertThat(StrainKey.of("Açaí Kush", null)).isEqualTo(StrainKey.of("acai kush", ""));
-    }
-
-    @Test
-    void sameStrainFromDifferentBreedersIsDifferent() {
-        assertThat(StrainKey.of("Northern Lights", "Sensi Seeds"))
-                .isNotEqualTo(StrainKey.of("Northern Lights", "Royal Queen"));
-    }
 
     @Test
     void ratingsMustBeBetweenOneAndFive() {
@@ -39,50 +27,41 @@ class ReviewTest {
 
     @Test
     void requiresCompletedGrowOfTheAuthor() {
-        Strain strain = Strain.register("Gorilla Glue #4", null, CLOCK);
         Ratings ratings = new Ratings(4, 4, 4, 4, 4);
 
-        assertThatThrownBy(() -> Review.submit(grow(false), OWNER, strain, ratings, null, null, REPORT, CLOCK))
+        assertThatThrownBy(() -> Review.submit(grow(false, null), OWNER, ratings, null, REPORT, CLOCK))
                 .isInstanceOf(DomainException.class)
                 .hasMessageContaining("concluir");
-        assertThatThrownBy(() -> Review.submit(grow(true), UUID.randomUUID(), strain, ratings, null, null, REPORT, CLOCK))
+        assertThatThrownBy(() -> Review.submit(grow(true, null), UUID.randomUUID(), ratings, null, REPORT, CLOCK))
                 .isInstanceOf(DomainException.class);
-        assertThat(Review.submit(grow(true), OWNER, strain, ratings, null, null, REPORT, CLOCK).strainId()).isEqualTo(strain.id());
+        assertThat(Review.submit(grow(true, null), OWNER, ratings, null, REPORT, CLOCK).strainId().value())
+                .isEqualTo(STRAIN);
     }
 
     @Test
     void reportNeedsMinimumContent() {
-        Strain strain = Strain.register("Gorilla Glue #4", null, CLOCK);
-
-        assertThatThrownBy(() -> Review.submit(grow(true), OWNER, strain, new Ratings(4, 4, 4, 4, 4), null, null,
-                "top", CLOCK))
+        assertThatThrownBy(() -> Review.submit(grow(true, null), OWNER, new Ratings(4, 4, 4, 4, 4), null, "top", CLOCK))
                 .isInstanceOf(DomainException.class);
     }
 
     @Test
     void seedbankCanOnlyBeRatedWhenTheDiaryNamesOne() {
-        Strain strain = Strain.register("Gorilla Glue #4", null, CLOCK);
         SeedbankRatings seedbankRatings = new SeedbankRatings(5, 4, 3);
 
-        assertThatThrownBy(() -> Review.submit(grow(true), OWNER, strain, new Ratings(4, 4, 4, 4, 4), null,
-                seedbankRatings, REPORT, CLOCK))
+        assertThatThrownBy(() -> Review.submit(grow(true, null), OWNER, new Ratings(4, 4, 4, 4, 4), seedbankRatings,
+                REPORT, CLOCK))
                 .isInstanceOf(DomainException.class)
                 .hasMessageContaining("banco de sementes");
 
-        Seedbank seedbank = Seedbank.register("GG Strains", CLOCK);
-        Review review = Review.submit(grow(true), OWNER, strain, new Ratings(4, 4, 4, 4, 4), seedbank,
-                seedbankRatings, REPORT, CLOCK);
-        assertThat(review.seedbankId()).contains(seedbank.id());
+        UUID breeder = UUID.randomUUID();
+        Review review = Review.submit(grow(true, breeder), OWNER, new Ratings(4, 4, 4, 4, 4), seedbankRatings, REPORT,
+                CLOCK);
+        assertThat(review.seedbankId()).contains(breeder);
         assertThat(seedbankRatings.average()).isEqualByComparingTo("4.0");
-    }
-
-    @Test
-    void seedbankNamesAreNormalizedLikeStrains() {
-        assertThat(Seedbank.keyOf("Royal Queen Seeds")).isEqualTo(Seedbank.keyOf("royal-queen  seeds"));
         assertThatThrownBy(() -> new SeedbankRatings(0, 3, 3)).isInstanceOf(DomainException.class);
     }
 
-    private static ReviewedGrow grow(boolean completed) {
-        return new ReviewedGrow(UUID.randomUUID(), OWNER, completed, "Gorilla Glue #4", null);
+    private static ReviewedGrow grow(boolean completed, UUID breederId) {
+        return new ReviewedGrow(UUID.randomUUID(), OWNER, completed, STRAIN, breederId);
     }
 }

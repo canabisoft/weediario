@@ -27,9 +27,16 @@ public class JdbcStrainCatalog implements StrainCatalog {
                    round(avg(r.ease_of_growth), 1) as ease_of_growth,
                    round(avg(r.yield_rating), 1) as yield_rating,
                    round(avg(r.terpene_profile), 1) as terpene_profile
+            """;
+    private static final String REVIEWED = """
               from strains s
               join reviews r on r.strain_id = s.id
               join users u on u.id = r.author_id and u.status = 'ACTIVE'
+            """;
+    /** Qualquer strain do catálogo, mesmo sem reviews (contagem zero e médias nulas). */
+    private static final String ANY = """
+              from strains s
+              left join (reviews r join users u on u.id = r.author_id and u.status = 'ACTIVE') on r.strain_id = s.id
             """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -54,7 +61,7 @@ public class JdbcStrainCatalog implements StrainCatalog {
                   join reviews r on r.strain_id = s.id
                   join users u on u.id = r.author_id and u.status = 'ACTIVE'
                 """ + where, params, Long.class);
-        List<StrainSummary> items = jdbc.query(SUMMARY + where
+        List<StrainSummary> items = jdbc.query(SUMMARY + REVIEWED + where
                 + " group by s.id order by review_count desc, overall desc, s.name limit :limit offset :offset",
                 params, SUMMARY_MAPPER);
         return PageResult.of(items, page, total == null ? 0 : total);
@@ -62,7 +69,7 @@ public class JdbcStrainCatalog implements StrainCatalog {
 
     @Override
     public Optional<StrainSummary> find(UUID strainId) {
-        return jdbc.query(SUMMARY + " where s.id = :id group by s.id", new MapSqlParameterSource("id", strainId),
+        return jdbc.query(SUMMARY + ANY + " where s.id = :id group by s.id", new MapSqlParameterSource("id", strainId),
                 SUMMARY_MAPPER).stream().findFirst();
     }
 

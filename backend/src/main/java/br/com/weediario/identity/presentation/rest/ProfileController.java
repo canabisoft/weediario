@@ -1,5 +1,6 @@
 package br.com.weediario.identity.presentation.rest;
 
+import br.com.weediario.identity.application.port.AvatarImages.AvatarFile;
 import br.com.weediario.identity.application.usecase.ManageProfileUseCase;
 import br.com.weediario.identity.application.usecase.ManageProfileUseCase.MyProfile;
 import br.com.weediario.identity.domain.model.User;
@@ -55,11 +56,11 @@ public class ProfileController {
 
     @GetMapping("/api/v1/growers/{username}/avatar")
     public ResponseEntity<byte[]> avatar(@PathVariable String username) {
-        byte[] content = profiles.avatarOf(username).orElseThrow(() -> new ResourceNotFoundException("Foto"));
+        AvatarFile avatar = profiles.avatarOf(username).orElseThrow(() -> new ResourceNotFoundException("Foto"));
         return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_JPEG)
+                .contentType(MediaType.parseMediaType(avatar.mediaType()))
                 .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePublic())
-                .body(content);
+                .body(avatar.content());
     }
 
     public record ProfileRequest(@Size(max = User.BIO_MAX_LENGTH) String bio) {

@@ -8,6 +8,16 @@ import { AuthService } from '../core/auth/auth.service';
 import { DiaryCardComponent } from '../diaries/diary-card';
 import { Icon } from '../shared/icon';
 
+const PHRASES = [
+  'Autocultivo é o caminho.',
+  'Quem planta sabe o que consome.',
+  'Da semente à colheita, cada fase conta uma história.',
+  'Cultivar é autonomia: sua planta, suas regras.',
+  'Paciência na tenda, qualidade no pote.',
+  'Todo grande cultivo começou com uma semente e um caderno.',
+  'Plante, observe, anote. A planta ensina quem presta atenção.',
+];
+
 @Component({
   selector: 'app-home-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -15,14 +25,14 @@ import { Icon } from '../shared/icon';
   template: `
     <section class="relative overflow-hidden rounded-3xl border border-accent/25 bg-linear-to-br from-accent/25 via-surface-raised to-surface p-6 sm:p-8">
       <app-icon name="leaf" class="pointer-events-none absolute -right-6 -top-6 size-40 text-accent/10" [strokeWidth]="1.2" />
-      <h1 class="max-w-lg text-2xl font-bold sm:text-3xl">Seu diário de cultivo, com privacidade.</h1>
-      <p class="mt-2 max-w-lg text-fg-muted">Sem localização, sem IP e sem metadados nas fotos. Aprenda com a comunidade e registre cada fase da tenda.</p>
+      <h1 class="max-w-lg text-2xl font-bold sm:text-3xl">Seu diário de cultivo</h1>
+      <p class="mt-2 max-w-lg text-fg-muted">{{ phrase }}</p>
       <div class="mt-4 flex flex-wrap gap-2">
         @if (auth.isLoggedIn()) {
           <a routerLink="/diarios/novo" class="wd-button"><app-icon name="plus" class="size-5" /> Iniciar diário</a>
           <a routerLink="/perfil" class="wd-button bg-surface-raised text-fg">Meus diários</a>
         } @else {
-          <a routerLink="/cadastro" class="wd-button">Criar conta anônima</a>
+          <a routerLink="/cadastro" class="wd-button">Criar conta</a>
           <a routerLink="/entrar" class="wd-button bg-surface-raised text-fg">Entrar</a>
         }
       </div>
@@ -55,6 +65,7 @@ import { Icon } from '../shared/icon';
 })
 export class HomePage {
   protected readonly auth = inject(AuthService);
+  protected readonly phrase = PHRASES[Math.floor(Math.random() * PHRASES.length)];
   protected readonly latest = toSignal(
     inject(DiariesApi)
       .feed({ size: 6 })

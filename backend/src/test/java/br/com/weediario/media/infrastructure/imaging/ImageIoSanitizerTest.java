@@ -1,7 +1,9 @@
 package br.com.weediario.media.infrastructure.imaging;
 
+import br.com.weediario.media.application.EncodedImage;
 import br.com.weediario.media.application.exception.InvalidImageException;
 import br.com.weediario.media.application.port.ImageSanitizer.SanitizedImage;
+import br.com.weediario.media.domain.model.ImageFormat;
 import br.com.weediario.support.TestImages;
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Directory;
@@ -37,7 +39,7 @@ class ImageIoSanitizerTest {
 
         SanitizedImage result = sanitizer.sanitize(original);
 
-        for (byte[] output : List.of(result.full(), result.thumbnail())) {
+        for (byte[] output : List.of(result.full().content(), result.thumbnail().content())) {
             List<String> directories = directoryNames(readMetadata(output));
             assertThat(directories).noneMatch(name -> name.startsWith("Exif") || name.startsWith("GPS")
                     || name.startsWith("XMP") || name.startsWith("IPTC") || name.startsWith("ICC"));
@@ -52,35 +54,73 @@ class ImageIoSanitizerTest {
         byte[] original = TestImages.phoneJpegWithExif(400, 200, (short) 6);
 
         SanitizedImage result = sanitizer.sanitize(original);
-        BufferedImage output = ImageIO.read(new ByteArrayInputStream(result.full()));
+        BufferedImage output = ImageIO.read(new ByteArrayInputStream(result.full().content()));
 
         assertThat(output.getWidth()).isEqualTo(200);
         assertThat(output.getHeight()).isEqualTo(400);
         // A metade esquerda (vermelha) do original vai para cima após o giro horário.
         assertThat(isMostly(new Color(output.getRGB(100, 50)), Color.RED)).isTrue();
         assertThat(isMostly(new Color(output.getRGB(100, 350)), Color.BLUE)).isTrue();
-        assertThat(readMetadata(result.full()).getFirstDirectoryOfType(ExifIFD0Directory.class)).isNull();
+        assertThat(readMetadata(result.full().content()).getFirstDirectoryOfType(ExifIFD0Directory.class)).isNull();
     }
 
     @Test
-    void downscalesToFullAndThumbnailSizes() throws Exception {
+    void downscalesToFullAndThumbnailWidths() throws Exception {
         byte[] original = TestImages.encode(TestImages.twoColor(4000, 3000), "jpeg");
 
         SanitizedImage result = sanitizer.sanitize(original);
 
-        assertThat(result.width()).isEqualTo(ImageIoSanitizer.FULL_MAX_EDGE);
-        assertThat(result.height()).isEqualTo(1536);
-        BufferedImage thumbnail = ImageIO.read(new ByteArrayInputStream(result.thumbnail()));
-        assertThat(Math.max(thumbnail.getWidth(), thumbnail.getHeight())).isEqualTo(ImageIoSanitizer.THUMBNAIL_MAX_EDGE);
+        assertThat(result.width()).isEqualTo(ImageIoSanitizer.FULL_MAX_WIDTH);
+        assertThat(result.height()).isEqualTo(1200);
+        BufferedImage full = ImageIO.read(new ByteArrayInputStream(result.full().content()));
+        assertThat(full.getWidth()).isEqualTo(1600);
+        BufferedImage thumbnail = ImageIO.read(new ByteArrayInputStream(result.thumbnail().content()));
+        assertThat(thumbnail.getWidth()).isEqualTo(ImageIoSanitizer.THUMBNAIL_MAX_WIDTH);
+        assertThat(thumbnail.getHeight()).isEqualTo(300);
     }
 
     @Test
-    void convertsTransparentPngToJpeg() {
+    void limitsWidthOfPortraitPhotos() throws Exception {
+        // Foto em pé de celular: o limite é na largura, a altura acompanha a proporção.
+        SanitizedImage result = sanitizer.sanitize(TestImages.encode(TestImages.twoColor(3000, 4000), "jpeg"));
+
+        assertThat(result.width()).isEqualTo(1600);
+        assertThat(result.height()).isEqualTo(2133);
+        BufferedImage thumbnail = ImageIO.read(new ByteArrayInputStream(result.thumbnail().content()));
+        assertThat(thumbnail.getWidth()).isEqualTo(400);
+    }
+
+    @Test
+    void capsHeightOfVeryTallImages() {
+        SanitizedImage result = sanitizer.sanitize(TestImages.encode(TestImages.twoColor(800, 8000), "png"));
+
+        assertThat(result.height()).isEqualTo(ImageIoSanitizer.FULL_MAX_WIDTH * ImageIoSanitizer.MAX_HEIGHT_TO_WIDTH);
+        assertThat(result.width()).isEqualTo(320);
+    }
+
+    @Test
+    void encodesBothVariantsAsWebp() {
+        assertThat(sanitizer.outputFormat()).as("libwebp deve carregar nesta plataforma").isEqualTo(ImageFormat.WEBP);
+
+        SanitizedImage result = sanitizer.sanitize(TestImages.encode(TestImages.twoColor(2000, 1500), "jpeg"));
+
+        for (EncodedImage variant : List.of(result.full(), result.thumbnail())) {
+            assertThat(variant.format()).isEqualTo(ImageFormat.WEBP);
+            assertThat(new String(variant.content(), 0, 4, StandardCharsets.US_ASCII)).isEqualTo("RIFF");
+            assertThat(new String(variant.content(), 8, 4, StandardCharsets.US_ASCII)).isEqualTo("WEBP");
+        }
+        assertThat(result.thumbnail().content().length).isLessThan(result.full().content().length);
+    }
+
+    @Test
+    void flattensTransparentPngOnWhite() throws Exception {
         BufferedImage transparent = new BufferedImage(50, 50, BufferedImage.TYPE_INT_ARGB);
 
         SanitizedImage result = sanitizer.sanitize(TestImages.encode(transparent, "png"));
 
-        assertThat(result.full()).startsWith((byte) 0xFF, (byte) 0xD8, (byte) 0xFF);
+        BufferedImage output = ImageIO.read(new ByteArrayInputStream(result.full().content()));
+        assertThat(output.getColorModel().hasAlpha()).isFalse();
+        assertThat(isMostly(new Color(output.getRGB(25, 25)), Color.WHITE)).isTrue();
     }
 
     @Test

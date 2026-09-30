@@ -6,14 +6,20 @@ import br.com.weediario.diary.domain.model.GrowSetup;
 import br.com.weediario.diary.domain.model.GrowSetupId;
 import br.com.weediario.diary.domain.model.GrowerId;
 import br.com.weediario.diary.domain.model.SetupSpec;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -61,6 +67,12 @@ public class GrowSetupJpaEntity {
     @Column(length = SetupSpec.NOTES_MAX_LENGTH)
     private String notes;
 
+    @ElementCollection
+    @CollectionTable(name = "grow_setup_products", joinColumns = @JoinColumn(name = "setup_id"))
+    @OrderColumn(name = "position")
+    @Column(name = "product_id", nullable = false)
+    private List<UUID> productIds = new ArrayList<>();
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -86,6 +98,7 @@ public class GrowSetupJpaEntity {
         entity.nutrients = spec.nutrients();
         entity.ventilation = spec.ventilation();
         entity.notes = spec.notes();
+        entity.productIds = new ArrayList<>(setup.productIds());
         entity.createdAt = setup.createdAt();
         entity.updatedAt = setup.updatedAt();
         return entity;
@@ -95,6 +108,6 @@ public class GrowSetupJpaEntity {
         SetupSpec spec = new SetupSpec(tentWidthCm, tentDepthCm, tentHeightCm, lighting, lightWattage, medium,
                 nutrients, ventilation, notes);
         return GrowSetup.restore(new GrowSetupId(id), new GrowerId(ownerId), name, environment, spec,
-                createdAt, updatedAt);
+                List.copyOf(productIds), createdAt, updatedAt);
     }
 }

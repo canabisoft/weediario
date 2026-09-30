@@ -13,7 +13,7 @@
 
     <groupId>br.com.weediario</groupId>
     <artifactId>weediario-backend</artifactId>
-    <version>0.11.0</version>
+    <version>0.16.0</version>
     <name>weediario-backend</name>
     <description>Diários de cultivo e reviews com foco em privacidade</description>
 
@@ -22,6 +22,7 @@
         <archunit.version>1.4.1</archunit.version>
         <embedded-postgres.version>2.1.0</embedded-postgres.version>
         <twelvemonkeys.version>3.12.0</twelvemonkeys.version>
+        <webp-imageio.version>0.10.2</webp-imageio.version>
         <metadata-extractor.version>2.19.0</metadata-extractor.version>
         <commons-imaging.version>1.0.0-alpha6</commons-imaging.version>
     </properties>
@@ -70,6 +71,20 @@
             <groupId>com.drewnoakes</groupId>
             <artifactId>metadata-extractor</artifactId>
             <version>${metadata-extractor.version}</version>
+        </dependency>
+        <!-- Escrita de WebP (libwebp via JNI). Só codifica pixels já gerados pelo servidor; a leitura do upload
+             continua no TwelveMonkeys, em Java puro. Nativos para glibc: a imagem Docker não pode ser Alpine/musl. -->
+        <dependency>
+            <groupId>com.github.usefulness</groupId>
+            <artifactId>webp-imageio</artifactId>
+            <version>${webp-imageio.version}</version>
+        </dependency>
+
+        <!-- Leitura do dataset público de strains (importação do catálogo) -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.14.1</version>
         </dependency>
 
         <dependency>

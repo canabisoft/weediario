@@ -13,5 +13,8 @@ public interface AvatarImages {
 
     void discard(UUID imageId);
 
-    Optional<byte[]> open(UUID imageId);
+    Optional<AvatarFile> open(UUID imageId);
+
+    record AvatarFile(byte[] content, String mediaType) {
+    }
 }

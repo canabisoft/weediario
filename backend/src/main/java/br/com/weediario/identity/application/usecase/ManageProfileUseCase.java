@@ -1,6 +1,7 @@
 package br.com.weediario.identity.application.usecase;
 
 import br.com.weediario.identity.application.port.AvatarImages;
+import br.com.weediario.identity.application.port.AvatarImages.AvatarFile;
 import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.identity.domain.model.UserId;
 import br.com.weediario.identity.domain.repository.UserRepository;
@@ -57,7 +58,7 @@ public final class ManageProfileUseCase {
         return result.profile();
     }
 
-    public Optional<byte[]> avatarOf(String username) {
+    public Optional<AvatarFile> avatarOf(String username) {
         return unitOfWork.execute(() -> users.findByUsername(username)
                         .filter(User::canAuthenticate)
                         .flatMap(User::avatarImageId))

@@ -62,6 +62,7 @@ public interface DiaryReadModel {
             String author,
             String strainName,
             String breeder,
+            UUID strainId,
             FloweringType floweringType,
             SeedSex seedSex,
             GrowMedium medium,

@@ -55,15 +55,7 @@
     </ul>
   </nav>
 
-  <div class="m-3 rounded-2xl border border-accent/30 bg-accent/10 p-4">
-    <p class="flex items-center gap-2 text-sm font-semibold text-accent">
-      <app-icon name="lock" class="size-4" [strokeWidth]="2.2" />
-      Máxima privacidade
-    </p>
-    <p class="mt-1 text-xs leading-relaxed text-fg-muted">
-      Sem logs de IP ou localização. Fotos publicadas sem metadados (GPS, aparelho, data).
-    </p>
-  </div>
+  <app-privacy-note class="m-3" />
 </aside>
 
 <ng-template #navLink let-item>

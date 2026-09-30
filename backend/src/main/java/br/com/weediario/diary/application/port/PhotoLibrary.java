@@ -14,12 +14,16 @@ public interface PhotoLibrary {
     /** Vincula fotos enviadas pelo próprio autor. Falha se alguma não existir, for de outra pessoa ou já estiver em uso. */
     void attach(GrowerId author, Collection<UUID> photoIds);
 
-    Optional<byte[]> open(UUID photoId, PhotoSize size);
+    Optional<PhotoFile> open(UUID photoId, PhotoSize size);
 
     void discard(Collection<UUID> photoIds);
 
     enum PhotoSize {
         FULL,
         THUMBNAIL
+    }
+
+    /** {@code mediaType} vem do formato em que a foto foi gravada (WebP nas novas, JPEG nas antigas). */
+    record PhotoFile(byte[] content, String mediaType) {
     }
 }

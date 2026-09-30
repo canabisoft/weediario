@@ -7,23 +7,30 @@ import br.com.weediario.diary.domain.model.GrowDiaryId;
 import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowthStage;
 import br.com.weediario.diary.domain.model.Harvest;
+import br.com.weediario.diary.domain.model.ProductSnapshot;
 import br.com.weediario.diary.domain.model.GrowerId;
 import br.com.weediario.diary.domain.model.SeedSex;
 import br.com.weediario.diary.domain.model.SetupSnapshot;
 import br.com.weediario.diary.domain.model.Strain;
 import br.com.weediario.diary.domain.model.Visibility;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "grow_diaries")
@@ -43,6 +50,18 @@ public class GrowDiaryJpaEntity {
 
     @Column(length = Strain.BREEDER_MAX_LENGTH)
     private String breeder;
+
+    @Column(name = "strain_id")
+    private UUID strainId;
+
+    @Column(name = "breeder_id")
+    private UUID breederId;
+
+    /** Produtos do setup usados no cultivo; alimentam o ranking de marcas e produtos. */
+    @ElementCollection
+    @CollectionTable(name = "diary_products", joinColumns = @JoinColumn(name = "diary_id"))
+    @Column(name = "product_id", nullable = false)
+    private Set<UUID> productIds = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "flowering_type", nullable = false, length = 20)
@@ -104,6 +123,11 @@ public class GrowDiaryJpaEntity {
         entity.title = diary.title();
         entity.strainName = diary.strain().name();
         entity.breeder = diary.strain().breeder();
+        entity.strainId = diary.strain().catalogId();
+        entity.breederId = diary.strain().breederId();
+        entity.productIds = diary.setup().map(setup -> setup.products().stream()
+                        .map(ProductSnapshot::id).collect(Collectors.toCollection(HashSet::new)))
+                .orElseGet(HashSet::new);
         entity.floweringType = diary.floweringType();
         entity.seedSex = diary.seedSex();
         entity.medium = diary.medium();
@@ -122,7 +146,7 @@ public class GrowDiaryJpaEntity {
     }
 
     GrowDiary toDomain() {
-        return GrowDiary.restore(new GrowDiaryId(id), new GrowerId(ownerId), title, new Strain(strainName, breeder),
+        return GrowDiary.restore(new GrowDiaryId(id), new GrowerId(ownerId), title, new Strain(strainName, breeder, strainId, breederId),
                 floweringType, seedSex, medium, setupSnapshot, status, visibility, startedOn, endedOn,
                 harvestDryGrams == null ? null : new Harvest(harvestDryGrams, harvestPlants), currentStage, lastUpdateOn,
                 createdAt, updatedAt);

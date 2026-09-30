@@ -40,7 +40,7 @@ public final class ImageLibrary {
         });
     }
 
-    public Optional<byte[]> open(UUID imageId, ImageVariant variant) {
+    public Optional<EncodedImage> open(UUID imageId, ImageVariant variant) {
         return storage.load(new ImageId(imageId), variant);
     }
 

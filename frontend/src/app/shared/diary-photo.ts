@@ -1,11 +1,8 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
-import { DiariesApi, PhotoSize } from '../core/api/diaries.api';
+import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
+import { PhotoSource } from './photo-source';
 
 /**
- * Foto de um diário.
- * <p>
- * Diários públicos usam a URL direta (cacheável). Diários privados exigem o token de acesso, que uma tag
- * {@code <img>} não envia: nesse caso a foto é baixada pela API autenticada e exibida como blob local.
+ * Foto de um diário em cards e listas. Recebe a URL já pronta da API (normalmente a {@code thumbnailUrl}).
  */
 @Component({
   selector: 'app-diary-photo',
@@ -13,48 +10,29 @@ import { DiariesApi, PhotoSize } from '../core/api/diaries.api';
   host: { class: 'block overflow-hidden bg-surface-raised' },
   template: `
     @if (src(); as url) {
-      <img [src]="url" [alt]="alt()" class="size-full object-cover" loading="lazy" decoding="async" />
+      <img [src]="url" [alt]="alt()" class="size-full object-cover" loading="lazy" decoding="async" draggable="false" />
     }
   `,
 })
 export class DiaryPhoto {
-  private readonly api = inject(DiariesApi);
+  private readonly source = inject(PhotoSource);
 
-  readonly diaryId = input.required<string>();
-  readonly photoId = input.required<string>();
-  readonly size = input<PhotoSize>('THUMBNAIL');
+  readonly url = input.required<string>();
   readonly isPublic = input(true);
   readonly alt = input('');
 
   protected readonly src = signal<string | null>(null);
-  private objectUrl: string | null = null;
 
   constructor() {
     effect((onCleanup) => {
-      const diaryId = this.diaryId();
-      const photoId = this.photoId();
-      const size = this.size();
-      if (this.isPublic()) {
-        this.src.set(this.api.photoUrl(diaryId, photoId, size));
-        return;
-      }
-      const subscription = this.api.photoBlob(diaryId, photoId, size).subscribe({
-        next: (blob) => {
-          this.revoke();
-          this.objectUrl = URL.createObjectURL(blob);
-          this.src.set(this.objectUrl);
-        },
+      const subscription = this.source.resolve(this.url(), this.isPublic()).subscribe({
+        next: (src) => this.src.set(src),
         error: () => this.src.set(null),
       });
-      onCleanup(() => subscription.unsubscribe());
+      onCleanup(() => {
+        subscription.unsubscribe();
+        this.src.set(null);
+      });
     });
-    inject(DestroyRef).onDestroy(() => this.revoke());
-  }
-
-  private revoke(): void {
-    if (this.objectUrl) {
-      URL.revokeObjectURL(this.objectUrl);
-      this.objectUrl = null;
-    }
   }
 }

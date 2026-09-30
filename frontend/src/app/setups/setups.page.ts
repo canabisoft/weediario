@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { GrowEnvironment, GrowMedium, GrowSetup } from '../core/api/api.models';
+import { GrowEnvironment, GrowMedium, GrowSetup, ProductSnapshot } from '../core/api/api.models';
+import { CatalogItem, ProductCategory } from '../core/api/catalog-db.api';
 import { AccountApi, SetupInput } from '../core/api/account.api';
 import { problemMessage } from '../core/api/problem';
+import { CatalogPicker } from '../shared/catalog-picker';
 import { Icon } from '../shared/icon';
-import { ENVIRONMENT_LABEL, MEDIUM_LABEL, options } from '../shared/labels';
+import { CATEGORY_LABEL, ENVIRONMENT_LABEL, MEDIUM_LABEL, categoryLabel, options } from '../shared/labels';
 
 /**
  * Equipamentos: setups salvos do grower (tenda, luz, substrato...) para reutilizar a cada novo diário.
@@ -13,7 +15,7 @@ import { ENVIRONMENT_LABEL, MEDIUM_LABEL, options } from '../shared/labels';
 @Component({
   selector: 'app-setups-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, Icon],
+  imports: [ReactiveFormsModule, Icon, CatalogPicker],
   template: `
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
@@ -79,6 +81,44 @@ import { ENVIRONMENT_LABEL, MEDIUM_LABEL, options } from '../shared/labels';
           <label class="wd-label" for="s-vent">Ventilação</label>
           <input id="s-vent" class="wd-input" formControlName="ventilation" maxlength="120" placeholder="Ex.: Exaustor 100mm + ventilador clip" />
         </div>
+        <fieldset class="grid gap-3 rounded-xl border border-line p-3">
+          <legend class="px-1 font-semibold">Produtos (fertilizantes, substratos...)</legend>
+          @if (products().length) {
+            <ul class="flex flex-wrap gap-2">
+              @for (product of products(); track product.id) {
+                <li class="flex items-center gap-1 rounded-full bg-surface-raised py-1 pl-3 pr-1 text-sm">
+                  {{ product.brand }} · {{ product.name }}
+                  <button type="button" class="grid size-7 place-items-center rounded-full text-fg-muted" [attr.aria-label]="'Remover ' + product.name" (click)="removeProduct(product.id)">
+                    <app-icon name="close" class="size-3.5" />
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+          <div>
+            <label class="wd-label" for="p-category">Categoria</label>
+            <select id="p-category" class="wd-input" (change)="category.set($any($event.target).value)">
+              @for (o of categoryOptions; track o.value) {
+                <option [value]="o.value" [selected]="category() === o.value">{{ o.label }}</option>
+              }
+            </select>
+          </div>
+          <app-catalog-picker kind="brands" label="Marca" placeholder="Ex.: BioBizz" [(value)]="brand" />
+          @if (brand(); as selectedBrand) {
+            <app-catalog-picker
+              kind="products"
+              label="Produto"
+              placeholder="Ex.: Bio-Grow"
+              [brandId]="selectedBrand.id"
+              [category]="category()"
+              [(value)]="product"
+            />
+          }
+          <button type="button" class="wd-button bg-surface-raised text-fg" [disabled]="!product()" (click)="addProduct()">
+            <app-icon name="plus" class="size-5" /> Adicionar ao setup
+          </button>
+          <p class="text-xs text-fg-muted">Os produtos entram no catálogo da comunidade e alimentam o ranking dos mais usados.</p>
+        </fieldset>
         <div>
           <label class="wd-label" for="s-notes">Observações</label>
           <textarea id="s-notes" rows="3" maxlength="1000" class="wd-input py-2 text-base" formControlName="notes"></textarea>
@@ -119,6 +159,9 @@ import { ENVIRONMENT_LABEL, MEDIUM_LABEL, options } from '../shared/labels';
             @if (setup.spec.ventilation) {
               <li>{{ setup.spec.ventilation }}</li>
             }
+            @for (product of setup.products ?? []; track product.id) {
+              <li>{{ categoryLabel(product.category) }}: {{ product.brand }} · {{ product.name }}</li>
+            }
           </ul>
         </li>
       } @empty {
@@ -136,6 +179,14 @@ export class SetupsPage {
   protected readonly medium = MEDIUM_LABEL;
   protected readonly environmentOptions = options(ENVIRONMENT_LABEL);
   protected readonly mediumOptions = options(MEDIUM_LABEL);
+  protected readonly categoryOptions = options(CATEGORY_LABEL);
+  protected readonly categoryLabel = categoryLabel;
+
+  /** Produtos do setup em edição e a escolha em andamento (categoria → marca → produto). */
+  protected readonly products = signal<ProductSnapshot[]>([]);
+  protected readonly category = signal<ProductCategory>('NUTRIENT');
+  protected readonly brand = signal<CatalogItem | null>(null);
+  protected readonly product = signal<CatalogItem | null>(null);
 
   protected readonly setups = signal<GrowSetup[]>([]);
   /** null = lista; 'new' = criando; id = editando. */
@@ -163,19 +214,25 @@ export class SetupsPage {
 
   protected startCreate(): void {
     this.form.reset({ environment: 'INDOOR', medium: '' });
+    this.products.set([]);
     this.error.set(null);
     this.editing.set('new');
   }
 
   protected startEdit(setup: GrowSetup): void {
     this.form.reset({ name: setup.name, environment: setup.environment, ...setup.spec, medium: setup.spec.medium ?? '' });
+    this.products.set(setup.products ?? []);
     this.error.set(null);
     this.editing.set(setup.id);
   }
 
   protected save(): void {
     const value = this.form.getRawValue();
-    const input = { ...value, medium: value.medium || undefined } as SetupInput;
+    const input = {
+      ...value,
+      medium: value.medium || undefined,
+      productIds: this.products().map((product) => product.id),
+    } as SetupInput;
     const id = this.editing();
     this.busy.set(true);
     (id === 'new' || id === null ? this.api.createSetup(input) : this.api.updateSetup(id, input)).subscribe({
@@ -189,6 +246,24 @@ export class SetupsPage {
         this.busy.set(false);
       },
     });
+  }
+
+  protected addProduct(): void {
+    const chosen = this.product();
+    if (!chosen) {
+      return;
+    }
+    if (!this.products().some((product) => product.id === chosen.id)) {
+      this.products.update((list) => [
+        ...list,
+        { id: chosen.id, name: chosen.name, brand: chosen.parentName ?? '', category: chosen.category ?? this.category() },
+      ]);
+    }
+    this.product.set(null);
+  }
+
+  protected removeProduct(id: string): void {
+    this.products.update((list) => list.filter((product) => product.id !== id));
   }
 
   protected remove(setup: GrowSetup): void {

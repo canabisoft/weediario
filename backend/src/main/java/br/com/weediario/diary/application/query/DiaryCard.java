@@ -1,5 +1,6 @@
 package br.com.weediario.diary.application.query;
 
+import br.com.weediario.diary.application.DiaryPhotoView;
 import br.com.weediario.diary.application.query.DiaryReadModel.DiarySummary;
 import br.com.weediario.diary.domain.model.DiaryStatus;
 import br.com.weediario.diary.domain.model.FloweringType;
@@ -24,6 +25,7 @@ public record DiaryCard(
         String author,
         String strainName,
         String breeder,
+        UUID strainId,
         FloweringType floweringType,
         SeedSex seedSex,
         GrowMedium medium,
@@ -40,14 +42,17 @@ public record DiaryCard(
         long commentsCount,
         long reactionsCount,
         UUID coverPhotoId,
-        SetupSnapshot setup) {
+        SetupSnapshot setup,
+        String coverThumbnailUrl) {
 
     public static DiaryCard of(DiarySummary summary, LocalDate today) {
         GrowAge age = GrowAge.of(summary.startedOn(), summary.endedOn(), today);
         return new DiaryCard(summary.id(), summary.title(), summary.author(), summary.strainName(), summary.breeder(),
+                summary.strainId(),
                 summary.floweringType(), summary.seedSex(), summary.medium(), summary.status(), summary.visibility(),
                 summary.currentStage(), summary.startedOn(), summary.endedOn(), summary.lastUpdateOn(),
                 age.day(), age.week(), summary.harvest(), summary.updatesCount(), summary.commentsCount(), summary.reactionsCount(),
-                summary.coverPhotoId(), summary.setup());
+                summary.coverPhotoId(), summary.setup(),
+                summary.coverPhotoId() == null ? null : DiaryPhotoView.thumbnailUrl(summary.id(), summary.coverPhotoId()));
     }
 }

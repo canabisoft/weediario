@@ -3,7 +3,6 @@ package br.com.weediario.review.presentation.rest;
 import br.com.weediario.review.application.query.BrowseStrainsUseCase;
 import br.com.weediario.review.application.query.StrainCatalog.ReviewView;
 import br.com.weediario.review.application.query.StrainCatalog.StrainSummary;
-import br.com.weediario.review.domain.model.Strain;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
 import jakarta.validation.constraints.Size;
@@ -29,7 +28,7 @@ public class StrainController {
     }
 
     @GetMapping
-    public PageResult<StrainSummary> search(@RequestParam(required = false) @Size(max = Strain.NAME_MAX_LENGTH) String query,
+    public PageResult<StrainSummary> search(@RequestParam(required = false) @Size(max = 80) String query,
                                             @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "20") int size) {
         return browseStrains.search(query, new PageQuery(page, size));

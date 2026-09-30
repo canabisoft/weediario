@@ -10,7 +10,9 @@ import br.com.weediario.diary.domain.model.GrowMedium;
 import br.com.weediario.diary.domain.model.GrowerId;
 import br.com.weediario.diary.domain.model.SeedSex;
 import br.com.weediario.diary.domain.model.Visibility;
+import br.com.weediario.diary.application.port.CatalogLookup;
 import br.com.weediario.diary.domain.model.GrowSetup;
+import br.com.weediario.diary.domain.model.ProductSnapshot;
 import br.com.weediario.diary.domain.model.GrowSetupId;
 import br.com.weediario.diary.domain.repository.GrowDiaryRepository;
 import br.com.weediario.diary.domain.repository.GrowSetupRepository;
@@ -40,7 +42,7 @@ class CreateGrowDiaryUseCaseTest {
 
     private final InMemoryGrowDiaryRepository diaries = new InMemoryGrowDiaryRepository();
     private final CreateGrowDiaryUseCase useCase = new CreateGrowDiaryUseCase(
-            diaries, new NoSetups(), grower -> Set.of(ACTIVE_GROWER).contains(grower.value()), new DirectUnitOfWork(), CLOCK);
+            diaries, new NoSetups(), new FakeCatalog(), grower -> Set.of(ACTIVE_GROWER).contains(grower.value()), new DirectUnitOfWork(), CLOCK);
 
     @Test
     void createsDiaryWithDefaults() {
@@ -81,7 +83,28 @@ class CreateGrowDiaryUseCaseTest {
 
     private static CreateGrowDiaryUseCase.Command command(UUID owner, Visibility visibility, LocalDate startedOn) {
         return new CreateGrowDiaryUseCase.Command(owner, "Auto na tenda 80x80", "Northern Lights Auto", null,
-                FloweringType.AUTOFLOWER, SeedSex.FEMINIZED, GrowMedium.MINERAL, visibility, startedOn, null);
+                FloweringType.AUTOFLOWER, SeedSex.FEMINIZED, GrowMedium.MINERAL, visibility, startedOn, null, null);
+    }
+
+    /** Catálogo em memória: toda strain digitada vira (ou reusa) um item com id próprio. */
+    private static final class FakeCatalog implements CatalogLookup {
+        private final Map<String, CatalogStrainRef> strains = new HashMap<>();
+
+        @Override
+        public CatalogStrainRef strain(UUID strainId) {
+            return strains.values().stream().filter(ref -> ref.strainId().equals(strainId)).findFirst().orElseThrow();
+        }
+
+        @Override
+        public CatalogStrainRef ensureStrain(String name, String breeder, UUID userId) {
+            return strains.computeIfAbsent(name.toLowerCase(),
+                    key -> new CatalogStrainRef(UUID.randomUUID(), name, null, breeder));
+        }
+
+        @Override
+        public List<ProductSnapshot> products(List<UUID> productIds) {
+            return List.of();
+        }
     }
 
     private static final class NoSetups implements GrowSetupRepository {

@@ -12,6 +12,7 @@ import java.util.UUID;
 
 /**
  * Update pronto para exibição, já com o dia/semana do cultivo em que foi registrado.
+ * {@code photos} traz as URLs de miniatura e de alta resolução; {@code photoIds} fica por compatibilidade.
  */
 public record DiaryUpdateView(
         UUID id,
@@ -24,7 +25,8 @@ public record DiaryUpdateView(
         BigDecimal relativeHumidity,
         BigDecimal wateringPh,
         BigDecimal plantHeightCm,
-        List<UUID> photoIds) {
+        List<UUID> photoIds,
+        List<DiaryPhotoView> photos) {
 
     public static DiaryUpdateView of(DiaryUpdate update, GrowDiary diary) {
         GrowAge age = diary.ageOn(update.recordedOn());
@@ -39,6 +41,7 @@ public record DiaryUpdateView(
                 update.metrics().relativeHumidity(),
                 update.metrics().wateringPh(),
                 update.metrics().plantHeightCm(),
-                update.photoIds());
+                update.photoIds(),
+                update.photoIds().stream().map(photoId -> DiaryPhotoView.of(diary.id().value(), photoId)).toList());
     }
 }

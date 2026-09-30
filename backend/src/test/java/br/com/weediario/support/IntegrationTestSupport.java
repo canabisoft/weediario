@@ -42,7 +42,7 @@ public abstract class IntegrationTestSupport {
     @Autowired
     protected ObjectMapper json;
 
-    protected record Session(String username, String accessToken) {
+    public record Session(String username, String accessToken) {
         public String bearer() {
             return "Bearer " + accessToken;
         }

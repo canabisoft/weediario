@@ -24,8 +24,8 @@ public final class BrowseStrainsUseCase {
         return catalog.find(strainId).orElseThrow(() -> new ResourceNotFoundException("Strain"));
     }
 
+    /** Lista vazia para strains do catálogo que ainda não receberam review. */
     public PageResult<ReviewView> reviews(UUID strainId, PageQuery page) {
-        detail(strainId);
         return catalog.reviewsOf(strainId, page);
     }
 }

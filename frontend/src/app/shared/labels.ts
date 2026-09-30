@@ -65,6 +65,43 @@ export const REACTIONS: readonly { type: ReactionType; emoji: string; label: str
   { type: 'CLAP', emoji: '👏', label: 'Aplausos' },
 ];
 
+export const DOMINANCE_LABEL: Record<'INDICA' | 'INDICA_DOMINANT' | 'HYBRID' | 'SATIVA_DOMINANT' | 'SATIVA', string> = {
+  INDICA: 'Indica',
+  INDICA_DOMINANT: 'Indica dominante',
+  HYBRID: 'Híbrida (50/50)',
+  SATIVA_DOMINANT: 'Sativa dominante',
+  SATIVA: 'Sativa',
+};
+
+export const SPEED_LABEL: Record<'SHORT' | 'MEDIUM' | 'LONG', string> = {
+  SHORT: 'Curta (até 55 dias)',
+  MEDIUM: 'Média (56 a 90 dias)',
+  LONG: 'Longa (91+ dias)',
+};
+
+export const SEED_KIND_LABEL: Record<'FEMINIZED' | 'REGULAR', string> = {
+  FEMINIZED: 'Feminizada',
+  REGULAR: 'Regular',
+};
+
+export const CATEGORY_LABEL: Record<'NUTRIENT' | 'ADDITIVE' | 'SUBSTRATE' | 'PEST_CONTROL' | 'OTHER', string> = {
+  NUTRIENT: 'Nutriente',
+  ADDITIVE: 'Aditivo',
+  SUBSTRATE: 'Substrato',
+  PEST_CONTROL: 'Controle de pragas',
+  OTHER: 'Outro',
+};
+
+/** Rótulo da categoria de produto vinda da API como texto. */
+export function categoryLabel(category: string | undefined): string {
+  return category ? (CATEGORY_LABEL as Record<string, string>)[category] ?? category : '';
+}
+
+export const SOURCE_LABEL: Record<'DATASET' | 'COMMUNITY', string> = {
+  DATASET: 'Base pública',
+  COMMUNITY: 'Comunidade',
+};
+
 export function options<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
   return (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }));
 }

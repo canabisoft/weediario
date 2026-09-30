@@ -50,6 +50,8 @@ services:
       - images:/app/data
     tmpfs:
       - /tmp
+      # Só a libwebp (encoder WebP) é extraída aqui, e carregá-la exige exec. uid/gid = usuário da imagem.
+      - /app/native:exec,mode=0700,uid=100,gid=101,size=8m
 
   frontend:
     <<: *hardening

@@ -16,13 +16,8 @@ import { MEDIUM_LABEL, STAGE_LABEL, STATUS_LABEL } from '../shared/labels';
       class="group block overflow-hidden rounded-2xl border border-line bg-surface transition-colors hover:border-accent/50"
     >
       <div class="relative aspect-[4/3]">
-        @if (d.coverPhotoId) {
-          <app-diary-photo
-            class="size-full"
-            [diaryId]="d.id"
-            [photoId]="d.coverPhotoId"
-            [isPublic]="d.visibility === 'PUBLIC'"
-          />
+        @if (d.coverThumbnailUrl) {
+          <app-diary-photo class="size-full" [url]="d.coverThumbnailUrl" [isPublic]="d.visibility === 'PUBLIC'" />
         } @else {
           <div class="grid size-full place-items-center bg-surface-raised text-accent/40">
             <app-icon name="leaf" class="size-14" [strokeWidth]="1.2" />

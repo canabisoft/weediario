@@ -42,8 +42,13 @@ export const routes: Routes = [
     loadComponent: () => import('./diaries/new-update.page').then((m) => m.NewUpdatePage),
   },
   {
+    path: 'mais-usados',
+    title: 'Mais usados · weediário',
+    loadComponent: () => import('./catalog/most-used.page').then((m) => m.MostUsedPage),
+  },
+  {
     path: 'strains',
-    title: 'Genéticas · weediário',
+    title: 'Catálogo · weediário',
     loadComponent: () => import('./catalog/catalog.page').then((m) => m.CatalogPage),
   },
   {

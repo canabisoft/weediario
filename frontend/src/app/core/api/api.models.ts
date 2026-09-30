@@ -38,10 +38,19 @@ export interface SetupSpec {
   readonly notes?: string;
 }
 
+export interface ProductSnapshot {
+  readonly id: string;
+  readonly name: string;
+  readonly brand: string;
+  readonly category: string;
+}
+
 export interface SetupSnapshot {
   readonly name: string;
   readonly environment: GrowEnvironment;
   readonly spec: SetupSpec;
+  /** Produtos do catálogo (fertilizantes, substratos...). */
+  readonly products?: ProductSnapshot[];
 }
 
 export interface GrowSetup extends SetupSnapshot {
@@ -55,6 +64,8 @@ export interface DiaryCard {
   readonly author: string;
   readonly strainName: string;
   readonly breeder?: string;
+  /** Strain no catálogo da comunidade. */
+  readonly strainId?: string;
   readonly floweringType: FloweringType;
   readonly seedSex: SeedSex;
   readonly medium: GrowMedium;
@@ -72,6 +83,8 @@ export interface DiaryCard {
   readonly reactionsCount: number;
   readonly coverPhotoId?: string;
   readonly setup?: SetupSnapshot;
+  /** Miniatura da capa (WebP ~400px): é o que o feed deve exibir. */
+  readonly coverThumbnailUrl?: string;
 }
 
 /** Resposta das operações de escrita em diários. */
@@ -94,6 +107,17 @@ export interface DiaryUpdate {
   readonly wateringPh?: number;
   readonly plantHeightCm?: number;
   readonly photoIds: string[];
+  readonly photos: DiaryPhotoRef[];
+}
+
+/**
+ * Foto de um update. Listas e cards usam só {@code thumbnailUrl}; {@code fullUrl} (1600px) é buscada
+ * sob demanda, quando o grower abre a foto para inspecionar.
+ */
+export interface DiaryPhotoRef {
+  readonly id: string;
+  readonly thumbnailUrl: string;
+  readonly fullUrl: string;
 }
 
 export interface Comment {
