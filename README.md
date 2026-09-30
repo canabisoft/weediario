@@ -1,24 +1,77 @@
-# weediário
+# Weediario (Plataforma Open-Source para Growers)
 
-Diários de cultivo e reviews de genéticas com foco em privacidade: sem IP, sem localização e fotos sem metadados.
+Plataforma colaborativa de diários de cultivo e reviews de genéticas voltada para a comunidade, construída com foco
+absoluto em privacidade, anonimato e segurança.
 
-- `backend/`: Java 21, Spring Boot, PostgreSQL (Clean Architecture + DDD)
-- `frontend/`: Angular 22, Tailwind CSS, PWA
+Inspirada nas melhores plataformas do ecossistema, mas adaptada para garantir que os dados dos cultivadores estejam
+blindados.
 
-## Subindo com Docker
+---
 
-Requisitos: Docker com Compose v2.
+## Garantias de Privacidade e Segurança
 
-```sh
-# 1. Gera o .env com senhas e chaves aleatórias (só na primeira vez)
-sh scripts/setup-env.sh          # Linux/macOS/Git Bash
-.\scripts\setup-env.ps1          # PowerShell
+Este projeto foi arquitetado sob premissas rígidas de segurança digital:
 
-# 2. Sobe banco, backend e frontend
-docker compose up -d --build
-```
+- **Zero log de localização e IP:** nenhuma tabela do banco armazena geolocalização, e os logs de acesso (nginx e
+  Caddy) são desabilitados, sem repassar o IP do visitante ao backend.
+- **Sanitização de EXIF:** o backend intercepta todo upload de foto, remove os metadados (GPS, data, modelo do
+  celular) e gera variantes otimizadas em WebP (400px e 1600px).
+- **Reações anônimas:** cada reação é gravada com um pseudônimo derivado por HMAC do par (usuário, alvo). O mesmo
+  usuário em alvos diferentes gera pseudônimos diferentes e não relacionáveis.
+- **Boas práticas OWASP:** senhas com Argon2id, tokens JWT de curta duração (10 min) com refresh token em cookie
+  `HttpOnly`, `Secure` e `SameSite=Strict`, e payloads validados estritamente.
 
-Acesse **http://localhost:8080**. Para usar outra porta, mude `WEEDIARIO_HTTP_PORT` no `.env`.
+### Privacidade na infraestrutura
+
+- nginx e Caddy sem log de acesso e sem repassar o IP do visitante ao backend.
+- Limite de tentativas de login por conta (chave HMAC do e-mail), sem usar IP.
+- Containers somente leitura e sem capabilities; app, API e nginx rodam sem root (o Caddy só tem a permissão de
+  abrir as portas 80/443).
+- Segredos só no `.env` (fora do git), gerados aleatoriamente pelo script.
+- Notificações guardam só ids (nunca quem reagiu ou quem seguiu) e são apagadas depois de 90 dias. O canal em
+  tempo real (Server-Sent Events) só transmite o contador de não lidas.
+
+---
+
+## Stack Tecnológica
+
+- **Backend:** Java 21, Spring Boot, Spring Security, Spring Data JPA, PostgreSQL, Clean Architecture + DDD.
+- **Frontend:** Angular, Tailwind CSS, PWA (ferramentas offline como calculadora de VPD e conversores).
+- **Infraestrutura:** Docker e Docker Compose (containers sem root, somente leitura, isolados em rede interna).
+
+---
+
+## Como Rodar o Projeto Localmente
+
+### Pré-requisitos
+
+- Docker com Compose v2.
+
+### Passo a passo
+
+1. Clone o repositório:
+
+   ```sh
+   git clone https://github.com/canabisoft/weediario.git
+   cd weediario
+   ```
+
+2. Gere o `.env` com senhas e chaves aleatórias (só na primeira vez):
+
+   ```sh
+   sh scripts/setup-env.sh          # Linux/macOS/Git Bash
+   .\scripts\setup-env.ps1          # PowerShell
+   ```
+
+3. Suba banco, backend e frontend:
+
+   ```sh
+   docker compose up -d --build
+   ```
+
+4. Acesse a aplicação:
+   - **Frontend:** http://localhost:8080 (nginx; para outra porta, mude `WEEDIARIO_HTTP_PORT` no `.env`).
+   - **Backend API:** fica na rede interna do Docker, exposto só via reverse proxy em `/api`.
 
 | Comando | O que faz |
 | --- | --- |
@@ -48,16 +101,6 @@ WEEDIARIO_DOMAIN=weediario.exemplo.com docker compose --profile https up -d --bu
 Com `WEEDIARIO_DOMAIN=localhost` o Caddy usa uma CA local, útil para testar HTTPS na máquina. O Caddy não grava log
 de acesso e não repassa o IP do visitante. O cookie de sessão é `Secure` e só trafega em HTTPS (ou em `localhost`).
 
-### Privacidade na infraestrutura
-
-- nginx e Caddy sem log de acesso e sem repassar o IP do visitante ao backend.
-- Limite de tentativas de login por conta (chave HMAC do e-mail), sem usar IP.
-- Containers somente leitura e sem capabilities; app, API e nginx rodam sem root (o Caddy só tem a permissão de
-  abrir as portas 80/443).
-- Segredos só no `.env` (fora do git), gerados aleatoriamente pelo script.
-- Notificações guardam só ids (nunca quem reagiu ou quem seguiu) e são apagadas depois de 90 dias. O canal em
-  tempo real (Server-Sent Events) só transmite o contador de não lidas.
-
 ### Moderação
 
 O painel `/moderacao` (denúncias de comentários e cadastros da comunidade no catálogo) aparece para contas com papel
@@ -71,6 +114,8 @@ docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -
 O canal de notificações guarda as conexões abertas em memória: com mais de uma instância do backend, cada uma só
 avisa quem está conectado nela (para escalar, trocar o `SseNotificationHub` por um pub/sub, como o LISTEN/NOTIFY
 do Postgres).
+
+---
 
 ## Desenvolvimento local
 
@@ -86,3 +131,14 @@ cd frontend && npm install && npm start
 ```
 
 Testes: `mvn test` no `backend/` (PostgreSQL embarcado, sem Docker) e `npm test` no `frontend/`.
+
+---
+
+## Como Contribuir
+
+Consulte o [CONTRIBUTING.md](CONTRIBUTING.md) para entender as diretrizes de código, o fluxo de commits e como enviar
+pull requests.
+
+## Licença
+
+Este projeto está sob a licença AGPL-3.0. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
