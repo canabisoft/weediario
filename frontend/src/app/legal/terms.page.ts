@@ -39,10 +39,12 @@ export const CLAUSES: readonly Clause[] = [
     id: 'dados',
     title: '3. Sua conta e seus dados',
     paragraphs: [
-      'Pedimos só um apelido (pode ser pseudônimo) e uma senha. Não pedimos e-mail, CPF, nome completo, RG, ' +
+      'Pedimos só um apelido (pode ser pseudônimo). Para entrar, você usa uma chave de acesso gerada pelo app no ' +
+        'cadastro. Não pedimos senha, e-mail, CPF, nome completo, RG, ' +
         'endereço ou telefone.',
-      'A conta é recuperada só pela frase de 12 palavras mostrada no cadastro, que fica sob sua guarda. Não temos ' +
-        'como ver, reenviar ou redefinir essa frase: se você perder a senha e a frase, a conta não pode ser recuperada.',
+      'Guardamos só um hash da chave de acesso, então não temos como mostrá-la de novo. Se você perder a chave, a frase ' +
+        'de 12 palavras mostrada no cadastro gera uma chave nova. Não temos como ver, reenviar ou redefinir a frase: se ' +
+        'você perder a chave e a frase, a conta não pode ser recuperada.',
       'Não guardamos logs de acesso nem o endereço IP de quem usa o app. Do aceite destes termos, guardamos só a versão ' +
         'e a data e hora. Os textos do acompanhamento de tratamento ficam cifrados. Você pode baixar ou apagar seus dados ' +
         'quando quiser. Os detalhes estão no Manifesto.',

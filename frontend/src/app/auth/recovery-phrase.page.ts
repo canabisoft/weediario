@@ -6,7 +6,7 @@ import { AuthService } from '../core/auth/auth.service';
 import { RecoveryPhraseCard } from './recovery-phrase-card';
 
 /**
- * Gera a frase de recuperação (contas criadas antes dela) ou troca por uma nova. Pede a senha atual: só com a sessão,
+ * Gera a frase de recuperação (contas criadas antes dela) ou troca por uma nova. Pede a chave de acesso atual: só com a sessão,
  * alguém com o aparelho destravado poderia trocar a frase e tomar a conta.
  */
 @Component({
@@ -31,28 +31,29 @@ import { RecoveryPhraseCard } from './recovery-phrase-card';
           </p>
         } @else {
           <p class="mt-1 text-fg-muted">
-            O weediário não guarda mais e-mail. Sua conta ainda não tem uma frase de recuperação: sem ela, se você
-            esquecer a senha, não tem como voltar. Leva um minuto.
+            O weediário não guarda e-mail. Sua conta ainda não tem uma frase de recuperação: sem ela, se você perder
+            a chave de acesso, não tem como voltar. Leva um minuto.
           </p>
         }
 
         @if (started()) {
           <section class="wd-card mt-6 grid gap-4">
             <div>
-              <label class="wd-label" for="current-password">Senha atual</label>
+              <label class="wd-label" for="current-key">Chave de acesso atual</label>
               <input
-                id="current-password"
-                name="currentPassword"
+                id="current-key"
+                name="currentAccessKey"
                 type="password"
-                class="wd-input"
+                class="wd-input font-mono"
                 autocomplete="current-password"
-                [ngModel]="password()"
-                (ngModelChange)="password.set($event)"
+                placeholder="wd_sec_…"
+                [ngModel]="currentKey()"
+                (ngModelChange)="currentKey.set($event)"
               />
             </div>
             <app-recovery-phrase-card
               [confirmLabel]="hadPhrase() ? 'Trocar a frase' : 'Ativar a frase'"
-              [disabled]="!password() || busy()"
+              [disabled]="!currentKey() || busy()"
               (verified)="save($event)"
             />
             @if (error()) {
@@ -74,7 +75,7 @@ export class RecoveryPhrasePage {
   /** Foto de quando a página abriu (depois de salvar, o perfil passa a ter frase). */
   protected readonly hadPhrase = signal(this.auth.me()?.hasRecoveryPhrase ?? false);
   protected readonly started = signal(!this.hadPhrase());
-  protected readonly password = signal('');
+  protected readonly currentKey = signal('');
   protected readonly busy = signal(false);
   protected readonly done = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -83,8 +84,8 @@ export class RecoveryPhrasePage {
     this.busy.set(true);
     this.error.set(null);
     try {
-      await this.auth.changeRecoveryPhrase(recoveryVerifier, this.password());
-      this.password.set('');
+      await this.auth.changeRecoveryPhrase(recoveryVerifier, this.currentKey().trim());
+      this.currentKey.set('');
       this.done.set(true);
     } catch (error) {
       this.error.set(problemMessage(error, 'Não foi possível salvar a frase.'));

@@ -1,72 +1,96 @@
 package br.com.weediario.identity.application.usecase;
 
 import br.com.weediario.identity.application.AuthenticatedSession;
+import br.com.weediario.identity.application.KeyedSession;
+import br.com.weediario.identity.application.LoginThrottle;
 import br.com.weediario.identity.application.SessionIssuer;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
-import br.com.weediario.identity.application.exception.LoginThrottledException;
-import br.com.weediario.identity.application.port.LoginKeyHasher;
-import br.com.weediario.identity.domain.model.LoginAttempts;
+import br.com.weediario.identity.domain.model.AccessKey;
+import br.com.weediario.identity.domain.model.AccessKeyHash;
 import br.com.weediario.identity.domain.model.PasswordHash;
 import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.identity.domain.model.Username;
-import br.com.weediario.identity.domain.repository.LoginAttemptsRepository;
 import br.com.weediario.identity.domain.repository.UserRepository;
 import br.com.weediario.identity.domain.service.PasswordHasher;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
 
 import java.time.Clock;
-import java.time.Instant;
-import java.util.Locale;
 import java.util.Optional;
 
+/**
+ * Login com apelido + chave de acesso. Também cobre a transição de contas antigas: um último login com a senha, que
+ * troca a senha por uma chave de acesso e apaga a senha.
+ * <p>
+ * Conta inexistente, chave errada e conta suspensa recebem a mesma resposta; o limite de tentativas é por apelido.
+ */
 public final class AuthenticateUserUseCase {
 
     private final UserRepository users;
     private final PasswordHasher passwordHasher;
     private final SessionIssuer sessionIssuer;
-    private final LoginAttemptsRepository attempts;
-    private final LoginKeyHasher keyHasher;
+    private final LoginThrottle throttle;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
-    /** Usado quando o apelido não existe, para que a resposta leve o mesmo tempo (anti-enumeração por timing). */
-    private final PasswordHash timingDecoy;
+    /**
+     * Comparado no login de conta antiga quando não há senha para conferir: Argon2 é lento e, sem o decoy, o tempo
+     * revelaria se a conta existe. (A chave de acesso usa SHA-256, rápido demais para essa diferença aparecer.)
+     */
+    private final PasswordHash passwordDecoy;
 
     public AuthenticateUserUseCase(UserRepository users, PasswordHasher passwordHasher, SessionIssuer sessionIssuer,
-                                   LoginAttemptsRepository attempts, LoginKeyHasher keyHasher,
-                                   UnitOfWork unitOfWork, Clock clock) {
+                                   LoginThrottle throttle, UnitOfWork unitOfWork, Clock clock) {
         this.users = users;
         this.passwordHasher = passwordHasher;
         this.sessionIssuer = sessionIssuer;
-        this.attempts = attempts;
-        this.keyHasher = keyHasher;
+        this.throttle = throttle;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
-        this.timingDecoy = passwordHasher.hash("timing-decoy-" + System.nanoTime());
+        this.passwordDecoy = passwordHasher.hash("timing-decoy-" + System.nanoTime());
     }
 
     public AuthenticatedSession execute(Command command) {
-        String attemptKey = keyHasher.keyOf(normalize(command.login()));
-        Instant now = clock.instant();
-        LoginAttempts current = unitOfWork.execute(() -> attempts.find(attemptKey)).orElse(LoginAttempts.none(now));
-        current.lockRemaining(now).ifPresent(remaining -> {
-            throw new LoginThrottledException(remaining);
-        });
-
-        Optional<User> candidate = findUser(command.login());
-        String password = command.password() == null ? "" : command.password();
-        boolean passwordMatches = passwordHasher.matches(
-                password, candidate.map(User::passwordHash).orElse(timingDecoy));
-
-        Optional<User> authenticated = candidate.filter(found -> passwordMatches && found.canAuthenticate());
+        LoginThrottle.Attempt attempt = throttle.begin(LoginThrottle.LOGIN, command.login());
+        // Chave mal formada nem é comparada: conta como errada.
+        Optional<AccessKeyHash> candidate = AccessKey.isWellFormed(command.accessKey())
+                ? Optional.of(new AccessKey(command.accessKey()).hash())
+                : Optional.empty();
+        Optional<User> authenticated = findUser(command.login())
+                .filter(found -> candidate.map(found::accessKeyMatches).orElse(false) && found.canAuthenticate());
         if (authenticated.isEmpty()) {
-            // Gravado antes de lançar a exceção: a falha precisa contar mesmo com a requisição terminando em erro.
-            unitOfWork.run(() -> attempts.save(attemptKey, current.registerFailure(clock.instant())));
+            throttle.failed(attempt);
             throw new InvalidCredentialsException();
         }
         return unitOfWork.execute(() -> {
-            attempts.delete(attemptKey);
+            throttle.succeeded(attempt);
             return sessionIssuer.startSession(authenticated.get());
+        });
+    }
+
+    /**
+     * Último login com senha de uma conta anterior à chave de acesso. Dá certo uma vez só: a conta recebe a chave e a
+     * senha é apagada.
+     */
+    public KeyedSession migrateLegacy(LegacyCommand command) {
+        LoginThrottle.Attempt attempt = throttle.begin(LoginThrottle.LOGIN, command.login());
+        Optional<User> user = findUser(command.login());
+        String password = command.password() == null ? "" : command.password();
+        boolean matches = passwordHasher.matches(password,
+                user.flatMap(User::legacyPasswordHash).orElse(passwordDecoy));
+
+        Optional<User> migrating = user.filter(found ->
+                matches && found.legacyPasswordHash().isPresent() && found.canAuthenticate());
+        if (migrating.isEmpty()) {
+            throttle.failed(attempt);
+            throw new InvalidCredentialsException();
+        }
+        AccessKey accessKey = AccessKey.generate();
+        return unitOfWork.execute(() -> {
+            throttle.succeeded(attempt);
+            User found = migrating.get();
+            found.replaceAccessKey(accessKey.hash(), clock);
+            users.save(found);
+            return new KeyedSession(sessionIssuer.startSession(found), accessKey);
         });
     }
 
@@ -82,16 +106,20 @@ public final class AuthenticateUserUseCase {
         }
     }
 
-    private static String normalize(String rawLogin) {
-        return rawLogin == null ? "" : rawLogin.strip().toLowerCase(Locale.ROOT);
-    }
-
     /** @param login apelido */
-    public record Command(String login, String password) {
+    public record Command(String login, String accessKey) {
 
         @Override
         public String toString() {
             return "AuthenticateUserUseCase.Command[***]";
+        }
+    }
+
+    public record LegacyCommand(String login, String password) {
+
+        @Override
+        public String toString() {
+            return "AuthenticateUserUseCase.LegacyCommand[***]";
         }
     }
 }

@@ -1,5 +1,6 @@
 package br.com.weediario.identity.infrastructure.persistence;
 
+import br.com.weediario.identity.domain.model.AccessKeyHash;
 import br.com.weediario.identity.domain.model.AccountStatus;
 import br.com.weediario.identity.domain.model.PasswordHash;
 import br.com.weediario.identity.domain.model.Role;
@@ -26,8 +27,11 @@ public class UserJpaEntity {
     @Column(nullable = false, length = 30)
     private String username;
 
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
+    @Column(name = "access_key_hash", length = 64)
+    private String accessKeyHash;
+
+    @Column(name = "legacy_password_hash")
+    private String legacyPasswordHash;
 
     @Column(name = "recovery_hash")
     private String recoveryHash;
@@ -68,7 +72,8 @@ public class UserJpaEntity {
         UserJpaEntity entity = new UserJpaEntity();
         entity.id = user.id().value();
         entity.username = user.username().value();
-        entity.passwordHash = user.passwordHash().value();
+        entity.accessKeyHash = user.accessKeyHash().map(AccessKeyHash::value).orElse(null);
+        entity.legacyPasswordHash = user.legacyPasswordHash().map(PasswordHash::value).orElse(null);
         entity.recoveryHash = user.recoveryHash().map(PasswordHash::value).orElse(null);
         entity.role = user.role();
         entity.status = user.status();
@@ -83,7 +88,9 @@ public class UserJpaEntity {
     }
 
     User toDomain() {
-        return User.restore(new UserId(id), new Username(username), new PasswordHash(passwordHash),
+        return User.restore(new UserId(id), new Username(username),
+                accessKeyHash == null ? null : new AccessKeyHash(accessKeyHash),
+                legacyPasswordHash == null ? null : new PasswordHash(legacyPasswordHash),
                 recoveryHash == null ? null : new PasswordHash(recoveryHash), role, status, bio, avatarImageId,
                 termsVersion, termsAcceptedAt, profileHidden, createdAt, updatedAt);
     }

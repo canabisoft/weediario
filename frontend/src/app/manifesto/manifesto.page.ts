@@ -19,12 +19,12 @@ const PRINCIPLES: readonly Principle[] = [
     icon: 'user',
     title: 'Cadastro mínimo, pode ser pseudônimo',
     points: [
-      'Pra criar conta a gente pede só duas coisas: um apelido e uma senha. O apelido não precisa ser o seu nome.',
+      'Pra criar conta a gente pede só um apelido, que não precisa ser o seu nome. Nem senha: o app gera pra você uma chave de acesso.',
       'Nem e-mail a gente pede. Nunca pedimos CPF, nome completo, RG, endereço ou telefone. Não tem campo pra isso, nem escondido.',
-      'A senha é guardada como hash Argon2id: nem a gente consegue ler.',
-      'Pra recuperar a conta, você anota 12 palavras na hora do cadastro (no padrão BIP-39, o mesmo das carteiras de cripto). ' +
+      'A chave de acesso aparece uma vez só, no cadastro. No banco fica só um hash dela: nem a gente consegue ler.',
+      'Perdeu a chave? Você anota 12 palavras na hora do cadastro (no padrão BIP-39, o mesmo das carteiras de cripto). ' +
         'Elas são geradas no seu navegador e nunca chegam ao servidor: a gente guarda só um hash de um código derivado delas. ' +
-        'O outro lado disso: se você perder a senha e as palavras, ninguém consegue devolver a conta.',
+        'Com elas, você gera uma chave nova. O outro lado disso: se você perder a chave e as palavras, ninguém consegue devolver a conta.',
     ],
   },
   {

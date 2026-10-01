@@ -12,8 +12,10 @@ import java.util.UUID;
  * Aggregate root do contexto de identidade.
  * <p>
  * Privacidade por design: não existem (e não devem ser adicionados) campos de e-mail, IP, geolocalização,
- * cidade/estado, user-agent ou data de último acesso. Nome real também não é coletado. Sem e-mail, a conta é
- * recuperada pela frase de 12 palavras, da qual o servidor só conhece o hash de um derivado.
+ * cidade/estado, user-agent ou data de último acesso. Nome real também não é coletado.
+ * <p>
+ * Sem senha: entra-se com apelido + {@link AccessKey chave de acesso} gerada pelo servidor, da qual só o hash é
+ * guardado. A chave é trocada pela frase de 12 palavras, da qual o servidor só conhece o hash de um derivado.
  * A foto de perfil é opcional e passa pelo mesmo sanitizador de metadados das fotos dos diários.
  */
 public final class User {
@@ -22,7 +24,10 @@ public final class User {
 
     private final UserId id;
     private final Username username;
-    private PasswordHash passwordHash;
+    /** Nulo só em contas anteriores à chave de acesso, que ainda entram uma última vez com a senha antiga. */
+    private AccessKeyHash accessKeyHash;
+    /** Senha de contas anteriores à chave de acesso; apagada assim que a conta recebe a chave. */
+    private PasswordHash legacyPasswordHash;
     /** Argon2 do derivado da frase de recuperação; nulo em contas anteriores à frase (geram no próximo login). */
     private PasswordHash recoveryHash;
     private final Role role;
@@ -36,12 +41,17 @@ public final class User {
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private User(UserId id, Username username, PasswordHash passwordHash, PasswordHash recoveryHash,
+    private User(UserId id, Username username, AccessKeyHash accessKeyHash, PasswordHash legacyPasswordHash,
+                 PasswordHash recoveryHash,
                  Role role, AccountStatus status, String bio, UUID avatarImageId, String termsVersion,
                  Instant termsAcceptedAt, boolean profileHidden, Instant createdAt, Instant updatedAt) {
         this.id = Guard.notNull(id, "Id");
         this.username = Guard.notNull(username, "Nome de usuário");
-        this.passwordHash = Guard.notNull(passwordHash, "Senha");
+        if (accessKeyHash == null && legacyPasswordHash == null) {
+            throw new DomainException("Conta sem credencial de acesso");
+        }
+        this.accessKeyHash = accessKeyHash;
+        this.legacyPasswordHash = legacyPasswordHash;
         this.recoveryHash = recoveryHash;
         this.role = Guard.notNull(role, "Perfil");
         this.status = Guard.notNull(status, "Status");
@@ -58,24 +68,26 @@ public final class User {
      * Só cria a conta com o aceite da versão vigente dos Termos de Uso (versão e data/hora ficam registradas) e com a
      * frase de recuperação já gerada: sem e-mail, ela é o único jeito de recuperar o acesso.
      */
-    public static User register(Username username, PasswordHash passwordHash, PasswordHash recoveryHash,
+    public static User register(Username username, AccessKeyHash accessKeyHash, PasswordHash recoveryHash,
                                 String acceptedTermsVersion, Clock clock) {
         if (username.isReserved()) {
             throw new DomainException("Nome de usuário indisponível");
         }
         String terms = TermsOfUse.requireCurrent(acceptedTermsVersion);
         Instant now = clock.instant();
+        Guard.notNull(accessKeyHash, "Chave de acesso");
         Guard.notNull(recoveryHash, "Frase de recuperação");
-        return new User(UserId.newId(), username, passwordHash, recoveryHash, Role.GROWER, AccountStatus.ACTIVE, null, null,
+        return new User(UserId.newId(), username, accessKeyHash, null, recoveryHash, Role.GROWER, AccountStatus.ACTIVE, null, null,
                 terms, now, false, now, now);
     }
 
     /** Reconstitui um usuário já persistido; não aplica regras de criação. */
-    public static User restore(UserId id, Username username, PasswordHash passwordHash, PasswordHash recoveryHash,
+    public static User restore(UserId id, Username username, AccessKeyHash accessKeyHash,
+                               PasswordHash legacyPasswordHash, PasswordHash recoveryHash,
                                Role role, AccountStatus status, String bio, UUID avatarImageId,
                                String termsVersion, Instant termsAcceptedAt, boolean profileHidden,
                                Instant createdAt, Instant updatedAt) {
-        return new User(id, username, passwordHash, recoveryHash, role, status, bio, avatarImageId, termsVersion,
+        return new User(id, username, accessKeyHash, legacyPasswordHash, recoveryHash, role, status, bio, avatarImageId, termsVersion,
                 termsAcceptedAt, profileHidden, createdAt, updatedAt);
     }
 
@@ -83,8 +95,15 @@ public final class User {
         return status == AccountStatus.ACTIVE;
     }
 
-    public void changePassword(PasswordHash newHash, Clock clock) {
-        this.passwordHash = Guard.notNull(newHash, "Senha");
+    /** Comparação em tempo constante; conta ainda sem chave nunca confere. */
+    public boolean accessKeyMatches(AccessKeyHash candidate) {
+        return accessKeyHash != null && accessKeyHash.matches(candidate);
+    }
+
+    /** Nova chave (cadastro antigo migrando, ou recuperação pela frase). A senha antiga, se havia, deixa de existir. */
+    public void replaceAccessKey(AccessKeyHash newHash, Clock clock) {
+        this.accessKeyHash = Guard.notNull(newHash, "Chave de acesso");
+        this.legacyPasswordHash = null;
         this.updatedAt = clock.instant();
     }
 
@@ -165,8 +184,12 @@ public final class User {
         return username;
     }
 
-    public PasswordHash passwordHash() {
-        return passwordHash;
+    public Optional<AccessKeyHash> accessKeyHash() {
+        return Optional.ofNullable(accessKeyHash);
+    }
+
+    public Optional<PasswordHash> legacyPasswordHash() {
+        return Optional.ofNullable(legacyPasswordHash);
     }
 
     public Optional<PasswordHash> recoveryHash() {

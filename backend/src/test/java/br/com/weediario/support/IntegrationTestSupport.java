@@ -37,7 +37,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(EmbeddedPostgresConfig.class)
 public abstract class IntegrationTestSupport {
 
-    protected static final String PASSWORD = "senha-bem-longa-123";
     /** Versão vigente dos Termos de Uso (o cadastro exige o aceite). */
     protected static final String TERMS = "1.0";
     /** Derivado de uma frase de recuperação (no app ele é calculado no navegador; as palavras nunca chegam aqui). */
@@ -52,42 +51,50 @@ public abstract class IntegrationTestSupport {
     @Autowired
     protected JdbcTemplate jdbc;
 
-    public record Session(String username, String accessToken) {
+    /** @param accessKey chave de acesso devolvida no cadastro (o servidor só guarda o hash dela) */
+    public record Session(String username, String accessToken, String accessKey) {
         public String bearer() {
             return "Bearer " + accessToken;
         }
     }
 
+    /** Cadastro já devolve sessão aberta e a chave de acesso. */
     protected Session newGrower() throws Exception {
         String username = "g_" + UUID.randomUUID().toString().substring(0, 12).replace("-", "");
-        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+        MvcResult registered = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(registerJson(username)))
-                .andExpect(status().isCreated());
-        MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"login":"%s","password":"%s"}""".formatted(username, PASSWORD)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andReturn();
-        return new Session(username, body(login).get("accessToken").asText());
+        JsonNode response = body(registered);
+        return new Session(username, response.get("accessToken").asText(), response.get("accessKey").asText());
     }
 
     /** Grower promovido a moderador; o novo login traz o papel no access token. */
     protected Session moderator() throws Exception {
         Session session = newGrower();
         jdbc.update("update users set role = 'MODERATOR' where username = ?", session.username());
-        MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"login":"%s","password":"%s"}""".formatted(session.username(), PASSWORD)))
-                .andExpect(status().isOk())
-                .andReturn();
-        return new Session(session.username(), body(login).get("accessToken").asText());
+        return relogin(session);
     }
 
-    /** Cadastro mínimo: apelido, senha, derivado da frase de recuperação e aceite dos termos (sem e-mail). */
+    /** Login de novo com a chave de acesso (pega papel e aceite de termos atualizados no token). */
+    protected Session relogin(Session session) throws Exception {
+        MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson(session.username(), session.accessKey())))
+                .andExpect(status().isOk())
+                .andReturn();
+        return new Session(session.username(), body(login).get("accessToken").asText(), session.accessKey());
+    }
+
+    protected static String loginJson(String username, String accessKey) {
+        return """
+                {"login":"%s","accessKey":"%s"}""".formatted(username, accessKey);
+    }
+
+    /** Cadastro mínimo: apelido, derivado da frase de recuperação e aceite dos termos (sem e-mail nem senha). */
     protected static String registerJson(String username) {
         return """
-                {"username":"%s","password":"%s","recoveryVerifier":"%s","acceptedTermsVersion":"%s"}"""
-                .formatted(username, PASSWORD, VERIFIER, TERMS);
+                {"username":"%s","recoveryVerifier":"%s","acceptedTermsVersion":"%s"}"""
+                .formatted(username, VERIFIER, TERMS);
     }
 
     protected UUID createDiary(Session session, String strain, String visibility, String startedOn) throws Exception {

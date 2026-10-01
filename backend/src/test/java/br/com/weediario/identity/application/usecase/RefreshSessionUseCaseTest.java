@@ -5,6 +5,7 @@ import br.com.weediario.identity.application.SessionIssuer;
 import br.com.weediario.identity.application.exception.InvalidSessionException;
 import br.com.weediario.identity.application.port.AccessTokenIssuer;
 import br.com.weediario.identity.application.port.RefreshTokenCodec;
+import br.com.weediario.identity.domain.model.AccessKey;
 import br.com.weediario.identity.domain.model.PasswordHash;
 import br.com.weediario.identity.domain.model.RefreshToken;
 import br.com.weediario.identity.domain.model.TermsOfUse;
@@ -57,7 +58,7 @@ class RefreshSessionUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        user = users.save(User.register(new Username("grower_anon"), new PasswordHash("$argon2id$fake"),
+        user = users.save(User.register(new Username("grower_anon"), AccessKey.generate().hash(),
                 new PasswordHash("$argon2id$recovery"), TermsOfUse.CURRENT_VERSION, clock));
     }
 

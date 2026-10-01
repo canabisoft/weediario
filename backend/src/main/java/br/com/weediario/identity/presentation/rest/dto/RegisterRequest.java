@@ -2,23 +2,18 @@ package br.com.weediario.identity.presentation.rest.dto;
 
 import br.com.weediario.identity.domain.model.RecoveryVerifier;
 import br.com.weediario.identity.domain.model.Username;
-import br.com.weediario.identity.domain.service.PasswordPolicy;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Cadastro sem e-mail nem dado civil.
+ * Cadastro sem e-mail, senha ou dado civil: a chave de acesso é gerada pelo servidor e volta na resposta.
  */
 public record RegisterRequest(
         @NotBlank
         @Size(min = Username.MIN_LENGTH, max = Username.MAX_LENGTH)
         @Pattern(regexp = "^[A-Za-z0-9_.]+$", message = "use apenas letras, números, '_' e '.'")
         String username,
-
-        @NotBlank
-        @Size(min = PasswordPolicy.MIN_LENGTH, max = PasswordPolicy.MAX_LENGTH)
-        String password,
 
         /**
          * Derivado (PBKDF2) da frase de 12 palavras gerada no navegador. As palavras nunca são enviadas; sem frase,

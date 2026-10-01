@@ -1,5 +1,6 @@
 package br.com.weediario.identity.infrastructure.config;
 
+import br.com.weediario.identity.application.LoginThrottle;
 import br.com.weediario.identity.application.SessionIssuer;
 import br.com.weediario.identity.application.port.AccessTokenIssuer;
 import br.com.weediario.identity.application.port.AvatarImages;
@@ -41,32 +42,35 @@ public class IdentityUseCaseConfig {
     }
 
     @Bean
-    RegisterUserUseCase registerUserUseCase(UserRepository users, PasswordHasher passwordHasher,
+    LoginThrottle loginThrottle(LoginAttemptsRepository attempts, LoginKeyHasher keyHasher, UnitOfWork unitOfWork,
+                                Clock clock) {
+        return new LoginThrottle(attempts, keyHasher, unitOfWork, clock);
+    }
+
+    @Bean
+    RegisterUserUseCase registerUserUseCase(UserRepository users, PasswordHasher hasher, SessionIssuer sessionIssuer,
                                             UnitOfWork unitOfWork, Clock clock) {
-        return new RegisterUserUseCase(users, passwordHasher, unitOfWork, clock);
+        return new RegisterUserUseCase(users, hasher, sessionIssuer, unitOfWork, clock);
     }
 
     @Bean
-    AuthenticateUserUseCase authenticateUserUseCase(UserRepository users, PasswordHasher passwordHasher,
-                                                    SessionIssuer sessionIssuer, LoginAttemptsRepository attempts,
-                                                    LoginKeyHasher keyHasher, UnitOfWork unitOfWork, Clock clock) {
-        return new AuthenticateUserUseCase(users, passwordHasher, sessionIssuer, attempts, keyHasher, unitOfWork, clock);
+    AuthenticateUserUseCase authenticateUserUseCase(UserRepository users, PasswordHasher hasher,
+                                                    SessionIssuer sessionIssuer, LoginThrottle throttle,
+                                                    UnitOfWork unitOfWork, Clock clock) {
+        return new AuthenticateUserUseCase(users, hasher, sessionIssuer, throttle, unitOfWork, clock);
     }
 
     @Bean
-    RecoverAccountUseCase recoverAccountUseCase(UserRepository users, PasswordHasher passwordHasher,
+    RecoverAccountUseCase recoverAccountUseCase(UserRepository users, PasswordHasher hasher,
                                                 SessionIssuer sessionIssuer, RefreshTokenRepository refreshTokens,
-                                                LoginAttemptsRepository attempts, LoginKeyHasher keyHasher,
-                                                UnitOfWork unitOfWork, Clock clock) {
-        return new RecoverAccountUseCase(users, passwordHasher, sessionIssuer, refreshTokens, attempts, keyHasher,
-                unitOfWork, clock);
+                                                LoginThrottle throttle, UnitOfWork unitOfWork, Clock clock) {
+        return new RecoverAccountUseCase(users, hasher, sessionIssuer, refreshTokens, throttle, unitOfWork, clock);
     }
 
     @Bean
-    ChangeRecoveryPhraseUseCase changeRecoveryPhraseUseCase(UserRepository users, PasswordHasher passwordHasher,
-                                                            LoginAttemptsRepository attempts, LoginKeyHasher keyHasher,
-                                                            UnitOfWork unitOfWork, Clock clock) {
-        return new ChangeRecoveryPhraseUseCase(users, passwordHasher, attempts, keyHasher, unitOfWork, clock);
+    ChangeRecoveryPhraseUseCase changeRecoveryPhraseUseCase(UserRepository users, PasswordHasher hasher,
+                                                            LoginThrottle throttle, UnitOfWork unitOfWork, Clock clock) {
+        return new ChangeRecoveryPhraseUseCase(users, hasher, throttle, unitOfWork, clock);
     }
 
     @Bean

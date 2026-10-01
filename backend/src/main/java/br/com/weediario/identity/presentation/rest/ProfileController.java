@@ -4,9 +4,9 @@ import br.com.weediario.identity.application.port.AvatarImages.AvatarFile;
 import br.com.weediario.identity.application.usecase.ChangeRecoveryPhraseUseCase;
 import br.com.weediario.identity.application.usecase.ManageProfileUseCase;
 import br.com.weediario.identity.application.usecase.ManageProfileUseCase.MyProfile;
+import br.com.weediario.identity.domain.model.AccessKey;
 import br.com.weediario.identity.domain.model.RecoveryVerifier;
 import br.com.weediario.identity.domain.model.User;
-import br.com.weediario.identity.domain.service.PasswordPolicy;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.presentation.Viewer;
 import jakarta.validation.Valid;
@@ -54,7 +54,7 @@ public class ProfileController {
     @PutMapping("/api/v1/me/recovery")
     public MyProfile changeRecovery(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody RecoveryRequest request) {
         UUID userId = Viewer.requireId(principal);
-        recoveryPhrase.execute(userId, request.recoveryVerifier(), request.currentPassword());
+        recoveryPhrase.execute(userId, request.recoveryVerifier(), request.currentAccessKey());
         return profiles.me(userId);
     }
 
@@ -94,7 +94,7 @@ public class ProfileController {
 
     public record RecoveryRequest(
             @NotBlank @Size(max = RecoveryVerifier.LENGTH) String recoveryVerifier,
-            @NotBlank @Size(max = PasswordPolicy.MAX_LENGTH) String currentPassword) {
+            @NotBlank @Size(max = AccessKey.LENGTH) String currentAccessKey) {
 
         @Override
         public String toString() {

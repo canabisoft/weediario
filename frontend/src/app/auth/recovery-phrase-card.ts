@@ -17,7 +17,7 @@ const CHECKED_POSITIONS = 3;
       <div role="alert" class="rounded-xl border border-warn/50 bg-warn/10 px-3 py-2 text-sm">
         <p class="font-semibold">Anote estas 12 palavras, na ordem, em papel.</p>
         <p class="mt-1">
-          O weediário não tem e-mail nem qualquer outro jeito de recuperar sua conta: se você esquecer a senha e perder
+          O weediário não tem e-mail nem qualquer outro jeito de recuperar sua conta: se você perder a chave de acesso e
           as palavras, a conta está perdida de vez. Ninguém da equipe consegue ver ou reenviar a frase — ela só existe
           aqui, neste aparelho, agora.
         </p>
@@ -70,7 +70,7 @@ const CHECKED_POSITIONS = 3;
 })
 export class RecoveryPhraseCard {
   readonly confirmLabel = input('Continuar');
-  /** Trava o botão enquanto o pai ainda não pode enviar (ex.: falta a senha atual). */
+  /** Trava o botão enquanto o pai ainda não pode enviar (ex.: falta a chave de acesso atual). */
   readonly disabled = input(false);
   /** Derivado da frase (PBKDF2), pronto para enviar ao servidor. */
   readonly verified = output<string>();

@@ -50,7 +50,8 @@ public class SecurityConfig {
         applyCommonHardening(http.securityMatcher(AUTH_PATH + "/**"));
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST,
-                        AUTH_PATH + "/register", AUTH_PATH + "/login", AUTH_PATH + "/recover", AUTH_PATH + "/refresh",
+                        AUTH_PATH + "/register", AUTH_PATH + "/login", AUTH_PATH + "/legacy-login", AUTH_PATH + "/recover",
+                        AUTH_PATH + "/refresh",
                         AUTH_PATH + "/logout")
                 .permitAll()
                 .anyRequest().denyAll());

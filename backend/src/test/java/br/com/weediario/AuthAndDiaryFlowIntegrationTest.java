@@ -1,8 +1,10 @@
 package br.com.weediario;
 
+import br.com.weediario.identity.domain.service.PasswordHasher;
 import br.com.weediario.support.IntegrationTestSupport;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -17,13 +19,15 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
 
     private static final String COOKIE = "__Secure-wd_rt";
 
+    @Autowired
+    private PasswordHasher passwordHasher;
+
     @Test
     void fullSessionLifecycle() throws Exception {
-        register("grower_um");
+        String key = register("grower_um");
 
         MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"login":"Grower_Um","password":"senha-bem-longa-123"}"""))
+                        .content(loginJson("Grower_Um", key)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andReturn();
@@ -67,10 +71,9 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void logoutRevokesSession() throws Exception {
-        register("grower_dois");
+        String key = register("grower_dois");
         MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"login":"grower_dois","password":"senha-bem-longa-123"}"""))
+                        .content(loginJson("grower_dois", key)))
                 .andReturn();
         Cookie refresh = new Cookie(COOKIE, login.getResponse().getCookie(COOKIE).getValue());
 
@@ -79,53 +82,101 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void logsInWithUsernameOnly() throws Exception {
-        register("grower_apelido");
+    void logsInWithUsernameAndAccessKeyOnly() throws Exception {
+        String key = register("grower_apelido");
+        assertThat(key).startsWith("wd_sec_").hasSize(50);
+        // O banco guarda só o SHA-256 da chave; nem senha nem e-mail existem mais.
+        assertThat(jdbc.queryForObject("select access_key_hash from users where username = 'grower_apelido'", String.class))
+                .hasSize(64).doesNotContain(key.substring(7));
+        assertThat(jdbc.queryForObject("select legacy_password_hash from users where username = 'grower_apelido'",
+                String.class)).isNull();
 
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"login":"Grower_Apelido","password":"senha-bem-longa-123"}"""))
+                        .content(loginJson("Grower_Apelido", key)))
                 .andExpect(status().isOk());
-        // Não existe e-mail: nem o campo antigo é aceito.
+        // Senha não é mais aceita (campo desconhecido) e o e-mail também não.
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"apelido@example.org","password":"senha-bem-longa-123"}"""))
+                                {"login":"grower_apelido","password":"senha-bem-longa-123"}"""))
                 .andExpect(status().isBadRequest());
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"login":"grower_apelido","password":"senha-errada-errada"}"""))
+                                {"email":"apelido@example.org","accessKey":"%s"}""".formatted(key)))
+                .andExpect(status().isBadRequest());
+        // A chave é de uma conta só: com outro apelido não entra.
+        register("grower_outro");
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("grower_outro", key)))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void loginFailuresAreIndistinguishable() throws Exception {
-        register("grower_tres");
+        String key = register("grower_tres");
+        String wrongKey = key.substring(0, 49) + (key.endsWith("A") ? "B" : "A");
 
-        String wrongPassword = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"login":"grower_tres","password":"senha-errada-errada"}"""))
+        String wrong = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("grower_tres", wrongKey)))
+                .andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
+        String malformed = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("grower_tres", "senha-qualquer")))
                 .andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
         String unknownUser = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"login":"ninguem_aqui","password":"senha-errada-errada"}"""))
+                        .content(loginJson("ninguem_aqui", key)))
                 .andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
 
-        assertThat(json.readTree(wrongPassword).get("detail"))
-                .isEqualTo(json.readTree(unknownUser).get("detail"));
+        assertThat(json.readTree(wrong).get("detail"))
+                .isEqualTo(json.readTree(unknownUser).get("detail"))
+                .isEqualTo(json.readTree(malformed).get("detail"));
+    }
+
+    @Test
+    void legacyAccountLogsInOnceWithItsPasswordAndReceivesAnAccessKey() throws Exception {
+        register("grower_antigo");
+        // Conta como era antes da chave de acesso: só a senha (Argon2) guardada.
+        String password = "senha-antiga-bem-longa";
+        jdbc.update("update users set legacy_password_hash = ?, access_key_hash = null where username = 'grower_antigo'",
+                passwordHasher.hash(password).value());
+
+        mvc.perform(post("/api/v1/auth/legacy-login").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"login":"grower_antigo","password":"errada-errada-errada"}"""))
+                .andExpect(status().isUnauthorized());
+        MvcResult migrated = mvc.perform(post("/api/v1/auth/legacy-login").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"login":"grower_antigo","password":"%s"}""".formatted(password)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
+                .andReturn();
+        String key = body(migrated).get("accessKey").asText();
+        assertThat(key).startsWith("wd_sec_");
+
+        // A senha foi apagada: o segundo login com ela falha; a chave nova funciona.
+        assertThat(jdbc.queryForObject("select legacy_password_hash from users where username = 'grower_antigo'",
+                String.class)).isNull();
+        mvc.perform(post("/api/v1/auth/legacy-login").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"login":"grower_antigo","password":"%s"}""".formatted(password)))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("grower_antigo", key)))
+                .andExpect(status().isOk());
     }
 
     @Test
     void rejectsUnknownFieldsInPayload() throws Exception {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username":"grower_quatro","password":"senha-bem-longa-123","role":"ADMIN"}"""))
+                                {"username":"grower_quatro","recoveryVerifier":"%s","acceptedTermsVersion":"1.0","role":"ADMIN"}""".formatted(VERIFIER)))
                 .andExpect(status().isBadRequest());
     }
 
-    private void register(String username) throws Exception {
-        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+    /** @return a chave de acesso devolvida no cadastro */
+    private String register(String username) throws Exception {
+        return body(mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(registerJson(username)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andReturn()).get("accessKey").asText();
     }
 
     private static String diaryJson() {

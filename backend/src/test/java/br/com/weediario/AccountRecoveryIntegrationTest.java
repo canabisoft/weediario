@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -18,26 +19,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Conta sem e-mail: cadastro exige a frase de recuperação (só o derivado chega ao servidor) e a recuperação troca a
- * senha, encerra as sessões antigas e entra na conta.
+ * Conta sem e-mail e sem senha: o cadastro devolve a chave de acesso uma vez e exige a frase de recuperação (só o
+ * derivado chega ao servidor). A frase gera uma chave nova, encerra as sessões antigas e entra na conta.
  */
 class AccountRecoveryIntegrationTest extends IntegrationTestSupport {
 
     private static final String COOKIE = "__Secure-wd_rt";
-    private static final String NEW_PASSWORD = "outra-senha-bem-longa-456";
     private static final String OTHER_VERIFIER = "b2".repeat(64);
 
     @Test
-    void usersTableHasNoEmailAndStoresOnlyTheHashOfTheVerifier() throws Exception {
+    void storesOnlyHashesAndNoEmailOrPassword() throws Exception {
         Session grower = newGrower();
 
         List<String> columns = jdbc.queryForList("""
                 select column_name from information_schema.columns
                  where table_schema = 'public' and table_name = 'users'""", String.class);
-        assertThat(columns).doesNotContain("email").contains("recovery_hash");
-        String stored = jdbc.queryForObject("select recovery_hash from users where username = ?", String.class,
+        assertThat(columns).doesNotContain("email", "password_hash").contains("access_key_hash", "recovery_hash");
+        String recovery = jdbc.queryForObject("select recovery_hash from users where username = ?", String.class,
                 grower.username());
-        assertThat(stored).startsWith("$argon2").doesNotContain(VERIFIER);
+        assertThat(recovery).startsWith("$argon2").doesNotContain(VERIFIER);
+        assertThat(jdbc.queryForObject("select count(*) from users where access_key_hash = ?", Long.class,
+                grower.accessKey())).isZero();
 
         mvc.perform(authed(get("/api/v1/me"), grower))
                 .andExpect(jsonPath("$.hasRecoveryPhrase").value(true))
@@ -45,35 +47,43 @@ class AccountRecoveryIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void registrationRequiresAWellFormedVerifier() throws Exception {
+    void registrationReturnsTheKeyOnceWithoutCachingAndRequiresAWellFormedVerifier() throws Exception {
+        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(registerJson("chave_unica")))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Cache-Control", containsString("no-store")))
+                .andExpect(jsonPath("$.accessKey").value(org.hamcrest.Matchers.startsWith("wd_sec_")))
+                .andExpect(jsonPath("$.accessToken").isNotEmpty());
+
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"username":"sem_frase","password":"%s","acceptedTermsVersion":"1.0"}""".formatted(PASSWORD)))
+                        {"username":"sem_frase","acceptedTermsVersion":"1.0"}"""))
                 .andExpect(status().isBadRequest());
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"username":"frase_ruim","password":"%s","recoveryVerifier":"abandon ability able",
-                         "acceptedTermsVersion":"1.0"}""".formatted(PASSWORD)))
+                        {"username":"frase_ruim","recoveryVerifier":"abandon ability able","acceptedTermsVersion":"1.0"}"""))
                 .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
-    void recoveryChangesThePasswordRevokesOldSessionsAndSignsIn() throws Exception {
+    void recoveryIssuesANewKeyRevokesOldSessionsAndSignsIn() throws Exception {
         Session grower = newGrower();
-        MvcResult oldLogin = login(grower.username(), PASSWORD);
+        MvcResult oldLogin = login(grower.username(), grower.accessKey());
         Cookie oldRefresh = new Cookie(COOKIE, oldLogin.getResponse().getCookie(COOKIE).getValue());
 
         MvcResult recovered = mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
-                        .content(recoverJson(grower.username().toUpperCase(), VERIFIER, NEW_PASSWORD)))
+                        .content(recoverJson(grower.username().toUpperCase(), VERIFIER)))
                 .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", containsString("no-store")))
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andReturn();
-        assertThat(recovered.getResponse().getCookie(COOKIE)).isNotNull();
+        String newKey = body(recovered).get("accessKey").asText();
+        assertThat(newKey).startsWith("wd_sec_").isNotEqualTo(grower.accessKey());
 
-        // A sessão antiga (talvez num aparelho perdido) cai; a senha antiga deixa de valer; a nova funciona.
+        // A sessão antiga (talvez num aparelho perdido) cai; a chave antiga deixa de valer; a nova funciona.
         mvc.perform(post("/api/v1/auth/refresh").cookie(oldRefresh)).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson(grower.username(), PASSWORD)))
+                        .content(loginJson(grower.username(), grower.accessKey())))
                 .andExpect(status().isUnauthorized());
-        login(grower.username(), NEW_PASSWORD);
+        login(grower.username(), newKey);
     }
 
     @Test
@@ -81,49 +91,49 @@ class AccountRecoveryIntegrationTest extends IntegrationTestSupport {
         Session grower = newGrower();
 
         String wrongPhrase = mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
-                        .content(recoverJson(grower.username(), OTHER_VERIFIER, NEW_PASSWORD)))
+                        .content(recoverJson(grower.username(), OTHER_VERIFIER)))
                 .andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
         String unknownUser = mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
-                        .content(recoverJson("ninguem_aqui", VERIFIER, NEW_PASSWORD)))
+                        .content(recoverJson("ninguem_aqui", VERIFIER)))
                 .andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
         assertThat(json.readTree(wrongPhrase).get("detail")).isEqualTo(json.readTree(unknownUser).get("detail"));
 
         for (int i = 1; i < 5; i++) {
             mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
-                            .content(recoverJson(grower.username(), OTHER_VERIFIER, NEW_PASSWORD)))
+                            .content(recoverJson(grower.username(), OTHER_VERIFIER)))
                     .andExpect(status().isUnauthorized());
         }
         // Bloqueado: nem a frase certa passa até o bloqueio acabar.
         mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
-                        .content(recoverJson(grower.username(), VERIFIER, NEW_PASSWORD)))
+                        .content(recoverJson(grower.username(), VERIFIER)))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
         // O limite da recuperação é separado do login.
-        login(grower.username(), PASSWORD);
+        login(grower.username(), grower.accessKey());
     }
 
     @Test
-    void legacyAccountGeneratesThePhraseWithItsPasswordAndCanThenRecover() throws Exception {
+    void legacyAccountGeneratesThePhraseWithItsKeyAndCanThenRecover() throws Exception {
         Session grower = newGrower();
         jdbc.update("update users set recovery_hash = null where username = ?", grower.username());
 
         mvc.perform(authed(get("/api/v1/me"), grower)).andExpect(jsonPath("$.hasRecoveryPhrase").value(false));
         // Conta sem frase não tem como ser recuperada.
         mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
-                        .content(recoverJson(grower.username(), VERIFIER, NEW_PASSWORD)))
+                        .content(recoverJson(grower.username(), VERIFIER)))
                 .andExpect(status().isUnauthorized());
 
-        // Só com a senha atual (um token roubado não basta para trocar a frase).
+        // Só com a chave atual (um token roubado não basta para trocar a frase).
         mvc.perform(authed(put("/api/v1/me/recovery"), grower).contentType(MediaType.APPLICATION_JSON).content("""
-                        {"recoveryVerifier":"%s","currentPassword":"senha-errada-errada"}""".formatted(OTHER_VERIFIER)))
+                        {"recoveryVerifier":"%s","currentAccessKey":"wd_sec_errada"}""".formatted(OTHER_VERIFIER)))
                 .andExpect(status().isUnauthorized());
         mvc.perform(authed(put("/api/v1/me/recovery"), grower).contentType(MediaType.APPLICATION_JSON).content("""
-                        {"recoveryVerifier":"%s","currentPassword":"%s"}""".formatted(OTHER_VERIFIER, PASSWORD)))
+                        {"recoveryVerifier":"%s","currentAccessKey":"%s"}""".formatted(OTHER_VERIFIER, grower.accessKey())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.hasRecoveryPhrase").value(true));
 
         mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
-                        .content(recoverJson(grower.username(), OTHER_VERIFIER, NEW_PASSWORD)))
+                        .content(recoverJson(grower.username(), OTHER_VERIFIER)))
                 .andExpect(status().isOk());
     }
 
@@ -132,28 +142,22 @@ class AccountRecoveryIntegrationTest extends IntegrationTestSupport {
         Session grower = newGrower();
         jdbc.update("update users set terms_version = null, terms_accepted_at = null where username = ?",
                 grower.username());
-        String token = body(login(grower.username(), PASSWORD)).get("accessToken").asText();
+        Session legacy = relogin(grower);
 
-        mvc.perform(put("/api/v1/me/recovery").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON).content("""
-                                {"recoveryVerifier":"%s","currentPassword":"%s"}""".formatted(OTHER_VERIFIER, PASSWORD)))
+        mvc.perform(authed(put("/api/v1/me/recovery"), legacy).contentType(MediaType.APPLICATION_JSON).content("""
+                        {"recoveryVerifier":"%s","currentAccessKey":"%s"}""".formatted(OTHER_VERIFIER, grower.accessKey())))
                 .andExpect(status().isOk());
     }
 
-    private MvcResult login(String username, String password) throws Exception {
+    private MvcResult login(String username, String accessKey) throws Exception {
         return mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson(username, password)))
+                        .content(loginJson(username, accessKey)))
                 .andExpect(status().isOk())
                 .andReturn();
     }
 
-    private static String loginJson(String username, String password) {
+    private static String recoverJson(String username, String verifier) {
         return """
-                {"login":"%s","password":"%s"}""".formatted(username, password);
-    }
-
-    private static String recoverJson(String username, String verifier, String newPassword) {
-        return """
-                {"username":"%s","recoveryVerifier":"%s","newPassword":"%s"}""".formatted(username, verifier, newPassword);
+                {"username":"%s","recoveryVerifier":"%s"}""".formatted(username, verifier);
     }
 }

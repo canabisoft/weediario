@@ -18,10 +18,12 @@ Este projeto foi arquitetado sob premissas rígidas de segurança digital:
   celular) e gera variantes otimizadas em WebP (400px e 1600px).
 - **Reações anônimas:** cada reação é gravada com um pseudônimo derivado por HMAC do par (usuário, alvo). O mesmo
   usuário em alvos diferentes gera pseudônimos diferentes e não relacionáveis.
-- **Conta sem e-mail:** o cadastro pede só apelido e senha. A recuperação usa uma frase de 12 palavras (BIP-39, lista
-  em português) gerada no navegador; o servidor recebe só um derivado PBKDF2 dela e guarda o hash Argon2id desse
-  derivado. As palavras nunca chegam ao servidor, e sem senha e frase a conta não tem como ser recuperada.
-- **Boas práticas OWASP:** senhas com Argon2id, tokens JWT de curta duração (10 min) com refresh token em cookie
+- **Conta sem e-mail e sem senha:** o cadastro pede só um apelido. Para entrar, apelido + chave de acesso
+  (`wd_sec_…`, 256 bits gerados pelo servidor e mostrados uma única vez); o banco guarda só o SHA-256 da chave, com
+  índice único. Se a chave se perder, uma frase de 12 palavras (BIP-39, lista em português) gera outra. A frase é
+  criada no navegador e o servidor recebe só um derivado PBKDF2 dela, guardado como Argon2id. Sem chave e sem frase,
+  a conta não tem como ser recuperada.
+- **Boas práticas OWASP:** hashes com SHA-256 (chave de acesso) e Argon2id (frase de recuperação), tokens JWT de curta duração (10 min) com refresh token em cookie
   `HttpOnly`, `Secure` e `SameSite=Strict`, e payloads validados estritamente.
 
 ### Privacidade na infraestrutura

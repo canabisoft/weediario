@@ -27,7 +27,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
     void bruteForceLocksTheAccountWithoutStoringUsernameOrIp() throws Exception {
         String username = "alvo_" + UUID.randomUUID().toString().substring(0, 8);
         String wrong = """
-                {"login":"%s","password":"senha-errada-errada"}""".formatted(username);
+                {"login":"%s","accessKey":"wd_sec_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}""".formatted(username);
         for (int i = 0; i < 5; i++) {
             mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(wrong))
                     .andExpect(status().isUnauthorized());

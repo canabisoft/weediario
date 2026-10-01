@@ -1,6 +1,7 @@
 package br.com.weediario.identity.presentation.rest;
 
 import br.com.weediario.identity.application.AuthenticatedSession;
+import br.com.weediario.identity.application.KeyedSession;
 import br.com.weediario.identity.application.exception.InvalidSessionException;
 import br.com.weediario.identity.application.usecase.AuthenticateUserUseCase;
 import br.com.weediario.identity.application.usecase.LogoutUseCase;
@@ -8,12 +9,15 @@ import br.com.weediario.identity.application.usecase.RecoverAccountUseCase;
 import br.com.weediario.identity.application.usecase.RefreshSessionUseCase;
 import br.com.weediario.identity.application.usecase.RegisterUserUseCase;
 import br.com.weediario.identity.presentation.rest.dto.AccessTokenResponse;
+import br.com.weediario.identity.presentation.rest.dto.KeyedTokenResponse;
+import br.com.weediario.identity.presentation.rest.dto.LegacyLoginRequest;
 import br.com.weediario.identity.presentation.rest.dto.LoginRequest;
 import br.com.weediario.identity.presentation.rest.dto.RecoverRequest;
 import br.com.weediario.identity.presentation.rest.dto.RegisterRequest;
 import br.com.weediario.shared.infrastructure.security.SecurityConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -47,25 +51,32 @@ public class AuthController {
         this.cookies = cookies;
     }
 
+    /** Cria a conta e já entra; a resposta traz a chave de acesso, que não é mostrada de novo. */
     @PostMapping("/register")
-    public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
-        registerUser.execute(new RegisterUserUseCase.Command(request.username(), request.password(),
-                request.recoveryVerifier(), request.acceptedTermsVersion()));
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<KeyedTokenResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return withKeyedSession(HttpStatus.CREATED, registerUser.execute(new RegisterUserUseCase.Command(
+                request.username(), request.recoveryVerifier(), request.acceptedTermsVersion())));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AccessTokenResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthenticatedSession session = authenticateUser.execute(
-                new AuthenticateUserUseCase.Command(request.login(), request.password()));
+                new AuthenticateUserUseCase.Command(request.login(), request.accessKey()));
         return withSession(session);
     }
 
-    /** Frase de recuperação + senha nova: encerra as outras sessões e já entra na conta. */
+    /** Conta anterior à chave de acesso: último login com a senha, que é trocada por uma chave. */
+    @PostMapping("/legacy-login")
+    public ResponseEntity<KeyedTokenResponse> legacyLogin(@Valid @RequestBody LegacyLoginRequest request) {
+        return withKeyedSession(HttpStatus.OK, authenticateUser.migrateLegacy(
+                new AuthenticateUserUseCase.LegacyCommand(request.login(), request.password())));
+    }
+
+    /** Frase de recuperação: gera uma chave de acesso nova, encerra as outras sessões e já entra na conta. */
     @PostMapping("/recover")
-    public ResponseEntity<AccessTokenResponse> recover(@Valid @RequestBody RecoverRequest request) {
-        return withSession(recoverAccount.execute(new RecoverAccountUseCase.Command(
-                request.username(), request.recoveryVerifier(), request.newPassword())));
+    public ResponseEntity<KeyedTokenResponse> recover(@Valid @RequestBody RecoverRequest request) {
+        return withKeyedSession(HttpStatus.OK, recoverAccount.execute(
+                new RecoverAccountUseCase.Command(request.username(), request.recoveryVerifier())));
     }
 
     @PostMapping("/refresh")
@@ -94,6 +105,16 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE,
                         cookies.create(session.refreshToken(), session.refreshTokenExpiresAt()).toString())
                 .body(AccessTokenResponse.bearer(session.accessToken(), session.accessTokenExpiresAt()));
+    }
+
+    private ResponseEntity<KeyedTokenResponse> withKeyedSession(HttpStatus status, KeyedSession keyed) {
+        AuthenticatedSession session = keyed.session();
+        return ResponseEntity.status(status)
+                .cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.SET_COOKIE,
+                        cookies.create(session.refreshToken(), session.refreshTokenExpiresAt()).toString())
+                .body(new KeyedTokenResponse(session.accessToken(), "Bearer", session.accessTokenExpiresAt(),
+                        keyed.accessKey().value()));
     }
 
     private String readRefreshCookie(HttpServletRequest request) {

@@ -27,18 +27,15 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
     void registrationRequiresTheCurrentTermsAndStoresOnlyVersionAndTime() throws Exception {
         String username = "t_" + UUID.randomUUID().toString().substring(0, 8);
         String base = """
-                {"username":"%s","password":"%s","recoveryVerifier":"%s"%s}""";
+                {"username":"%s","recoveryVerifier":"%s"%s}""";
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                .content(base.formatted(username, PASSWORD, VERIFIER, ""))).andExpect(status().isBadRequest());
+                .content(base.formatted(username, VERIFIER, ""))).andExpect(status().isBadRequest());
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(base.formatted(username, PASSWORD, VERIFIER, ",\"acceptedTermsVersion\":\"0.9\"")))
+                        .content(base.formatted(username, VERIFIER, ",\"acceptedTermsVersion\":\"0.9\"")))
                 .andExpect(status().isUnprocessableEntity());
-        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(base.formatted(username, PASSWORD, VERIFIER, ",\"acceptedTermsVersion\":\"1.0\"")))
-                .andExpect(status().isCreated());
-
-        String token = body(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"login\":\"%s\",\"password\":\"%s\"}".formatted(username, PASSWORD)))
+        String token = body(mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(base.formatted(username, VERIFIER, ",\"acceptedTermsVersion\":\"1.0\"")))
+                .andExpect(status().isCreated())
                 .andReturn()).get("accessToken").asText();
         mvc.perform(get("/api/v1/me").header("Authorization", "Bearer " + token))
                 .andExpect(jsonPath("$.termsVersion").value("1.0"))
@@ -173,7 +170,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
 
         mvc.perform(authed(get("/api/v1/diaries/{id}/comments", diaryId), owner)).andExpect(jsonPath("$.totalItems").value(0));
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"login\":\"%s\",\"password\":\"%s\"}".formatted(seller.username(), PASSWORD)))
+                .content(loginJson(seller.username(), seller.accessKey())))
                 .andExpect(status().isUnauthorized());
         String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8)));
         assertThat(jdbc.queryForList("""
@@ -186,7 +183,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"note\":\"recurso aceito\"}"))
                 .andExpect(status().isNoContent());
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"login\":\"%s\",\"password\":\"%s\"}".formatted(seller.username(), PASSWORD)))
+                .content(loginJson(seller.username(), seller.accessKey())))
                 .andExpect(status().isOk());
 
         // Exportação do log: só admin; sem quem denunciou.
@@ -245,13 +242,6 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         return body(mvc.perform(authed(post("/api/v1/diaries/{id}/comments", diaryId), author)
                         .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(java.util.Map.of("body", text))))
                 .andExpect(status().isCreated()).andReturn()).get("id").asText();
-    }
-
-    private Session relogin(Session session) throws Exception {
-        String token = body(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"login\":\"%s\",\"password\":\"%s\"}".formatted(session.username(), PASSWORD)))
-                .andExpect(status().isOk()).andReturn()).get("accessToken").asText();
-        return new Session(session.username(), token);
     }
 
     private Session admin() throws Exception {
