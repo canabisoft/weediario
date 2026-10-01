@@ -12,6 +12,7 @@ import br.com.weediario.catalog.domain.model.CatalogEnums.Status;
 import br.com.weediario.catalog.domain.model.CatalogStrain;
 import br.com.weediario.catalog.domain.model.Product;
 import br.com.weediario.catalog.domain.model.StrainTraits;
+import br.com.weediario.catalog.domain.model.TestingProgress;
 import br.com.weediario.catalog.domain.repository.CatalogRepository;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -74,10 +75,11 @@ public class JdbcCatalogRepository implements CatalogRepository {
         jdbc.update("""
                 insert into strains (id, name, breeder, name_key, breeder_key, breeder_id, flowering_type, dominance,
                                      flowering_speed, seed_types, flavors, effects, genetics, status, source,
-                                     created_by, created_at, updated_at)
+                                     created_by, created_at, updated_at, promoted_at)
                 values (:id, :name, :breeder, :nameKey, :breederKey, :breederId, :floweringType, :dominance,
                         :floweringSpeed, cast(:seedTypes as varchar(20)[]), cast(:flavors as varchar(30)[]),
-                        cast(:effects as varchar(30)[]), :genetics, :status, :source, :createdBy, :createdAt, :updatedAt)
+                        cast(:effects as varchar(30)[]), :genetics, :status, :source, :createdBy, :createdAt, :updatedAt,
+                        :promotedAt)
                 on conflict (id) do update set
                     flowering_type = excluded.flowering_type,
                     dominance = excluded.dominance,
@@ -87,7 +89,8 @@ public class JdbcCatalogRepository implements CatalogRepository {
                     effects = excluded.effects,
                     genetics = excluded.genetics,
                     status = excluded.status,
-                    updated_at = excluded.updated_at""",
+                    updated_at = excluded.updated_at,
+                    promoted_at = excluded.promoted_at""",
                 new MapSqlParameterSource("id", strain.id())
                         .addValue("name", strain.name())
                         .addValue("breeder", strain.breeder() == null ? null : strain.breeder().name())
@@ -105,8 +108,25 @@ public class JdbcCatalogRepository implements CatalogRepository {
                         .addValue("source", strain.source().name())
                         .addValue("createdBy", strain.createdBy(), Types.OTHER)
                         .addValue("createdAt", Timestamp.from(strain.createdAt()))
-                        .addValue("updatedAt", Timestamp.from(strain.updatedAt())));
+                        .addValue("updatedAt", Timestamp.from(strain.updatedAt()))
+                        .addValue("promotedAt", strain.promotedAt() == null ? null : Timestamp.from(strain.promotedAt()),
+                                Types.TIMESTAMP));
         return strain;
+    }
+
+    @Override
+    public TestingProgress testingProgress(UUID strainId) {
+        return jdbc.query("select %s as testers, %s as reviews from strains s where s.id = :id"
+                        .formatted(TestingProgressSql.TESTERS, TestingProgressSql.REVIEWS),
+                new MapSqlParameterSource("id", strainId),
+                (rs, n) -> new TestingProgress(rs.getLong("testers"), rs.getLong("reviews")))
+                .stream().findFirst().orElse(new TestingProgress(0, 0));
+    }
+
+    @Override
+    public List<UUID> testingStrainIds() {
+        return jdbc.queryForList("select id from strains where status = 'TESTING' order by created_at",
+                new MapSqlParameterSource(), UUID.class);
     }
 
     @Override
@@ -167,6 +187,15 @@ public class JdbcCatalogRepository implements CatalogRepository {
                  where t.id = :target and s.breeder_id = :dup""", params);
         jdbc.update("update grow_diaries set breeder_id = :target where breeder_id = :dup", params);
         jdbc.update("update reviews set seedbank_id = :target where seedbank_id = :dup", params);
+        // Representantes passam para o principal; quem já tinha pedido lá mantém o vínculo mais forte.
+        jdbc.update("""
+                insert into breeder_representatives (breeder_id, user_id, status, note, requested_at, decided_at)
+                select :target, user_id, status, note, requested_at, decided_at
+                  from breeder_representatives where breeder_id = :dup
+                on conflict (breeder_id, user_id) do update set
+                    status = case when excluded.status = 'APPROVED' then 'APPROVED' else breeder_representatives.status end,
+                    decided_at = coalesce(breeder_representatives.decided_at, excluded.decided_at)""", params);
+        jdbc.update("delete from breeder_representatives where breeder_id = :dup", params);
         jdbc.update("""
                 insert into breeder_aliases (alias_key, breeder_id)
                 select name_key, :target from breeders where id = :dup
@@ -212,6 +241,12 @@ public class JdbcCatalogRepository implements CatalogRepository {
                 select diary_id, :target from diary_products where product_id = :dup
                 on conflict do nothing""", params);
         jdbc.update("delete from diary_products where product_id = :dup", params);
+        // Nota do produto na review: se o cultivo avaliou os dois, fica a nota que já estava no principal.
+        jdbc.update("""
+                insert into review_products (review_id, product_id, rating)
+                select review_id, :target, rating from review_products where product_id = :dup
+                on conflict do nothing""", params);
+        jdbc.update("delete from review_products where product_id = :dup", params);
         jdbc.update("update grow_setup_products set product_id = :target where product_id = :dup", params);
         // Receitas: o nome/marca congelados no ingrediente continuam; só a referência passa para a principal.
         jdbc.update("update recipe_ingredients set product_id = :target where product_id = :dup", params);
@@ -235,6 +270,7 @@ public class JdbcCatalogRepository implements CatalogRepository {
             ItemKind.BRAND, "exists (select 1 from products where brand_id = :id)",
             ItemKind.PRODUCT, """
                     exists (select 1 from diary_products where product_id = :id)
+                    or exists (select 1 from review_products where product_id = :id)
                     or exists (select 1 from grow_setup_products where product_id = :id)
                     or exists (select 1 from recipe_ingredients where product_id = :id)""");
 
@@ -407,7 +443,8 @@ public class JdbcCatalogRepository implements CatalogRepository {
                 Source.valueOf(rs.getString("source")),
                 rs.getObject("created_by", UUID.class),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getTimestamp("updated_at").toInstant());
+                rs.getTimestamp("updated_at").toInstant(),
+                rs.getTimestamp("promoted_at") == null ? null : rs.getTimestamp("promoted_at").toInstant());
     }
 
     private static Breeder breeder(ResultSet rs, String prefix) throws SQLException {

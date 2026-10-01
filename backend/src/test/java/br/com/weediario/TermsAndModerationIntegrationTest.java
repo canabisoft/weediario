@@ -27,14 +27,14 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
     void registrationRequiresTheCurrentTermsAndStoresOnlyVersionAndTime() throws Exception {
         String username = "t_" + UUID.randomUUID().toString().substring(0, 8);
         String base = """
-                {"username":"%s","email":"%s@example.org","password":"%s"%s}""";
+                {"username":"%s","password":"%s","recoveryVerifier":"%s"%s}""";
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                .content(base.formatted(username, username, PASSWORD, ""))).andExpect(status().isBadRequest());
+                .content(base.formatted(username, PASSWORD, VERIFIER, ""))).andExpect(status().isBadRequest());
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(base.formatted(username, username, PASSWORD, ",\"acceptedTermsVersion\":\"0.9\"")))
+                        .content(base.formatted(username, PASSWORD, VERIFIER, ",\"acceptedTermsVersion\":\"0.9\"")))
                 .andExpect(status().isUnprocessableEntity());
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(base.formatted(username, username, PASSWORD, ",\"acceptedTermsVersion\":\"1.0\"")))
+                        .content(base.formatted(username, PASSWORD, VERIFIER, ",\"acceptedTermsVersion\":\"1.0\"")))
                 .andExpect(status().isCreated());
 
         String token = body(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)

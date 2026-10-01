@@ -8,16 +8,21 @@ public final class CatalogEnums {
     private CatalogEnums() {
     }
 
-    /** Verificado por um moderador ou ainda não revisado. */
+    /**
+     * Verificado (por um moderador ou, para sementes de breeder, pelo teste da comunidade), ainda não revisado,
+     * ou em teste: semente cadastrada pelo breeder que ainda não entrou no banco oficial (só strains).
+     */
     public enum Status {
         UNVERIFIED,
-        VERIFIED
+        VERIFIED,
+        TESTING
     }
 
-    /** De onde veio o item: dataset público importado ou cadastrado pela comunidade. */
+    /** De onde veio o item: dataset público importado, cadastrado pela comunidade ou pelo próprio breeder. */
     public enum Source {
         DATASET,
-        COMMUNITY
+        COMMUNITY,
+        BREEDER
     }
 
     public enum FloweringKind {

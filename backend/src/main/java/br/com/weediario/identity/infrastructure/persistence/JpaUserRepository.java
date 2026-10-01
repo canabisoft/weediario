@@ -1,6 +1,5 @@
 package br.com.weediario.identity.infrastructure.persistence;
 
-import br.com.weediario.identity.domain.model.Email;
 import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.identity.domain.model.UserId;
 import br.com.weediario.identity.domain.model.Username;
@@ -29,11 +28,6 @@ public class JpaUserRepository implements UserRepository {
     }
 
     @Override
-    public Optional<User> findByEmail(Email email) {
-        return jpa.findByEmail(email.value()).map(UserJpaEntity::toDomain);
-    }
-
-    @Override
     public Optional<User> findByUsername(String username) {
         return jpa.findByUsernameIgnoreCase(username).map(UserJpaEntity::toDomain);
     }
@@ -41,10 +35,5 @@ public class JpaUserRepository implements UserRepository {
     @Override
     public boolean existsByUsername(Username username) {
         return jpa.existsByUsernameIgnoreCase(username.value());
-    }
-
-    @Override
-    public boolean existsByEmail(Email email) {
-        return jpa.existsByEmail(email.value());
     }
 }

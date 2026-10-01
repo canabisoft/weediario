@@ -5,6 +5,8 @@ import br.com.weediario.shared.domain.CommerceFilter;
 import br.com.weediario.shared.domain.CommerceFilter.Verdict;
 
 import br.com.weediario.review.application.port.ReviewedGrows;
+import br.com.weediario.review.application.port.StrainTesting;
+import br.com.weediario.review.domain.model.ProductRating;
 import br.com.weediario.review.domain.model.Ratings;
 import br.com.weediario.review.domain.model.Review;
 import br.com.weediario.review.domain.model.ReviewedGrow;
@@ -15,6 +17,7 @@ import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -26,14 +29,16 @@ public final class SubmitReviewUseCase {
     private final ReviewedGrows grows;
     private final ReviewRepository reviews;
     private final ReviewModeration moderation;
+    private final StrainTesting strainTesting;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public SubmitReviewUseCase(ReviewedGrows grows, ReviewRepository reviews, ReviewModeration moderation,
-                               UnitOfWork unitOfWork, Clock clock) {
+                               StrainTesting strainTesting, UnitOfWork unitOfWork, Clock clock) {
         this.grows = grows;
         this.reviews = reviews;
         this.moderation = moderation;
+        this.strainTesting = strainTesting;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -45,14 +50,17 @@ public final class SubmitReviewUseCase {
         // O relato é público: passa pelo filtro anti-comércio.
         Verdict verdict = CommerceFilter.requireAllowedOrHeld(command.report());
 
-        return unitOfWork.execute(() -> {
+        List<ProductRating> productRatings = command.productRatings() == null ? List.of() : command.productRatings();
+
+        SubmittedReview result = unitOfWork.execute(() -> {
             ReviewedGrow grow = grows.find(command.diaryId())
                     .filter(found -> found.ownerId().equals(command.authorId()))
                     .orElseThrow(() -> new ResourceNotFoundException("Diário"));
             if (reviews.existsForDiary(grow.diaryId())) {
                 throw new DomainException("Este cultivo já foi avaliado");
             }
-            Review submitted = Review.submit(grow, command.authorId(), ratings, seedbankRatings, command.report(), clock);
+            Review submitted = Review.submit(grow, command.authorId(), ratings, seedbankRatings, productRatings,
+                    command.report(), clock);
             if (verdict.held()) {
                 submitted.holdForModeration();
             }
@@ -62,6 +70,11 @@ public final class SubmitReviewUseCase {
             }
             return new SubmittedReview(review.id(), review.strainId().value(), review.ratings().average());
         });
+        // Fora da transação da review: se a strain estava em teste, esta avaliação pode levá-la ao banco oficial.
+        if (!verdict.held()) {
+            strainTesting.reviewed(result.strainId());
+        }
+        return result;
     }
 
     public record Command(
@@ -75,6 +88,7 @@ public final class SubmitReviewUseCase {
             Integer seedbankGermination,
             Integer seedbankStability,
             Integer seedbankService,
+            List<ProductRating> productRatings,
             String report) {
 
         /** Notas do banco são opcionais, mas vêm completas ou não vêm. */

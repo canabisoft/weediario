@@ -4,6 +4,7 @@ import br.com.weediario.catalog.domain.model.Brand;
 import br.com.weediario.catalog.domain.model.Breeder;
 import br.com.weediario.catalog.domain.model.CatalogStrain;
 import br.com.weediario.catalog.domain.model.Product;
+import br.com.weediario.catalog.domain.model.TestingProgress;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -21,6 +22,15 @@ public interface CatalogRepository {
     Optional<CatalogStrain> findStrainByKey(String nameKey, String breederKey);
 
     CatalogStrain saveStrain(CatalogStrain strain);
+
+    /**
+     * Andamento do teste da strain: growers distintos com diário dela e avaliações publicadas, sempre de contas
+     * ativas e excluindo os representantes aprovados do breeder da strain.
+     */
+    TestingProgress testingProgress(UUID strainId);
+
+    /** Sementes ainda em teste (para o job que promove as que completaram o teste). */
+    List<UUID> testingStrainIds();
 
     /** Candidatos parecidos (erro de digitação), do mais parecido para o menos. */
     List<CatalogStrain> similarStrains(String nameKey, String breederKey, double minSimilarity, int limit);
@@ -84,7 +94,7 @@ public interface CatalogRepository {
     /**
      * Apaga um item que ninguém usa (cadastro errado ou spam).
      *
-     * @return {@code false} se o item está em uso (diário, review, setup, strain ou produto ligado a ele)
+     * @return {@code false} se o item está em uso (diário, review, nota de produto, setup, strain ou produto ligado a ele)
      */
     boolean deleteIfUnused(ItemKind kind, UUID id);
 

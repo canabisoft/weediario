@@ -20,6 +20,18 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/register.page').then((m) => m.RegisterPage),
   },
   {
+    path: 'recuperar',
+    title: 'Recuperar conta · weediário',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./auth/recover.page').then((m) => m.RecoverPage),
+  },
+  {
+    path: 'frase-de-recuperacao',
+    title: 'Frase de recuperação · weediário',
+    canActivate: [authGuard],
+    loadComponent: () => import('./auth/recovery-phrase.page').then((m) => m.RecoveryPhrasePage),
+  },
+  {
     path: 'diarios',
     title: 'Diários · weediário',
     loadComponent: () => import('./diaries/diaries.page').then((m) => m.DiariesPage),
@@ -78,6 +90,22 @@ export const routes: Routes = [
     title: 'Strain · weediário',
     data: { kind: 'strain' },
     loadComponent: () => import('./catalog/catalog-detail.page').then((m) => m.CatalogDetailPage),
+  },
+  {
+    path: 'produtos/:id',
+    title: 'Produto · weediário',
+    loadComponent: () => import('./catalog/product-detail.page').then((m) => m.ProductDetailPage),
+  },
+  {
+    path: 'breeders/programa',
+    title: 'Programa de breeders · weediário',
+    canActivate: [authGuard],
+    loadComponent: () => import('./catalog/breeder-program.page').then((m) => m.BreederProgramPage),
+  },
+  {
+    path: 'dados-abertos',
+    title: 'Dados abertos · weediário',
+    loadComponent: () => import('./open-data/open-data.page').then((m) => m.OpenDataPage),
   },
   {
     path: 'bancos/:id',

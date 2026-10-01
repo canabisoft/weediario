@@ -5,7 +5,6 @@ import br.com.weediario.identity.application.SessionIssuer;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
 import br.com.weediario.identity.application.exception.LoginThrottledException;
 import br.com.weediario.identity.application.port.LoginKeyHasher;
-import br.com.weediario.identity.domain.model.Email;
 import br.com.weediario.identity.domain.model.LoginAttempts;
 import br.com.weediario.identity.domain.model.PasswordHash;
 import br.com.weediario.identity.domain.model.User;
@@ -30,7 +29,7 @@ public final class AuthenticateUserUseCase {
     private final LoginKeyHasher keyHasher;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
-    /** Usado quando o e-mail não existe, para que a resposta leve o mesmo tempo (anti-enumeração por timing). */
+    /** Usado quando o apelido não existe, para que a resposta leve o mesmo tempo (anti-enumeração por timing). */
     private final PasswordHash timingDecoy;
 
     public AuthenticateUserUseCase(UserRepository users, PasswordHasher passwordHasher, SessionIssuer sessionIssuer,
@@ -71,15 +70,13 @@ public final class AuthenticateUserUseCase {
         });
     }
 
-    /** Com "@" é e-mail; sem, é apelido (que não aceita "@"). Formato inválido conta como conta inexistente. */
+    /** Formato inválido de apelido conta como conta inexistente. */
     private Optional<User> findUser(String rawLogin) {
         if (rawLogin == null) {
             return Optional.empty();
         }
         try {
-            return rawLogin.contains("@")
-                    ? users.findByEmail(new Email(rawLogin))
-                    : users.findByUsername(new Username(rawLogin.strip()).value());
+            return users.findByUsername(new Username(rawLogin.strip()).value());
         } catch (DomainException invalidFormat) {
             return Optional.empty();
         }
@@ -89,7 +86,7 @@ public final class AuthenticateUserUseCase {
         return rawLogin == null ? "" : rawLogin.strip().toLowerCase(Locale.ROOT);
     }
 
-    /** @param login e-mail ou apelido */
+    /** @param login apelido */
     public record Command(String login, String password) {
 
         @Override

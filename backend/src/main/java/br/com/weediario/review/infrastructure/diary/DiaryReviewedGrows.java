@@ -2,11 +2,13 @@ package br.com.weediario.review.infrastructure.diary;
 
 import br.com.weediario.diary.domain.model.DiaryStatus;
 import br.com.weediario.diary.domain.model.GrowDiaryId;
+import br.com.weediario.diary.domain.model.ProductSnapshot;
 import br.com.weediario.diary.domain.repository.GrowDiaryRepository;
 import br.com.weediario.review.application.port.ReviewedGrows;
 import br.com.weediario.review.domain.model.ReviewedGrow;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,6 +31,8 @@ public class DiaryReviewedGrows implements ReviewedGrows {
                 diary.ownerId().value(),
                 diary.status() == DiaryStatus.COMPLETED,
                 diary.strain().catalogId(),
-                diary.strain().breederId()));
+                diary.strain().breederId(),
+                diary.setup().map(setup -> setup.products().stream().map(ProductSnapshot::id).toList())
+                        .orElse(List.of())));
     }
 }

@@ -4,10 +4,12 @@ import br.com.weediario.identity.application.AuthenticatedSession;
 import br.com.weediario.identity.application.exception.InvalidSessionException;
 import br.com.weediario.identity.application.usecase.AuthenticateUserUseCase;
 import br.com.weediario.identity.application.usecase.LogoutUseCase;
+import br.com.weediario.identity.application.usecase.RecoverAccountUseCase;
 import br.com.weediario.identity.application.usecase.RefreshSessionUseCase;
 import br.com.weediario.identity.application.usecase.RegisterUserUseCase;
 import br.com.weediario.identity.presentation.rest.dto.AccessTokenResponse;
 import br.com.weediario.identity.presentation.rest.dto.LoginRequest;
+import br.com.weediario.identity.presentation.rest.dto.RecoverRequest;
 import br.com.weediario.identity.presentation.rest.dto.RegisterRequest;
 import br.com.weediario.shared.infrastructure.security.SecurityConfig;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,22 +33,24 @@ public class AuthController {
     private final AuthenticateUserUseCase authenticateUser;
     private final RefreshSessionUseCase refreshSession;
     private final LogoutUseCase logout;
+    private final RecoverAccountUseCase recoverAccount;
     private final RefreshTokenCookieFactory cookies;
 
     public AuthController(RegisterUserUseCase registerUser, AuthenticateUserUseCase authenticateUser,
                           RefreshSessionUseCase refreshSession, LogoutUseCase logout,
-                          RefreshTokenCookieFactory cookies) {
+                          RecoverAccountUseCase recoverAccount, RefreshTokenCookieFactory cookies) {
         this.registerUser = registerUser;
         this.authenticateUser = authenticateUser;
         this.refreshSession = refreshSession;
         this.logout = logout;
+        this.recoverAccount = recoverAccount;
         this.cookies = cookies;
     }
 
     @PostMapping("/register")
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
-        registerUser.execute(new RegisterUserUseCase.Command(request.username(), request.email(), request.password(),
-                request.acceptedTermsVersion()));
+        registerUser.execute(new RegisterUserUseCase.Command(request.username(), request.password(),
+                request.recoveryVerifier(), request.acceptedTermsVersion()));
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -55,6 +59,13 @@ public class AuthController {
         AuthenticatedSession session = authenticateUser.execute(
                 new AuthenticateUserUseCase.Command(request.login(), request.password()));
         return withSession(session);
+    }
+
+    /** Frase de recuperação + senha nova: encerra as outras sessões e já entra na conta. */
+    @PostMapping("/recover")
+    public ResponseEntity<AccessTokenResponse> recover(@Valid @RequestBody RecoverRequest request) {
+        return withSession(recoverAccount.execute(new RecoverAccountUseCase.Command(
+                request.username(), request.recoveryVerifier(), request.newPassword())));
     }
 
     @PostMapping("/refresh")

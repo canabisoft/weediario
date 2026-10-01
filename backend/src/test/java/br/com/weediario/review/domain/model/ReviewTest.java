@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,6 +60,30 @@ class ReviewTest {
         assertThat(review.seedbankId()).contains(breeder);
         assertThat(seedbankRatings.average()).isEqualByComparingTo("4.0");
         assertThatThrownBy(() -> new SeedbankRatings(0, 3, 3)).isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void productsCanOnlyBeRatedWhenUsedInTheGrowAndOnceEach() {
+        UUID nutrient = UUID.randomUUID();
+        UUID substrate = UUID.randomUUID();
+        ReviewedGrow grow = new ReviewedGrow(UUID.randomUUID(), OWNER, true, STRAIN, null, List.of(nutrient, substrate));
+        Ratings ratings = new Ratings(4, 4, 4, 4, 4);
+
+        assertThatThrownBy(() -> new ProductRating(nutrient, 0)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> new ProductRating(nutrient, 6)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> Review.submit(grow, OWNER, ratings, null,
+                List.of(new ProductRating(UUID.randomUUID(), 5)), REPORT, CLOCK))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("usados neste cultivo");
+        assertThatThrownBy(() -> Review.submit(grow, OWNER, ratings, null,
+                List.of(new ProductRating(nutrient, 5), new ProductRating(nutrient, 3)), REPORT, CLOCK))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("uma nota");
+
+        Review review = Review.submit(grow, OWNER, ratings, null, List.of(new ProductRating(substrate, 2)), REPORT, CLOCK);
+        assertThat(review.productRatings()).containsExactly(new ProductRating(substrate, 2));
+        // Sem notas de produto continua valendo (são opcionais).
+        assertThat(Review.submit(grow, OWNER, ratings, null, REPORT, CLOCK).productRatings()).isEmpty();
     }
 
     private static ReviewedGrow grow(boolean completed, UUID breederId) {

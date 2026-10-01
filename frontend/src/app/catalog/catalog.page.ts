@@ -3,12 +3,13 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, catchError, debounceTime, map, of, startWith, switchMap } from 'rxjs';
 import { Page } from '../core/api/api.models';
-import { CatalogDbApi, ProductCategory } from '../core/api/catalog-db.api';
+import { CatalogDbApi, CatalogSource, ProductCategory } from '../core/api/catalog-db.api';
 import { formatDecimal } from '../shared/decimal';
 import { Icon } from '../shared/icon';
 import { CATEGORY_LABEL, DOMINANCE_LABEL, SOURCE_LABEL, options } from '../shared/labels';
 
-type Tab = 'strains' | 'bancos' | 'produtos';
+type Tab = 'strains' | 'teste' | 'bancos' | 'produtos';
+const TAB_IDS: readonly Tab[] = ['strains', 'teste', 'bancos', 'produtos'];
 
 interface Row {
   readonly id: string;
@@ -16,9 +17,10 @@ interface Row {
   readonly query?: Record<string, string>;
   readonly name: string;
   readonly subtitle: string;
-  readonly source: 'DATASET' | 'COMMUNITY';
+  readonly source: CatalogSource;
   readonly verified: boolean;
-  readonly usage: number;
+  /** Diários públicos que usam o item (sementes em teste mostram o andamento no subtítulo). */
+  readonly usage?: number;
   readonly score?: number;
   /** Só produtos: receitas públicas que usam o produto. */
   readonly recipes?: number;
@@ -26,7 +28,8 @@ interface Row {
 
 /**
  * Catálogo da comunidade: strains, bancos de sementes e produtos. Tudo o que já foi cadastrado (base pública
- * importada + comunidade), com uso nos diários e nota média quando houver reviews.
+ * importada + comunidade), com uso nos diários e nota média quando houver reviews. Sementes cadastradas por
+ * breeders ficam numa aba própria ("Em teste") até a comunidade validar.
  */
 @Component({
   selector: 'app-catalog-page',
@@ -38,7 +41,11 @@ interface Row {
         <h1 class="text-2xl font-bold">Catálogo</h1>
         <p class="text-fg-muted">Genéticas, bancos e insumos que a comunidade usa.</p>
       </div>
-      <a routerLink="/mais-usados" class="text-sm font-semibold text-accent">Mais usados →</a>
+      <nav class="flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold text-accent" aria-label="Mais do catálogo">
+        <a routerLink="/mais-usados">Mais usados →</a>
+        <a routerLink="/breeders/programa">Programa de breeders →</a>
+        <a routerLink="/dados-abertos">Dados abertos →</a>
+      </nav>
     </div>
 
     <div class="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Catálogo">
@@ -101,7 +108,9 @@ interface Row {
                 @if (row.score != null) {
                   <span class="flex items-center justify-end gap-1 font-bold"><app-icon name="star" class="size-4 text-accent" [filled]="true" />{{ num(row.score) }}</span>
                 }
-                <span class="block text-xs text-fg-muted">{{ row.usage }} {{ row.usage === 1 ? 'diário' : 'diários' }}</span>
+                @if (row.usage != null) {
+                  <span class="block text-xs text-fg-muted">{{ row.usage }} {{ row.usage === 1 ? 'diário' : 'diários' }}</span>
+                }
                 @if (row.recipes) {
                   <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">
                     <app-icon name="flask" class="size-3" /> {{ row.recipes }} {{ row.recipes === 1 ? 'receita' : 'receitas' }}
@@ -111,7 +120,13 @@ interface Row {
             </a>
           </li>
         } @empty {
-          <li class="wd-card text-center text-fg-muted">Nada encontrado. Dá para cadastrar ao iniciar um diário ou editar um setup.</li>
+          <li class="wd-card text-center text-fg-muted">
+            @if (tab() === 'teste') {
+              Nenhuma semente em teste agora. Breeders cadastram as deles pelo <a routerLink="/breeders/programa" class="text-accent underline">programa de breeders</a>.
+            } @else {
+              Nada encontrado. Dá para cadastrar ao iniciar um diário ou editar um setup.
+            }
+          </li>
         }
       </ul>
       @if (page.totalPages > 1) {
@@ -139,13 +154,19 @@ export class CatalogPage {
   protected readonly categoryOptions = options(CATEGORY_LABEL);
   protected readonly tabs: readonly { id: Tab; label: string }[] = [
     { id: 'strains', label: 'Strains' },
+    { id: 'teste', label: 'Em teste' },
     { id: 'bancos', label: 'Bancos de sementes' },
     { id: 'produtos', label: 'Produtos' },
   ];
-  protected readonly tab = computed<Tab>(() => (this.aba() === 'bancos' || this.aba() === 'produtos' ? this.aba() as Tab : 'strains'));
+  protected readonly tab = computed<Tab>(() => TAB_IDS.find((id) => id === this.aba()) ?? 'strains');
   protected readonly query = computed(() => this.q() ?? '');
   protected readonly placeholder = computed(() =>
-    ({ strains: 'Buscar strain ou breeder', bancos: 'Buscar banco de sementes', produtos: 'Buscar produto ou marca' })[this.tab()],
+    ({
+      strains: 'Buscar strain ou breeder',
+      teste: 'Buscar semente em teste ou breeder',
+      bancos: 'Buscar banco de sementes',
+      produtos: 'Buscar produto ou marca',
+    })[this.tab()],
   );
 
   protected readonly result = toSignal(
@@ -188,6 +209,22 @@ export class CatalogPage {
           })),
         })),
       );
+    } else if (tab === 'teste') {
+      request = this.api.testingStrains(q, undefined, page).pipe(
+        map((result) => ({
+          ...result,
+          items: result.items.map((s) => ({
+            id: s.id,
+            link: ['/strains', s.id],
+            name: s.name,
+            subtitle: [s.breeder, s.progress
+              ? `${s.progress.testers}/${s.progress.testersRequired} cultivadores · ${s.progress.reviews}/${s.progress.reviewsRequired} avaliação`
+              : null].filter(Boolean).join(' · '),
+            source: 'BREEDER' as const,
+            verified: false,
+          })),
+        })),
+      );
     } else if (tab === 'bancos') {
       request = this.api.breeders(q, page).pipe(
         map((result) => ({
@@ -210,14 +247,13 @@ export class CatalogPage {
           ...result,
           items: result.items.map((p) => ({
             id: p.id,
-            // Com receitas, o card leva às receitas que usam o produto; senão, ao ranking.
-            link: p.recipes ? ['/receitas'] : ['/mais-usados'],
-            query: p.recipes ? { produto: p.id, nome: `${p.brand} ${p.name}` } : undefined,
+            link: ['/produtos', p.id],
             name: p.name,
             subtitle: `${p.brand} · ${CATEGORY_LABEL[p.category]}`,
             source: p.source,
             verified: p.status === 'VERIFIED',
             usage: p.diaries,
+            score: p.reviewCount ? p.rating : undefined,
             recipes: p.recipes,
           })),
         })),

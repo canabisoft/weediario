@@ -163,6 +163,13 @@
     </div>
   </ng-template>
 
+  @if (auth.needsRecoveryPhrase()) {
+    <p role="status" class="flex flex-wrap items-center justify-center gap-3 border-b border-line bg-danger/10 px-4 py-2 text-sm">
+      Sua conta ainda não tem frase de recuperação. Sem e-mail, ela é o único jeito de recuperar o acesso.
+      <a routerLink="/frase-de-recuperacao" class="font-semibold text-accent underline">Gerar agora</a>
+    </p>
+  }
+
   @if (auth.needsTermsAcceptance()) {
     <p role="status" class="flex flex-wrap items-center justify-center gap-3 border-b border-line bg-warn/15 px-4 py-2 text-sm">
       Atualizamos os Termos de Uso. Pra continuar publicando, leia e aceite a nova versão.

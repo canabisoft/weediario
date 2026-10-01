@@ -2,13 +2,18 @@ package br.com.weediario.catalog.application.query;
 
 import br.com.weediario.catalog.application.query.CatalogQueries.BreederListItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.BreederStrainCard;
+import br.com.weediario.catalog.application.query.CatalogQueries.OpenStrain;
 import br.com.weediario.catalog.application.query.CatalogQueries.PendingItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.ProductListItem;
+import br.com.weediario.catalog.application.query.CatalogQueries.ProductReview;
 import br.com.weediario.catalog.application.query.CatalogQueries.RankingKind;
 import br.com.weediario.catalog.application.query.CatalogQueries.RankingRow;
+import br.com.weediario.catalog.application.query.CatalogQueries.Representation;
+import br.com.weediario.catalog.application.query.CatalogQueries.RepresentativeRequest;
 import br.com.weediario.catalog.application.query.CatalogQueries.StrainDetail;
 import br.com.weediario.catalog.application.query.CatalogQueries.StrainListItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.Suggestion;
+import br.com.weediario.catalog.application.query.CatalogQueries.TestingStrainItem;
 import br.com.weediario.catalog.domain.model.CatalogKey;
 import br.com.weediario.shared.application.ModeratorOnlyException;
 import br.com.weediario.shared.application.PageQuery;
@@ -63,6 +68,40 @@ public final class BrowseCatalogUseCase {
         return queries.strain(id).orElseThrow(() -> new ResourceNotFoundException("Strain"));
     }
 
+    public ProductListItem product(UUID id) {
+        return queries.product(id).orElseThrow(() -> new ResourceNotFoundException("Produto"));
+    }
+
+    public PageResult<ProductReview> productReviews(UUID productId, PageQuery page) {
+        product(productId);
+        return queries.productReviews(productId, page);
+    }
+
+    /** Sementes em teste (lista pública, para quem quer ajudar a testar). */
+    public PageResult<TestingStrainItem> testingStrains(String query, UUID breederId, PageQuery page) {
+        return queries.testingStrains(normalizedOrNull(query), breederId, page);
+    }
+
+    /** Página do programa de breeders da própria pessoa: pedidos de representação e sementes cadastradas. */
+    public BreederProgram program(UUID userId) {
+        return new BreederProgram(queries.representationsOf(userId), queries.breederStrainsOf(userId));
+    }
+
+    public PageResult<RepresentativeRequest> representativeRequests(PageQuery page, boolean moderator) {
+        requireModerator(moderator);
+        return queries.representativeRequests(page);
+    }
+
+    public long pendingRepresentatives(boolean moderator) {
+        requireModerator(moderator);
+        return queries.pendingRepresentatives();
+    }
+
+    /** Banco aberto de strains (só agregados, sem dados pessoais). */
+    public List<OpenStrain> openStrains() {
+        return queries.openStrains();
+    }
+
     public BreederListItem breeder(UUID id) {
         return queries.breeder(id).orElseThrow(() -> new ResourceNotFoundException("Breeder"));
     }
@@ -85,6 +124,9 @@ public final class BrowseCatalogUseCase {
     public Map<RankingKind, Long> pendingCounts(boolean moderator) {
         requireModerator(moderator);
         return queries.pendingCounts();
+    }
+
+    public record BreederProgram(List<Representation> representations, List<TestingStrainItem> strains) {
     }
 
     private static void requireModerator(boolean moderator) {

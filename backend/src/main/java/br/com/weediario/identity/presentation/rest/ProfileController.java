@@ -1,9 +1,12 @@
 package br.com.weediario.identity.presentation.rest;
 
 import br.com.weediario.identity.application.port.AvatarImages.AvatarFile;
+import br.com.weediario.identity.application.usecase.ChangeRecoveryPhraseUseCase;
 import br.com.weediario.identity.application.usecase.ManageProfileUseCase;
 import br.com.weediario.identity.application.usecase.ManageProfileUseCase.MyProfile;
+import br.com.weediario.identity.domain.model.RecoveryVerifier;
 import br.com.weediario.identity.domain.model.User;
+import br.com.weediario.identity.domain.service.PasswordPolicy;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.presentation.Viewer;
 import jakarta.validation.Valid;
@@ -29,9 +32,11 @@ import java.util.UUID;
 public class ProfileController {
 
     private final ManageProfileUseCase profiles;
+    private final ChangeRecoveryPhraseUseCase recoveryPhrase;
 
-    public ProfileController(ManageProfileUseCase profiles) {
+    public ProfileController(ManageProfileUseCase profiles, ChangeRecoveryPhraseUseCase recoveryPhrase) {
         this.profiles = profiles;
+        this.recoveryPhrase = recoveryPhrase;
     }
 
     @GetMapping("/api/v1/me")
@@ -43,6 +48,14 @@ public class ProfileController {
     @PutMapping("/api/v1/me/terms")
     public MyProfile acceptTerms(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody TermsRequest request) {
         return profiles.acceptTerms(Viewer.requireId(principal), request.version());
+    }
+
+    /** Gera (contas antigas) ou troca a frase de recuperação. Só o derivado da frase chega aqui, nunca as palavras. */
+    @PutMapping("/api/v1/me/recovery")
+    public MyProfile changeRecovery(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody RecoveryRequest request) {
+        UUID userId = Viewer.requireId(principal);
+        recoveryPhrase.execute(userId, request.recoveryVerifier(), request.currentPassword());
+        return profiles.me(userId);
     }
 
     @PutMapping("/api/v1/me/profile")
@@ -77,5 +90,15 @@ public class ProfileController {
     }
 
     public record TermsRequest(@NotBlank @Size(max = 10) String version) {
+    }
+
+    public record RecoveryRequest(
+            @NotBlank @Size(max = RecoveryVerifier.LENGTH) String recoveryVerifier,
+            @NotBlank @Size(max = PasswordPolicy.MAX_LENGTH) String currentPassword) {
+
+        @Override
+        public String toString() {
+            return "RecoveryRequest[***]";
+        }
     }
 }

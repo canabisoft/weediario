@@ -1,7 +1,6 @@
 package br.com.weediario.identity.application.usecase;
 
-import br.com.weediario.identity.application.exception.RegistrationRejectedException;
-import br.com.weediario.identity.domain.model.Email;
+import br.com.weediario.identity.domain.model.RecoveryVerifier;
 import br.com.weediario.identity.domain.model.TermsOfUse;
 import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.identity.domain.model.UserId;
@@ -14,6 +13,10 @@ import br.com.weediario.shared.domain.DomainException;
 
 import java.time.Clock;
 
+/**
+ * Cadastro só com apelido e senha: nenhum e-mail ou dado civil. A frase de recuperação é gerada no navegador e só o
+ * derivado dela chega aqui ({@link RecoveryVerifier}); guardamos o Argon2 desse derivado.
+ */
 public final class RegisterUserUseCase {
 
     private final UserRepository users;
@@ -30,27 +33,29 @@ public final class RegisterUserUseCase {
 
     public UserId execute(Command command) {
         Username username = new Username(command.username());
-        Email email = new Email(command.email());
         PasswordPolicy.validate(command.password());
+        RecoveryVerifier verifier = new RecoveryVerifier(command.recoveryVerifier());
         TermsOfUse.requireCurrent(command.acceptedTermsVersion());
 
-        // Hash fora da transação: Argon2 é deliberadamente lento e não deve segurar conexão com o banco.
+        // Hashes fora da transação: Argon2 é deliberadamente lento e não deve segurar conexão com o banco.
         var passwordHash = passwordHasher.hash(command.password());
+        var recoveryHash = passwordHasher.hash(verifier.value());
 
         return unitOfWork.execute(() -> {
             if (users.existsByUsername(username)) {
                 // O apelido é público de qualquer forma, então informar a indisponibilidade não vaza nada.
                 throw new DomainException("Nome de usuário indisponível");
             }
-            if (users.existsByEmail(email)) {
-                throw new RegistrationRejectedException();
-            }
-            return users.save(User.register(username, email, passwordHash, command.acceptedTermsVersion(), clock)).id();
+            return users.save(User.register(username, passwordHash, recoveryHash, command.acceptedTermsVersion(),
+                    clock)).id();
         });
     }
 
-    /** @param acceptedTermsVersion versão dos Termos de Uso que a pessoa marcou como lida e aceita no cadastro */
-    public record Command(String username, String email, String password, String acceptedTermsVersion) {
+    /**
+     * @param recoveryVerifier     derivado da frase de recuperação (as palavras ficam só com a pessoa)
+     * @param acceptedTermsVersion versão dos Termos de Uso que a pessoa marcou como lida e aceita no cadastro
+     */
+    public record Command(String username, String password, String recoveryVerifier, String acceptedTermsVersion) {
 
         @Override
         public String toString() {

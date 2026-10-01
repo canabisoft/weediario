@@ -68,7 +68,7 @@ let nextId = 0;
                 <span class="min-w-0 flex-1">
                   <span class="block truncate font-medium">{{ item.name }}</span>
                   <span class="block truncate text-xs text-fg-muted">
-                    {{ item.parentName ?? 'sem breeder informado' }} · {{ source[item.source] }}{{ item.status === 'VERIFIED' ? ' · verificado' : '' }}
+                    {{ item.parentName ?? 'sem breeder informado' }} · {{ source[item.source] }}{{ item.status === 'VERIFIED' ? ' · verificado' : item.status === 'TESTING' ? ' · em teste' : '' }}
                   </span>
                 </span>
                 @if (item.usage) {

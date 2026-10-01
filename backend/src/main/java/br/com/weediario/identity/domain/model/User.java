@@ -11,8 +11,9 @@ import java.util.UUID;
 /**
  * Aggregate root do contexto de identidade.
  * <p>
- * Privacidade por design: não existem (e não devem ser adicionados) campos de IP, geolocalização,
- * cidade/estado, user-agent ou data de último acesso. Nome real também não é coletado.
+ * Privacidade por design: não existem (e não devem ser adicionados) campos de e-mail, IP, geolocalização,
+ * cidade/estado, user-agent ou data de último acesso. Nome real também não é coletado. Sem e-mail, a conta é
+ * recuperada pela frase de 12 palavras, da qual o servidor só conhece o hash de um derivado.
  * A foto de perfil é opcional e passa pelo mesmo sanitizador de metadados das fotos dos diários.
  */
 public final class User {
@@ -21,8 +22,9 @@ public final class User {
 
     private final UserId id;
     private final Username username;
-    private final Email email;
     private PasswordHash passwordHash;
+    /** Argon2 do derivado da frase de recuperação; nulo em contas anteriores à frase (geram no próximo login). */
+    private PasswordHash recoveryHash;
     private final Role role;
     private AccountStatus status;
     private String bio;
@@ -34,13 +36,13 @@ public final class User {
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private User(UserId id, Username username, Email email, PasswordHash passwordHash,
+    private User(UserId id, Username username, PasswordHash passwordHash, PasswordHash recoveryHash,
                  Role role, AccountStatus status, String bio, UUID avatarImageId, String termsVersion,
                  Instant termsAcceptedAt, boolean profileHidden, Instant createdAt, Instant updatedAt) {
         this.id = Guard.notNull(id, "Id");
         this.username = Guard.notNull(username, "Nome de usuário");
-        this.email = Guard.notNull(email, "E-mail");
         this.passwordHash = Guard.notNull(passwordHash, "Senha");
+        this.recoveryHash = recoveryHash;
         this.role = Guard.notNull(role, "Perfil");
         this.status = Guard.notNull(status, "Status");
         this.bio = validBio(bio);
@@ -52,24 +54,28 @@ public final class User {
         this.updatedAt = Guard.notNull(updatedAt, "Data de atualização");
     }
 
-    /** Só cria a conta com o aceite da versão vigente dos Termos de Uso (versão e data/hora ficam registradas). */
-    public static User register(Username username, Email email, PasswordHash passwordHash, String acceptedTermsVersion,
-                                Clock clock) {
+    /**
+     * Só cria a conta com o aceite da versão vigente dos Termos de Uso (versão e data/hora ficam registradas) e com a
+     * frase de recuperação já gerada: sem e-mail, ela é o único jeito de recuperar o acesso.
+     */
+    public static User register(Username username, PasswordHash passwordHash, PasswordHash recoveryHash,
+                                String acceptedTermsVersion, Clock clock) {
         if (username.isReserved()) {
             throw new DomainException("Nome de usuário indisponível");
         }
         String terms = TermsOfUse.requireCurrent(acceptedTermsVersion);
         Instant now = clock.instant();
-        return new User(UserId.newId(), username, email, passwordHash, Role.GROWER, AccountStatus.ACTIVE, null, null,
+        Guard.notNull(recoveryHash, "Frase de recuperação");
+        return new User(UserId.newId(), username, passwordHash, recoveryHash, Role.GROWER, AccountStatus.ACTIVE, null, null,
                 terms, now, false, now, now);
     }
 
     /** Reconstitui um usuário já persistido; não aplica regras de criação. */
-    public static User restore(UserId id, Username username, Email email, PasswordHash passwordHash,
+    public static User restore(UserId id, Username username, PasswordHash passwordHash, PasswordHash recoveryHash,
                                Role role, AccountStatus status, String bio, UUID avatarImageId,
                                String termsVersion, Instant termsAcceptedAt, boolean profileHidden,
                                Instant createdAt, Instant updatedAt) {
-        return new User(id, username, email, passwordHash, role, status, bio, avatarImageId, termsVersion,
+        return new User(id, username, passwordHash, recoveryHash, role, status, bio, avatarImageId, termsVersion,
                 termsAcceptedAt, profileHidden, createdAt, updatedAt);
     }
 
@@ -80,6 +86,16 @@ public final class User {
     public void changePassword(PasswordHash newHash, Clock clock) {
         this.passwordHash = Guard.notNull(newHash, "Senha");
         this.updatedAt = clock.instant();
+    }
+
+    /** Define (ou troca) a frase de recuperação. Quem chama já conferiu a senha atual. */
+    public void changeRecovery(PasswordHash newRecoveryHash, Clock clock) {
+        this.recoveryHash = Guard.notNull(newRecoveryHash, "Frase de recuperação");
+        this.updatedAt = clock.instant();
+    }
+
+    public boolean hasRecovery() {
+        return recoveryHash != null;
     }
 
     public void updateBio(String newBio, Clock clock) {
@@ -149,12 +165,12 @@ public final class User {
         return username;
     }
 
-    public Email email() {
-        return email;
-    }
-
     public PasswordHash passwordHash() {
         return passwordHash;
+    }
+
+    public Optional<PasswordHash> recoveryHash() {
+        return Optional.ofNullable(recoveryHash);
     }
 
     public Role role() {

@@ -97,9 +97,10 @@ export function categoryLabel(category: string | undefined): string {
   return category ? (CATEGORY_LABEL as Record<string, string>)[category] ?? category : '';
 }
 
-export const SOURCE_LABEL: Record<'DATASET' | 'COMMUNITY', string> = {
+export const SOURCE_LABEL: Record<'DATASET' | 'COMMUNITY' | 'BREEDER', string> = {
   DATASET: 'Base pública',
   COMMUNITY: 'Comunidade',
+  BREEDER: 'Breeder',
 };
 
 export function options<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {

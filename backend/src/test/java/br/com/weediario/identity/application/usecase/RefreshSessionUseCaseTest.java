@@ -5,7 +5,6 @@ import br.com.weediario.identity.application.SessionIssuer;
 import br.com.weediario.identity.application.exception.InvalidSessionException;
 import br.com.weediario.identity.application.port.AccessTokenIssuer;
 import br.com.weediario.identity.application.port.RefreshTokenCodec;
-import br.com.weediario.identity.domain.model.Email;
 import br.com.weediario.identity.domain.model.PasswordHash;
 import br.com.weediario.identity.domain.model.RefreshToken;
 import br.com.weediario.identity.domain.model.TermsOfUse;
@@ -58,8 +57,8 @@ class RefreshSessionUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        user = users.save(User.register(new Username("grower_anon"), new Email("anon@example.org"),
-                new PasswordHash("$argon2id$fake"), TermsOfUse.CURRENT_VERSION, clock));
+        user = users.save(User.register(new Username("grower_anon"), new PasswordHash("$argon2id$fake"),
+                new PasswordHash("$argon2id$recovery"), TermsOfUse.CURRENT_VERSION, clock));
     }
 
     @Test
@@ -209,11 +208,6 @@ class RefreshSessionUseCaseTest {
         }
 
         @Override
-        public Optional<User> findByEmail(Email email) {
-            return store.values().stream().filter(u -> u.email().equals(email)).findFirst();
-        }
-
-        @Override
         public Optional<User> findByUsername(String username) {
             return store.values().stream().filter(u -> u.username().value().equalsIgnoreCase(username)).findFirst();
         }
@@ -221,11 +215,6 @@ class RefreshSessionUseCaseTest {
         @Override
         public boolean existsByUsername(Username username) {
             return store.values().stream().anyMatch(u -> u.username().value().equalsIgnoreCase(username.value()));
-        }
-
-        @Override
-        public boolean existsByEmail(Email email) {
-            return findByEmail(email).isPresent();
         }
     }
 }

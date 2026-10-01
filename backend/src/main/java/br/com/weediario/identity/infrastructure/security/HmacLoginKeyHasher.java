@@ -11,8 +11,8 @@ import java.security.GeneralSecurityException;
 import java.util.HexFormat;
 
 /**
- * HMAC-SHA256 do e-mail com uma subchave derivada da chave do JWT (derivação por rótulo, para não usar a
- * mesma chave em duas finalidades). Sem a chave, a tabela de tentativas não revela nenhum e-mail.
+ * HMAC-SHA256 do apelido com uma subchave derivada da chave do JWT (derivação por rótulo, para não usar a
+ * mesma chave em duas finalidades). Sem a chave, a tabela de tentativas não revela quem tentou entrar.
  */
 @Component
 public class HmacLoginKeyHasher implements LoginKeyHasher {
@@ -27,8 +27,8 @@ public class HmacLoginKeyHasher implements LoginKeyHasher {
     }
 
     @Override
-    public String keyOf(String normalizedEmail) {
-        return HexFormat.of().formatHex(hmac(key, normalizedEmail));
+    public String keyOf(String normalizedLogin) {
+        return HexFormat.of().formatHex(hmac(key, normalizedLogin));
     }
 
     private static byte[] hmac(SecretKeySpec key, String message) {

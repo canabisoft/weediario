@@ -7,8 +7,10 @@ import br.com.weediario.identity.application.port.ProfileModeration;
 import br.com.weediario.identity.application.port.LoginKeyHasher;
 import br.com.weediario.identity.application.port.RefreshTokenCodec;
 import br.com.weediario.identity.application.usecase.AuthenticateUserUseCase;
+import br.com.weediario.identity.application.usecase.ChangeRecoveryPhraseUseCase;
 import br.com.weediario.identity.application.usecase.LogoutUseCase;
 import br.com.weediario.identity.application.usecase.ManageProfileUseCase;
+import br.com.weediario.identity.application.usecase.RecoverAccountUseCase;
 import br.com.weediario.identity.application.usecase.RefreshSessionUseCase;
 import br.com.weediario.identity.application.usecase.RegisterUserUseCase;
 import br.com.weediario.identity.domain.repository.LoginAttemptsRepository;
@@ -49,6 +51,22 @@ public class IdentityUseCaseConfig {
                                                     SessionIssuer sessionIssuer, LoginAttemptsRepository attempts,
                                                     LoginKeyHasher keyHasher, UnitOfWork unitOfWork, Clock clock) {
         return new AuthenticateUserUseCase(users, passwordHasher, sessionIssuer, attempts, keyHasher, unitOfWork, clock);
+    }
+
+    @Bean
+    RecoverAccountUseCase recoverAccountUseCase(UserRepository users, PasswordHasher passwordHasher,
+                                                SessionIssuer sessionIssuer, RefreshTokenRepository refreshTokens,
+                                                LoginAttemptsRepository attempts, LoginKeyHasher keyHasher,
+                                                UnitOfWork unitOfWork, Clock clock) {
+        return new RecoverAccountUseCase(users, passwordHasher, sessionIssuer, refreshTokens, attempts, keyHasher,
+                unitOfWork, clock);
+    }
+
+    @Bean
+    ChangeRecoveryPhraseUseCase changeRecoveryPhraseUseCase(UserRepository users, PasswordHasher passwordHasher,
+                                                            LoginAttemptsRepository attempts, LoginKeyHasher keyHasher,
+                                                            UnitOfWork unitOfWork, Clock clock) {
+        return new ChangeRecoveryPhraseUseCase(users, passwordHasher, attempts, keyHasher, unitOfWork, clock);
     }
 
     @Bean

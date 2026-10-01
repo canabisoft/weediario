@@ -101,20 +101,22 @@ public final class ManageProfileUseCase {
     }
 
     /**
-     * Visível só para o próprio usuário (inclui o e-mail).
+     * Visível só para o próprio usuário.
      *
-     * @param termsAccepted  se a versão aceita é a vigente (sem isso não dá para publicar)
-     * @param profileHidden  bio/foto ocultadas do público pela moderação
+     * @param termsAccepted     se a versão aceita é a vigente (sem isso não dá para publicar)
+     * @param profileHidden     bio/foto ocultadas do público pela moderação
+     * @param hasRecoveryPhrase se a conta já tem frase de recuperação (contas antigas geram no próximo login)
      */
-    public record MyProfile(UUID id, String username, String email, String bio, boolean hasAvatar, String role,
+    public record MyProfile(UUID id, String username, String bio, boolean hasAvatar, String role,
                             String termsVersion, Instant termsAcceptedAt, boolean termsAccepted, String currentTermsVersion,
-                            boolean profileHidden) {
+                            boolean profileHidden, boolean hasRecoveryPhrase) {
 
         static MyProfile of(User user) {
-            return new MyProfile(user.id().value(), user.username().value(), user.email().value(),
+            return new MyProfile(user.id().value(), user.username().value(),
                     user.bio().orElse(null), user.avatarImageId().isPresent(), user.role().name(),
                     user.termsVersion().orElse(null), user.termsAcceptedAt().orElse(null),
-                    user.hasAcceptedCurrentTerms(), TermsOfUse.CURRENT_VERSION, user.profileHidden());
+                    user.hasAcceptedCurrentTerms(), TermsOfUse.CURRENT_VERSION, user.profileHidden(),
+                    user.hasRecovery());
         }
     }
 }

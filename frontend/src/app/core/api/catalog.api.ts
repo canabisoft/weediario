@@ -13,6 +13,8 @@ export interface NewReview {
   readonly seedbankGermination?: number;
   readonly seedbankStability?: number;
   readonly seedbankService?: number;
+  /** Notas opcionais dos produtos usados no cultivo. */
+  readonly products?: { productId: string; rating: number }[];
   readonly report: string;
 }
 

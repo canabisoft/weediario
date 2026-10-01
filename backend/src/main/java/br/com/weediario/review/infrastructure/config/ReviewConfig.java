@@ -2,6 +2,7 @@ package br.com.weediario.review.infrastructure.config;
 
 import br.com.weediario.review.application.port.ReviewModeration;
 import br.com.weediario.review.application.port.ReviewedGrows;
+import br.com.weediario.review.application.port.StrainTesting;
 import br.com.weediario.review.application.query.BrowseSeedbanksUseCase;
 import br.com.weediario.review.application.query.BrowseStrainsUseCase;
 import br.com.weediario.review.application.query.SeedbankCatalog;
@@ -19,8 +20,8 @@ public class ReviewConfig {
 
     @Bean
     SubmitReviewUseCase submitReviewUseCase(ReviewedGrows grows, ReviewRepository reviews, ReviewModeration moderation,
-                                            UnitOfWork unitOfWork, Clock clock) {
-        return new SubmitReviewUseCase(grows, reviews, moderation, unitOfWork, clock);
+                                            StrainTesting strainTesting, UnitOfWork unitOfWork, Clock clock) {
+        return new SubmitReviewUseCase(grows, reviews, moderation, strainTesting, unitOfWork, clock);
     }
 
     @Bean

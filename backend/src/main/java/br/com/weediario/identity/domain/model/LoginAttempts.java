@@ -5,10 +5,10 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Controle de força bruta por conta, sem IP: conta falhas de login para um e-mail dentro de uma janela.
+ * Controle de força bruta por conta, sem IP: conta falhas de login (ou de recuperação) por apelido dentro de uma janela.
  * <p>
  * Ao atingir {@link #MAX_FAILURES} falhas, o login fica bloqueado. Cada novo bloqueio dobra o tempo
- * (15 min, 30 min, 1 h...) até {@link #MAX_LOCK}. O bloqueio vale para qualquer e-mail, exista a conta ou não,
+ * (15 min, 30 min, 1 h...) até {@link #MAX_LOCK}. O bloqueio vale para qualquer apelido, exista a conta ou não,
  * então não serve para descobrir quem está cadastrado.
  */
 public record LoginAttempts(int failures, Instant windowStartedAt, Instant lockedUntil, int lockCount) {

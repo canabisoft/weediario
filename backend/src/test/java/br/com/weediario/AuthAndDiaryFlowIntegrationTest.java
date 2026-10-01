@@ -19,11 +19,11 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void fullSessionLifecycle() throws Exception {
-        register("grower_um", "um@example.org");
+        register("grower_um");
 
         MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"UM@example.org","password":"senha-bem-longa-123"}"""))
+                                {"login":"Grower_Um","password":"senha-bem-longa-123"}"""))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andReturn();
@@ -67,10 +67,10 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void logoutRevokesSession() throws Exception {
-        register("grower_dois", "dois@example.org");
+        register("grower_dois");
         MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"dois@example.org","password":"senha-bem-longa-123"}"""))
+                                {"login":"grower_dois","password":"senha-bem-longa-123"}"""))
                 .andReturn();
         Cookie refresh = new Cookie(COOKIE, login.getResponse().getCookie(COOKIE).getValue());
 
@@ -79,17 +79,18 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void logsInWithUsernameOrEmail() throws Exception {
-        register("grower_apelido", "apelido@example.org");
+    void logsInWithUsernameOnly() throws Exception {
+        register("grower_apelido");
 
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"login":"Grower_Apelido","password":"senha-bem-longa-123"}"""))
                 .andExpect(status().isOk());
+        // Não existe e-mail: nem o campo antigo é aceito.
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"login":"apelido@example.org","password":"senha-bem-longa-123"}"""))
-                .andExpect(status().isOk());
+                                {"email":"apelido@example.org","password":"senha-bem-longa-123"}"""))
+                .andExpect(status().isBadRequest());
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"login":"grower_apelido","password":"senha-errada-errada"}"""))
@@ -98,35 +99,32 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void loginFailuresAreIndistinguishable() throws Exception {
-        register("grower_tres", "tres@example.org");
+        register("grower_tres");
 
         String wrongPassword = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"tres@example.org","password":"senha-errada-errada"}"""))
+                                {"login":"grower_tres","password":"senha-errada-errada"}"""))
                 .andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
-        String unknownEmail = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+        String unknownUser = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"ninguem@example.org","password":"senha-errada-errada"}"""))
+                                {"login":"ninguem_aqui","password":"senha-errada-errada"}"""))
                 .andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
 
         assertThat(json.readTree(wrongPassword).get("detail"))
-                .isEqualTo(json.readTree(unknownEmail).get("detail"));
+                .isEqualTo(json.readTree(unknownUser).get("detail"));
     }
 
     @Test
     void rejectsUnknownFieldsInPayload() throws Exception {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username":"grower_quatro","email":"q@example.org",
-                                 "password":"senha-bem-longa-123","role":"ADMIN"}"""))
+                                {"username":"grower_quatro","password":"senha-bem-longa-123","role":"ADMIN"}"""))
                 .andExpect(status().isBadRequest());
     }
 
-    private void register(String username, String email) throws Exception {
+    private void register(String username) throws Exception {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"username":"%s","email":"%s","password":"senha-bem-longa-123","acceptedTermsVersion":"1.0"}"""
-                                .formatted(username, email)))
+                        .content(registerJson(username)))
                 .andExpect(status().isCreated());
     }
 

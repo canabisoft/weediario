@@ -94,7 +94,7 @@ describe('MainLayout', () => {
 
   it('shows the notification bell with the unread counter, and the moderation link only to moderators', async () => {
     const auth = TestBed.inject(AuthService);
-    auth.me.set({ id: 'u1', username: 'maria', email: 'm@example.org', hasAvatar: false, role: 'GROWER', termsAccepted: true, currentTermsVersion: '1.0', profileHidden: false });
+    auth.me.set({ id: 'u1', username: 'maria', hasAvatar: false, hasRecoveryPhrase: true, role: 'GROWER', termsAccepted: true, currentTermsVersion: '1.0', profileHidden: false });
     const { fixture, root } = await render();
 
     const bell = root.querySelector('header a[href="/notificacoes"]')!;
@@ -102,14 +102,14 @@ describe('MainLayout', () => {
     expect(bell.textContent).toContain('7');
     expect(root.querySelector('nav a[href="/moderacao"]')).toBeNull();
 
-    auth.me.set({ id: 'u1', username: 'maria', email: 'm@example.org', hasAvatar: false, role: 'MODERATOR', termsAccepted: true, currentTermsVersion: '1.0', profileHidden: false });
+    auth.me.set({ id: 'u1', username: 'maria', hasAvatar: false, hasRecoveryPhrase: true, role: 'MODERATOR', termsAccepted: true, currentTermsVersion: '1.0', profileHidden: false });
     await fixture.whenStable();
     expect(root.querySelector('nav a[href="/moderacao"]')?.textContent).toContain('Moderação');
   });
 
   it('asks for the new terms when the account accepted an older version', async () => {
     const auth = TestBed.inject(AuthService);
-    auth.me.set({ id: 'u1', username: 'maria', email: 'm@example.org', hasAvatar: false, role: 'GROWER',
+    auth.me.set({ id: 'u1', username: 'maria', hasAvatar: false, hasRecoveryPhrase: true, role: 'GROWER',
       termsVersion: '0.9', termsAccepted: false, currentTermsVersion: '1.0', profileHidden: false });
     const { root } = await render();
 

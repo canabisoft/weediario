@@ -6,11 +6,13 @@ import br.com.weediario.catalog.application.query.BrowseCatalogUseCase;
 import br.com.weediario.catalog.application.query.CatalogQueries.BreederListItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.BreederStrainCard;
 import br.com.weediario.catalog.application.query.CatalogQueries.ProductListItem;
+import br.com.weediario.catalog.application.query.CatalogQueries.ProductReview;
 import br.com.weediario.catalog.application.query.CatalogQueries.RankingKind;
 import br.com.weediario.catalog.application.query.CatalogQueries.RankingRow;
 import br.com.weediario.catalog.application.query.CatalogQueries.StrainDetail;
 import br.com.weediario.catalog.application.query.CatalogQueries.StrainListItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.Suggestion;
+import br.com.weediario.catalog.application.query.CatalogQueries.TestingStrainItem;
 import br.com.weediario.catalog.application.usecase.CurateCatalogUseCase;
 import br.com.weediario.catalog.application.usecase.CurateCatalogUseCase.Kind;
 import br.com.weediario.catalog.application.usecase.ResolveCatalogUseCase;
@@ -107,6 +109,15 @@ public class CatalogController {
         return browse.strain(id);
     }
 
+    /** Sementes de breeders em teste pela comunidade (fora da listagem oficial). */
+    @GetMapping("/strains/testing")
+    public PageResult<TestingStrainItem> testingStrains(@RequestParam(required = false) @Size(max = 80) String q,
+                                                        @RequestParam(required = false) UUID breederId,
+                                                        @RequestParam(defaultValue = "0") int page,
+                                                        @RequestParam(defaultValue = "20") int size) {
+        return browse.testingStrains(q, breederId, new PageQuery(page, size));
+    }
+
     @GetMapping("/breeders")
     public PageResult<BreederListItem> breeders(@RequestParam(required = false) @Size(max = 80) String q,
                                                 @RequestParam(defaultValue = "0") int page,
@@ -132,6 +143,19 @@ public class CatalogController {
                                                 @RequestParam(defaultValue = "0") int page,
                                                 @RequestParam(defaultValue = "20") int size) {
         return browse.products(q, category == null ? null : category.name(), new PageQuery(page, size));
+    }
+
+    @GetMapping("/products/{id}")
+    public ProductListItem product(@PathVariable UUID id) {
+        return browse.product(id);
+    }
+
+    /** Notas do produto nas reviews pós-colheita, mais recentes primeiro (sem autor). */
+    @GetMapping("/products/{id}/reviews")
+    public PageResult<ProductReview> productReviews(@PathVariable UUID id,
+                                                    @RequestParam(defaultValue = "0") int page,
+                                                    @RequestParam(defaultValue = "20") int size) {
+        return browse.productReviews(id, new PageQuery(page, size));
     }
 
     /** "Mais usados": strains, breeders, marcas ou produtos (opcionalmente por categoria de produto). */
@@ -229,7 +253,7 @@ public class CatalogController {
             @Size(max = StrainTraits.MAX_TAGS) List<@Size(max = StrainTraits.TAG_MAX_LENGTH) String> effects,
             @Size(max = StrainTraits.GENETICS_MAX_LENGTH) String genetics) {
 
-        StrainTraits traits() {
+        public StrainTraits traits() {
             return new StrainTraits(floweringType, dominance, floweringSpeed, seedTypes, flavors, effects, genetics);
         }
     }

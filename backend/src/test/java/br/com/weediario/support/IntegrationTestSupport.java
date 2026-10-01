@@ -40,6 +40,8 @@ public abstract class IntegrationTestSupport {
     protected static final String PASSWORD = "senha-bem-longa-123";
     /** Versão vigente dos Termos de Uso (o cadastro exige o aceite). */
     protected static final String TERMS = "1.0";
+    /** Derivado de uma frase de recuperação (no app ele é calculado no navegador; as palavras nunca chegam aqui). */
+    protected static final String VERIFIER = "a1".repeat(64);
 
     @Autowired
     protected MockMvc mvc;
@@ -58,15 +60,12 @@ public abstract class IntegrationTestSupport {
 
     protected Session newGrower() throws Exception {
         String username = "g_" + UUID.randomUUID().toString().substring(0, 12).replace("-", "");
-        String email = username + "@example.org";
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"username":"%s","email":"%s","password":"%s","acceptedTermsVersion":"%s"}"""
-                                .formatted(username, email, PASSWORD, TERMS)))
+                        .content(registerJson(username)))
                 .andExpect(status().isCreated());
         MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"%s","password":"%s"}""".formatted(email, PASSWORD)))
+                                {"login":"%s","password":"%s"}""".formatted(username, PASSWORD)))
                 .andExpect(status().isOk())
                 .andReturn();
         return new Session(username, body(login).get("accessToken").asText());
@@ -78,10 +77,17 @@ public abstract class IntegrationTestSupport {
         jdbc.update("update users set role = 'MODERATOR' where username = ?", session.username());
         MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"%s@example.org","password":"%s"}""".formatted(session.username(), PASSWORD)))
+                                {"login":"%s","password":"%s"}""".formatted(session.username(), PASSWORD)))
                 .andExpect(status().isOk())
                 .andReturn();
         return new Session(session.username(), body(login).get("accessToken").asText());
+    }
+
+    /** Cadastro mínimo: apelido, senha, derivado da frase de recuperação e aceite dos termos (sem e-mail). */
+    protected static String registerJson(String username) {
+        return """
+                {"username":"%s","password":"%s","recoveryVerifier":"%s","acceptedTermsVersion":"%s"}"""
+                .formatted(username, PASSWORD, VERIFIER, TERMS);
     }
 
     protected UUID createDiary(Session session, String strain, String visibility, String startedOn) throws Exception {

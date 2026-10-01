@@ -13,6 +13,7 @@ import br.com.weediario.moderation.domain.model.ModerationVocabulary.TargetType;
 import br.com.weediario.moderation.domain.model.ModerationVocabulary.Verdict;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
+import br.com.weediario.shared.presentation.Csv;
 import br.com.weediario.shared.presentation.Viewer;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -107,16 +108,9 @@ public class ModerationController {
                 .body(csv.toString().getBytes(StandardCharsets.UTF_8));
     }
 
-    /** Aspas em volta, aspas internas dobradas e sem fórmula de planilha (=, +, -, @ no começo). */
+    /** Aspas em volta, aspas internas dobradas e sem fórmula de planilha (ver {@link Csv#cell}). */
     static String cell(String value) {
-        if (value == null) {
-            return "";
-        }
-        String safe = value.replace("\r", " ").replace("\n", " ");
-        if (!safe.isEmpty() && "=+-@".indexOf(safe.charAt(0)) >= 0) {
-            safe = "'" + safe;
-        }
-        return "\"" + safe.replace("\"", "\"\"") + "\"";
+        return Csv.cell(value);
     }
 
     public record DecisionRequest(@NotNull TargetType targetType, @NotNull UUID targetId, @NotNull Verdict verdict,

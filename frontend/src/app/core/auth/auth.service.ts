@@ -25,6 +25,8 @@ export class AuthService {
   readonly isLoggedIn = computed(() => this.me() !== null);
   readonly isModerator = computed(() => ['MODERATOR', 'ADMIN'].includes(this.me()?.role ?? ''));
   readonly isAdmin = computed(() => this.me()?.role === 'ADMIN');
+  /** Conta anterior à frase de recuperação: precisa gerar a frase (sem ela, não há como recuperar a conta). */
+  readonly needsRecoveryPhrase = computed(() => !!this.me() && !this.me()!.hasRecoveryPhrase);
   /** Logado, mas ainda sem aceitar a versão vigente dos Termos de Uso (não consegue publicar). */
   readonly needsTermsAcceptance = computed(() => !!this.me() && !this.me()!.termsAccepted);
 
@@ -42,7 +44,7 @@ export class AuthService {
     }
   }
 
-  /** @param login e-mail ou apelido */
+  /** @param login apelido (não existe e-mail) */
   async login(login: string, password: string): Promise<void> {
     const response = await firstValueFrom(
       this.http.post<AccessTokenResponse>(`${AUTH}/login`, { login, password }),
@@ -51,10 +53,29 @@ export class AuthService {
     await firstValueFrom(this.loadMe());
   }
 
-  /** {@code acceptedTermsVersion}: versão dos Termos de Uso marcada como lida e aceita no cadastro. */
-  async register(username: string, email: string, password: string, acceptedTermsVersion: string): Promise<void> {
-    await firstValueFrom(this.http.post<void>(`${AUTH}/register`, { username, email, password, acceptedTermsVersion }));
-    await this.login(email, password);
+  /**
+   * @param recoveryVerifier     derivado da frase de 12 palavras (as palavras nunca são enviadas)
+   * @param acceptedTermsVersion versão dos Termos de Uso marcada como lida e aceita no cadastro
+   */
+  async register(username: string, password: string, recoveryVerifier: string, acceptedTermsVersion: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post<void>(`${AUTH}/register`, { username, password, recoveryVerifier, acceptedTermsVersion }),
+    );
+    await this.login(username, password);
+  }
+
+  /** Recupera a conta com a frase: define a senha nova, derruba as outras sessões e já entra. */
+  async recover(username: string, recoveryVerifier: string, newPassword: string): Promise<void> {
+    const response = await firstValueFrom(
+      this.http.post<AccessTokenResponse>(`${AUTH}/recover`, { username, recoveryVerifier, newPassword }),
+    );
+    this.token.set(response.accessToken);
+    await firstValueFrom(this.loadMe());
+  }
+
+  /** Gera (conta antiga) ou troca a frase de recuperação; exige a senha atual. */
+  async changeRecoveryPhrase(recoveryVerifier: string, currentPassword: string): Promise<void> {
+    this.me.set(await firstValueFrom(this.http.put<MyProfile>('/api/v1/me/recovery', { recoveryVerifier, currentPassword })));
   }
 
   async logout(): Promise<void> {

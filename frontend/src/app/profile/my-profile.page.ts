@@ -27,7 +27,7 @@ import { Icon } from '../shared/icon';
           <app-avatar class="size-20 text-2xl" [username]="me.username" [hasAvatar]="me.hasAvatar" [version]="avatarVersion()" />
           <div class="min-w-0 flex-1">
             <h1 class="text-2xl font-bold">{{ me.username }}</h1>
-            <p class="text-sm text-fg-muted">{{ me.email }} · visível só para você</p>
+            <a routerLink="/frase-de-recuperacao" class="block text-sm text-fg-muted underline">Frase de recuperação</a>
             <a [routerLink]="['/growers', me.username]" class="text-sm text-accent">Ver meu perfil público</a>
           </div>
         </div>

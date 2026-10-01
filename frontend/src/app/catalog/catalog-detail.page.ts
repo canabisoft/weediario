@@ -4,7 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { BehaviorSubject, Observable, catchError, combineLatest, forkJoin, map, of, switchMap } from 'rxjs';
 import { CatalogApi } from '../core/api/catalog.api';
-import { CatalogDbApi, CatalogItem, Dominance, FloweringSpeed, SeedKind, StrainTraits } from '../core/api/catalog-db.api';
+import {
+  CatalogDbApi,
+  CatalogItem,
+  CatalogSource,
+  Dominance,
+  FloweringSpeed,
+  SeedKind,
+  StrainTraits,
+  TestingProgress,
+} from '../core/api/catalog-db.api';
 import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
 import { CatalogPicker } from '../shared/catalog-picker';
@@ -12,7 +21,9 @@ import { formatCompact, formatDecimal } from '../shared/decimal';
 import { Icon } from '../shared/icon';
 import { RatingBar } from '../shared/rating';
 import { SeedbankShowcase } from './seedbank-showcase';
-import { DOMINANCE_LABEL, SEED_KIND_LABEL, SOURCE_LABEL, SPEED_LABEL, options } from '../shared/labels';
+import { TestingStrains } from './testing-strains';
+import { DOMINANCE_LABEL, SEED_KIND_LABEL, SOURCE_LABEL, SPEED_LABEL, formatDate, options } from '../shared/labels';
+import { TestingProgressBar } from '../shared/testing-progress';
 
 export type CatalogKind = 'strain' | 'seedbank';
 
@@ -31,7 +42,11 @@ interface Detail {
   readonly subtitle?: string;
   readonly breederId?: string;
   readonly verified: boolean;
-  readonly source: 'DATASET' | 'COMMUNITY';
+  /** Semente de breeder ainda em teste pela comunidade (com o andamento). */
+  readonly testing?: TestingProgress;
+  /** Data em que a semente saiu do teste e entrou no banco oficial. */
+  readonly promotedAt?: string;
+  readonly source: CatalogSource;
   readonly facts: { label: string; value: string }[];
   readonly tags: { label: string; values: string[] }[];
   readonly traits?: StrainTraits;
@@ -54,7 +69,7 @@ import { ReportButton } from '../shared/report-button';
 @Component({
   selector: 'app-catalog-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker, SeedbankShowcase, ReportButton],
+  imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker, SeedbankShowcase, TestingStrains, TestingProgressBar, ReportButton],
   template: `
     <a routerLink="/strains" [queryParams]="kind() === 'seedbank' ? { aba: 'bancos' } : {}" class="text-sm text-fg-muted">
       ← {{ kind() === 'strain' ? 'Strains' : 'Bancos de sementes' }}
@@ -70,6 +85,9 @@ import { ReportButton } from '../shared/report-button';
                   <app-icon name="check" class="size-3" /> verificado
                 </span>
               }
+              @if (d.testing) {
+                <span class="inline-flex items-center rounded-full bg-warn/15 px-2 py-0.5 text-xs font-semibold text-warn">em teste</span>
+              }
             </h1>
             @if (d.subtitle) {
               @if (d.breederId) {
@@ -79,6 +97,9 @@ import { ReportButton } from '../shared/report-button';
               }
             }
             <p class="mt-1 text-xs text-fg-muted">Fonte: {{ source[d.source] }} · {{ d.diaries }} {{ d.diaries === 1 ? 'diário público' : 'diários públicos' }}</p>
+            @if (d.promotedAt) {
+              <p class="mt-1 text-xs text-fg-muted">Entrou no banco oficial em {{ date(d.promotedAt) }}, depois do teste da comunidade.</p>
+            }
           </div>
           @if (d.overall != null) {
             <p class="inline-flex items-center gap-1 text-3xl font-bold tabular-nums">
@@ -86,6 +107,23 @@ import { ReportButton } from '../shared/report-button';
             </p>
           }
         </header>
+
+        @if (d.testing; as progress) {
+          <section class="wd-card mt-4 grid gap-3 border-warn/40" aria-labelledby="testing-title">
+            <div>
+              <h2 id="testing-title" class="font-semibold">Semente em teste</h2>
+              <p class="text-sm text-fg-muted">
+                Cadastrada pelo próprio breeder. Ela entra no banco oficial quando {{ progress.testersRequired }} cultivadores
+                de fora do breeder abrirem um diário com ela e houver {{ progress.reviewsRequired }} avaliação pós-colheita.
+                Até lá fica fora da listagem oficial, dos rankings e do banco aberto.
+              </p>
+            </div>
+            <app-testing-progress [progress]="progress" />
+            <p class="text-sm">
+              Quer ajudar a testar? <a routerLink="/diarios/novo" class="text-accent underline">Inicie um diário</a> e escolha esta strain.
+            </p>
+          </section>
+        }
 
         @if (d.facts.length || d.tags.length) {
           <section class="wd-card mt-4 grid gap-3">
@@ -111,6 +149,7 @@ import { ReportButton } from '../shared/report-button';
 
         @if (kind() === 'seedbank') {
           <app-seedbank-showcase [breederId]="d.id" />
+          <app-testing-strains [breederId]="d.id" />
         }
 
         @if (kind() === 'strain' && auth.isLoggedIn()) {
@@ -183,7 +222,15 @@ import { ReportButton } from '../shared/report-button';
         @if (moderator()) {
           <section class="wd-card mt-4 grid gap-3 border-warn/40" aria-label="Moderação">
             <p class="font-semibold">Moderação</p>
-            @if (!d.verified) {
+            @if (d.testing) {
+              <p class="text-sm text-fg-muted">
+                Sementes em teste não podem ser verificadas à mão: entram no banco oficial sozinhas quando o teste da
+                comunidade termina. Se for spam ou cadastro errado e ninguém estiver usando, dá para recusar.
+              </p>
+              <button type="button" class="wd-button w-fit bg-surface-raised text-fg" (click)="reject(d)">
+                <app-icon name="trash" class="size-5" /> Recusar cadastro
+              </button>
+            } @else if (!d.verified) {
               <button type="button" class="wd-button w-fit" (click)="verify(d)"><app-icon name="check" class="size-5" /> Marcar como verificado</button>
             }
             @if (kind() === 'strain') {
@@ -311,6 +358,20 @@ export class CatalogDetailPage {
     });
   }
 
+  protected reject(detail: Detail): void {
+    if (!confirm(`Recusar "${detail.name}"? O cadastro será apagado.`)) {
+      return;
+    }
+    this.catalog.reject('strains', detail.id).subscribe({
+      next: () => this.router.navigate(['/strains'], { queryParams: { aba: 'teste' } }),
+      error: (error) => this.modMessage.set(problemMessage(error)),
+    });
+  }
+
+  protected date(iso: string): string {
+    return formatDate(iso);
+  }
+
   protected merge(detail: Detail): void {
     const target = this.mergeTarget();
     if (!target || !confirm(`Juntar "${detail.name}" em "${target.name}"? Esta página deixará de existir.`)) {
@@ -334,6 +395,8 @@ export class CatalogDetailPage {
         subtitle: s.breeder ?? 'Breeder não informado',
         breederId: s.breederId,
         verified: s.status === 'VERIFIED',
+        testing: s.status === 'TESTING' ? s.testing : undefined,
+        promotedAt: s.promotedAt,
         source: s.source,
         traits: s,
         facts: [

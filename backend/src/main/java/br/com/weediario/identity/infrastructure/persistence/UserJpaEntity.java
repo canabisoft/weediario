@@ -1,7 +1,6 @@
 package br.com.weediario.identity.infrastructure.persistence;
 
 import br.com.weediario.identity.domain.model.AccountStatus;
-import br.com.weediario.identity.domain.model.Email;
 import br.com.weediario.identity.domain.model.PasswordHash;
 import br.com.weediario.identity.domain.model.Role;
 import br.com.weediario.identity.domain.model.User;
@@ -27,11 +26,11 @@ public class UserJpaEntity {
     @Column(nullable = false, length = 30)
     private String username;
 
-    @Column(nullable = false, length = 254)
-    private String email;
-
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
+
+    @Column(name = "recovery_hash")
+    private String recoveryHash;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -69,8 +68,8 @@ public class UserJpaEntity {
         UserJpaEntity entity = new UserJpaEntity();
         entity.id = user.id().value();
         entity.username = user.username().value();
-        entity.email = user.email().value();
         entity.passwordHash = user.passwordHash().value();
+        entity.recoveryHash = user.recoveryHash().map(PasswordHash::value).orElse(null);
         entity.role = user.role();
         entity.status = user.status();
         entity.bio = user.bio().orElse(null);
@@ -84,7 +83,8 @@ public class UserJpaEntity {
     }
 
     User toDomain() {
-        return User.restore(new UserId(id), new Username(username), new Email(email), new PasswordHash(passwordHash),
-                role, status, bio, avatarImageId, termsVersion, termsAcceptedAt, profileHidden, createdAt, updatedAt);
+        return User.restore(new UserId(id), new Username(username), new PasswordHash(passwordHash),
+                recoveryHash == null ? null : new PasswordHash(recoveryHash), role, status, bio, avatarImageId,
+                termsVersion, termsAcceptedAt, profileHidden, createdAt, updatedAt);
     }
 }

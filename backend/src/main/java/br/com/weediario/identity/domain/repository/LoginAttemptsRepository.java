@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * @see br.com.weediario.identity.application.port.LoginKeyHasher a chave nunca é o e-mail em texto puro
+ * @see br.com.weediario.identity.application.port.LoginKeyHasher a chave nunca é o apelido em texto puro
  */
 public interface LoginAttemptsRepository {
 

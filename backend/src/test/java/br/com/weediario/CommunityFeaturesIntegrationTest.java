@@ -24,10 +24,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
 
     @Test
-    void bruteForceLocksTheAccountWithoutStoringEmailOrIp() throws Exception {
-        String email = "alvo_" + UUID.randomUUID().toString().substring(0, 8) + "@example.org";
+    void bruteForceLocksTheAccountWithoutStoringUsernameOrIp() throws Exception {
+        String username = "alvo_" + UUID.randomUUID().toString().substring(0, 8);
         String wrong = """
-                {"email":"%s","password":"senha-errada-errada"}""".formatted(email);
+                {"login":"%s","password":"senha-errada-errada"}""".formatted(username);
         for (int i = 0; i < 5; i++) {
             mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(wrong))
                     .andExpect(status().isUnauthorized());
@@ -38,7 +38,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
                 .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
 
         List<String> keys = jdbc.queryForList("select attempt_key from login_attempts", String.class);
-        assertThat(keys).isNotEmpty().noneMatch(key -> key.contains("@") || key.contains("alvo_"));
+        assertThat(keys).isNotEmpty().noneMatch(key -> key.contains("alvo_"));
     }
 
     @Test
@@ -110,8 +110,8 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
         var metadata = com.drew.imaging.ImageMetadataReader.readMetadata(new ByteArrayInputStream(avatar), avatar.length);
         assertThat(metadata.getFirstDirectoryOfType(com.drew.metadata.exif.GpsDirectory.class)).isNull();
 
-        // O e-mail só aparece para o próprio usuário.
-        mvc.perform(authed(get("/api/v1/me"), grower)).andExpect(jsonPath("$.email").exists());
+        // Não existe e-mail, nem para o próprio usuário.
+        mvc.perform(authed(get("/api/v1/me"), grower)).andExpect(jsonPath("$.email").doesNotExist());
 
         mvc.perform(authed(delete("/api/v1/me/avatar"), grower)).andExpect(jsonPath("$.hasAvatar").value(false));
         mvc.perform(get("/api/v1/growers/{u}/avatar", grower.username())).andExpect(status().isNotFound());
@@ -155,9 +155,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
     @Test
     void reservedUsernamesCannotBeRegistered() throws Exception {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"username":"ranking","email":"r@example.org","password":"senha-bem-longa-123",
-                                 "acceptedTermsVersion":"1.0"}"""))
+                        .content(registerJson("ranking")))
                 .andExpect(status().isUnprocessableEntity());
     }
 

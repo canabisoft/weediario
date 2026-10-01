@@ -18,13 +18,16 @@ Este projeto foi arquitetado sob premissas rígidas de segurança digital:
   celular) e gera variantes otimizadas em WebP (400px e 1600px).
 - **Reações anônimas:** cada reação é gravada com um pseudônimo derivado por HMAC do par (usuário, alvo). O mesmo
   usuário em alvos diferentes gera pseudônimos diferentes e não relacionáveis.
+- **Conta sem e-mail:** o cadastro pede só apelido e senha. A recuperação usa uma frase de 12 palavras (BIP-39, lista
+  em português) gerada no navegador; o servidor recebe só um derivado PBKDF2 dela e guarda o hash Argon2id desse
+  derivado. As palavras nunca chegam ao servidor, e sem senha e frase a conta não tem como ser recuperada.
 - **Boas práticas OWASP:** senhas com Argon2id, tokens JWT de curta duração (10 min) com refresh token em cookie
   `HttpOnly`, `Secure` e `SameSite=Strict`, e payloads validados estritamente.
 
 ### Privacidade na infraestrutura
 
 - nginx e Caddy sem log de acesso e sem repassar o IP do visitante ao backend.
-- Limite de tentativas de login por conta (chave HMAC do e-mail), sem usar IP.
+- Limite de tentativas de login e de recuperação por conta (chave HMAC do apelido), sem usar IP.
 - Containers somente leitura e sem capabilities; app, API e nginx rodam sem root (o Caddy só tem a permissão de
   abrir as portas 80/443).
 - Segredos só no `.env` (fora do git), gerados aleatoriamente pelo script.
@@ -100,6 +103,26 @@ WEEDIARIO_DOMAIN=weediario.exemplo.com docker compose --profile https up -d --bu
 
 Com `WEEDIARIO_DOMAIN=localhost` o Caddy usa uma CA local, útil para testar HTTPS na máquina. O Caddy não grava log
 de acesso e não repassa o IP do visitante. O cookie de sessão é `Secure` e só trafega em HTTPS (ou em `localhost`).
+
+### Catálogo, avaliações e banco aberto
+
+O catálogo (`/strains`) junta strains, bancos de sementes, marcas e produtos sem duplicar (chave normalizada,
+apelidos e "você quis dizer?"). As notas vêm só de cultivos reais: o autor de um diário concluído avalia a strain e,
+opcionalmente, o banco e cada produto usado no cultivo. As médias consideram só avaliações publicadas de contas ativas;
+a nota de um produto não mostra quem avaliou e só leva ao diário quando ele é público (`/produtos/:id`).
+
+- **Programa de breeders** (`/breeders/programa`): quem representa um banco pede o vínculo com uma nota de prova
+  (só a moderação vê, na aba "Representantes" do painel). Aprovado, cadastra as sementes do banco, que entram como
+  **em teste**: aparecem no autocomplete e na aba "Em teste", mas ficam fora da listagem oficial, dos rankings e do
+  banco aberto. A semente entra no banco oficial sozinha quando **3 cultivadores** diferentes abrem diário com ela e
+  há **1 avaliação pós-colheita**, sem contar representantes do banco (checado a cada review e a cada 10 min).
+  Moderadores não podem "verificar" uma semente em teste, só recusar se ninguém a usa. Quem representa um banco nunca
+  é exibido publicamente.
+- **Banco aberto de strains** (`/dados-abertos`): `GET /api/v1/open-data/strains` (JSON) e
+  `GET /api/v1/open-data/strains.csv`, públicos e sem login, sob a licença
+  [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/). Só strains oficiais e só agregados (características,
+  diários públicos, growers distintos, médias das avaliações e g/planta): nenhum apelido, id de diário ou de review.
+  O CSV é protegido contra fórmulas de planilha e as respostas ficam em cache por 1 hora.
 
 ### Moderação
 

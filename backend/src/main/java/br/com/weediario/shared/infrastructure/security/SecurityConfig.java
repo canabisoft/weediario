@@ -50,7 +50,8 @@ public class SecurityConfig {
         applyCommonHardening(http.securityMatcher(AUTH_PATH + "/**"));
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST,
-                        AUTH_PATH + "/register", AUTH_PATH + "/login", AUTH_PATH + "/refresh", AUTH_PATH + "/logout")
+                        AUTH_PATH + "/register", AUTH_PATH + "/login", AUTH_PATH + "/recover", AUTH_PATH + "/refresh",
+                        AUTH_PATH + "/logout")
                 .permitAll()
                 .anyRequest().denyAll());
         return http.build();
@@ -69,7 +70,9 @@ public class SecurityConfig {
                         // Leitura de conteúdo público liberada para visitantes. A visibilidade de cada diário
                         // (público/privado) é decidida nos casos de uso, não aqui.
                         .requestMatchers(HttpMethod.GET, "/api/v1/feed/**", "/api/v1/diaries/**", "/api/v1/strains/**",
-                                "/api/v1/seedbanks/**", "/api/v1/growers/**", "/api/v1/catalog/**", "/api/v1/recipes/**")
+                                "/api/v1/seedbanks/**", "/api/v1/growers/**", "/api/v1/catalog/**", "/api/v1/recipes/**",
+                                // Banco aberto de strains (ODbL): só leitura, só agregados.
+                                "/api/v1/open-data/**")
                         .permitAll()
                         // Dupla checagem: os casos de uso de moderação também exigem o papel.
                         .requestMatchers("/api/v1/moderation/**").hasAnyRole("MODERATOR", "ADMIN")

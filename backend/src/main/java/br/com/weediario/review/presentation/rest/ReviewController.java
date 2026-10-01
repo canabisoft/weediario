@@ -40,6 +40,7 @@ public class ReviewController {
                 request.seedbankGermination(),
                 request.seedbankStability(),
                 request.seedbankService(),
+                request.productRatings(),
                 request.report()));
     }
 }

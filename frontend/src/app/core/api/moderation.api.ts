@@ -98,7 +98,8 @@ export class ModerationApi {
     return this.http.get<Page<PendingCatalogItem>>(`/api/v1/moderation/catalog/${kind}`, { params: { page, size: 20 } });
   }
 
-  catalogCounts(): Observable<Record<RankingKind, number>> {
-    return this.http.get<Record<RankingKind, number>>('/api/v1/moderation/catalog/counts');
+  /** Filas do catálogo por tipo e, em {@code REPRESENTATIVES}, pedidos de representantes de breeders. */
+  catalogCounts(): Observable<Partial<Record<RankingKind | 'REPRESENTATIVES', number>>> {
+    return this.http.get<Partial<Record<RankingKind | 'REPRESENTATIVES', number>>>('/api/v1/moderation/catalog/counts');
   }
 }

@@ -4,7 +4,6 @@ import br.com.weediario.shared.application.ModeratorOnlyException;
 import br.com.weediario.diary.application.exception.GrowerNotAllowedException;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
 import br.com.weediario.identity.application.exception.LoginThrottledException;
-import br.com.weediario.identity.application.exception.RegistrationRejectedException;
 import br.com.weediario.media.application.exception.InvalidImageException;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.treatment.application.ConsentRequiredException;
@@ -60,11 +59,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
-    }
-
-    @ExceptionHandler(RegistrationRejectedException.class)
-    ProblemDetail handleRegistrationRejected(RegistrationRejectedException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     /** O cliente reconhece o {@code code} e mostra o termo de consentimento. */

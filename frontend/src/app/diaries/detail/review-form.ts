@@ -1,12 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { ProductSnapshot } from '../../core/api/api.models';
 import { CatalogApi } from '../../core/api/catalog.api';
 import { problemMessage } from '../../core/api/problem';
+import { categoryLabel } from '../../shared/labels';
 import { StarInput } from '../../shared/rating';
 
 /**
  * Review da genética (e, se o diário informa o banco, do seedbank), feita pelo autor depois de concluir o cultivo.
+ * Os produtos usados no cultivo podem receber uma nota cada (opcional), que entra na média do produto no catálogo.
  */
 @Component({
   selector: 'app-review-form',
@@ -44,6 +47,31 @@ import { StarInput } from '../../shared/rating';
           </fieldset>
         }
 
+        @if (products().length) {
+          <fieldset class="grid gap-3 rounded-xl border border-line p-3">
+            <legend class="px-1 font-semibold">Produtos usados <span class="text-sm font-normal text-fg-muted">(opcional)</span></legend>
+            <p class="text-sm text-fg-muted">Dê nota só aos que quiser. A nota entra na média do produto no catálogo, sem mostrar quem avaliou.</p>
+            <div class="grid gap-3 sm:grid-cols-2">
+              @for (product of products(); track product.id) {
+                <div class="grid gap-1">
+                  <app-star-input
+                    [label]="product.brand + ' ' + product.name"
+                    [name]="'product-' + product.id"
+                    [value]="productRatings()[product.id] ?? null"
+                    (valueChange)="rateProduct(product.id, $event)"
+                  />
+                  <p class="flex items-center gap-2 text-xs text-fg-muted">
+                    {{ category(product.category) }}
+                    @if (productRatings()[product.id]) {
+                      <button type="button" class="underline" (click)="rateProduct(product.id, null)">limpar</button>
+                    }
+                  </p>
+                </div>
+              }
+            </div>
+          </fieldset>
+        }
+
         <div>
           <label class="wd-label" for="report">Grow/smoke report</label>
           <textarea
@@ -72,6 +100,8 @@ export class ReviewForm {
   readonly diaryId = input.required<string>();
   readonly strain = input.required<string>();
   readonly breeder = input<string | undefined>();
+  /** Produtos do catálogo usados no cultivo (setup do diário). */
+  readonly products = input<readonly ProductSnapshot[]>([]);
 
   protected readonly vigor = signal<number | null>(null);
   protected readonly pestResistance = signal<number | null>(null);
@@ -81,6 +111,7 @@ export class ReviewForm {
   protected readonly germination = signal<number | null>(null);
   protected readonly stability = signal<number | null>(null);
   protected readonly service = signal<number | null>(null);
+  protected readonly productRatings = signal<Record<string, number>>({});
   protected report = '';
 
   protected readonly busy = signal(false);
@@ -92,6 +123,22 @@ export class ReviewForm {
       (value) => value !== null,
     ),
   );
+
+  protected category(value: string): string {
+    return categoryLabel(value);
+  }
+
+  protected rateProduct(productId: string, rating: number | null): void {
+    this.productRatings.update((current) => {
+      const next = { ...current };
+      if (rating === null) {
+        delete next[productId];
+      } else {
+        next[productId] = rating;
+      }
+      return next;
+    });
+  }
 
   protected canSubmit(): boolean {
     return this.strainRated() && this.report.trim().length >= 20;
@@ -116,6 +163,7 @@ export class ReviewForm {
         seedbankGermination: this.germination() ?? undefined,
         seedbankStability: this.stability() ?? undefined,
         seedbankService: this.service() ?? undefined,
+        products: this.ratedProducts(),
         report: this.report.trim(),
       })
       .subscribe({
@@ -125,5 +173,14 @@ export class ReviewForm {
           this.busy.set(false);
         },
       });
+  }
+
+  /** Só os produtos do diário que receberam nota (lista vazia vira campo omitido). */
+  private ratedProducts(): { productId: string; rating: number }[] | undefined {
+    const ratings = this.productRatings();
+    const rated = this.products()
+      .filter((product) => ratings[product.id])
+      .map((product) => ({ productId: product.id, rating: ratings[product.id] }));
+    return rated.length ? rated : undefined;
   }
 }

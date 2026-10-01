@@ -9,15 +9,17 @@ import { AuthService } from '../core/auth/auth.service';
 import { saveFile } from '../treatment/treatment-text';
 import { CatalogQueue } from './catalog-queue';
 import { ContentQueue } from './content-queue';
+import { RepresentativeQueue } from './representative-queue';
 
-type Tab = 'denuncias' | CatalogKind | 'contas';
+type Tab = 'denuncias' | CatalogKind | 'representantes' | 'contas';
 
-const TABS: readonly { id: Tab; label: string; count?: RankingKind | 'REPORTS' }[] = [
+const TABS: readonly { id: Tab; label: string; count?: RankingKind | 'REPORTS' | 'REPRESENTATIVES' }[] = [
   { id: 'denuncias', label: 'Denúncias e retidos', count: 'REPORTS' },
   { id: 'strains', label: 'Strains', count: 'STRAINS' },
   { id: 'breeders', label: 'Breeders', count: 'BREEDERS' },
   { id: 'brands', label: 'Marcas', count: 'BRANDS' },
   { id: 'products', label: 'Produtos', count: 'PRODUCTS' },
+  { id: 'representantes', label: 'Representantes', count: 'REPRESENTATIVES' },
   { id: 'contas', label: 'Contas e log' },
 ];
 
@@ -29,7 +31,7 @@ const TABS: readonly { id: Tab; label: string; count?: RankingKind | 'REPORTS' }
 @Component({
   selector: 'app-moderation-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ContentQueue, CatalogQueue],
+  imports: [ContentQueue, CatalogQueue, RepresentativeQueue],
   template: `
     <h1 class="text-2xl font-bold">Moderação</h1>
     <p class="text-fg-muted">
@@ -58,6 +60,9 @@ const TABS: readonly { id: Tab; label: string; count?: RankingKind | 'REPORTS' }
       @switch (tab()) {
         @case ('denuncias') {
           <app-content-queue (changed)="refreshCounts()" />
+        }
+        @case ('representantes') {
+          <app-representative-queue (changed)="refreshCounts()" />
         }
         @case ('contas') {
           <div class="grid gap-4">
@@ -125,7 +130,7 @@ export class ModerationPage {
       switchMap(() =>
         combineLatest([
           this.api.queueCounts().pipe(catchError(() => of({ pending: 0, held: 0, byType: {} }))),
-          this.api.catalogCounts().pipe(catchError(() => of({} as Partial<Record<RankingKind, number>>))),
+          this.api.catalogCounts().pipe(catchError(() => of({} as Record<string, number>))),
         ]),
       ),
       map(([queue, catalog]) => ({ REPORTS: queue.pending, ...catalog }) as Record<string, number>),

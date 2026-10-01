@@ -194,10 +194,11 @@ export interface SeedbankReview {
 export interface MyProfile {
   readonly id: string;
   readonly username: string;
-  readonly email: string;
   readonly bio?: string;
   readonly hasAvatar: boolean;
   readonly role: string;
+  /** Contas antigas ainda sem frase de recuperação geram a frase no próximo login. */
+  readonly hasRecoveryPhrase: boolean;
   /** Versão dos Termos de Uso aceita e quando. */
   readonly termsVersion?: string;
   readonly termsAcceptedAt?: string;

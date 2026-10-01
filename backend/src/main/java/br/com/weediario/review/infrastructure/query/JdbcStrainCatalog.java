@@ -50,9 +50,10 @@ public class JdbcStrainCatalog implements StrainCatalog {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("limit", page.size())
                 .addValue("offset", page.offset());
-        String where = "";
+        // Sementes em teste ficam fora da busca de genéticas avaliadas até entrarem no banco oficial.
+        String where = " where s.status <> 'TESTING'";
         if (nameQuery != null) {
-            where = " where s.name ilike :name escape '\\'";
+            where += " and s.name ilike :name escape '\\'";
             params.addValue("name", "%" + escapeLike(nameQuery) + "%");
         }
         Long total = jdbc.queryForObject("""

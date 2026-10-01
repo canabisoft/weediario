@@ -1,24 +1,31 @@
 package br.com.weediario.identity.presentation.rest.dto;
 
+import br.com.weediario.identity.domain.model.RecoveryVerifier;
 import br.com.weediario.identity.domain.model.Username;
 import br.com.weediario.identity.domain.service.PasswordPolicy;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Cadastro sem e-mail nem dado civil.
+ */
 public record RegisterRequest(
         @NotBlank
         @Size(min = Username.MIN_LENGTH, max = Username.MAX_LENGTH)
         @Pattern(regexp = "^[A-Za-z0-9_.]+$", message = "use apenas letras, números, '_' e '.'")
         String username,
 
-        @NotBlank @Email @Size(max = 254)
-        String email,
-
         @NotBlank
         @Size(min = PasswordPolicy.MIN_LENGTH, max = PasswordPolicy.MAX_LENGTH)
         String password,
+
+        /**
+         * Derivado (PBKDF2) da frase de 12 palavras gerada no navegador. As palavras nunca são enviadas; sem frase,
+         * não há cadastro, porque ela é o único jeito de recuperar a conta.
+         */
+        @NotBlank @Size(max = RecoveryVerifier.LENGTH)
+        String recoveryVerifier,
 
         /** Versão dos Termos de Uso aceita (caixa marcada no cadastro). Sem ela, não há cadastro. */
         @NotBlank @Size(max = 10)

@@ -15,7 +15,7 @@ import { AuthService } from '../core/auth/auth.service';
 
       <form class="wd-card mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
         <div>
-          <label class="wd-label" for="login">E-mail ou apelido</label>
+          <label class="wd-label" for="login">Apelido</label>
           <input
             id="login"
             type="text"
@@ -47,6 +47,9 @@ import { AuthService } from '../core/auth/auth.service';
       </form>
 
       <p class="mt-4 text-center text-sm text-fg-muted">
+        Esqueceu a senha? <a routerLink="/recuperar" class="font-semibold text-accent">Recuperar com a frase de 12 palavras</a>
+      </p>
+      <p class="mt-2 text-center text-sm text-fg-muted">
         Ainda não tem conta? <a routerLink="/cadastro" class="font-semibold text-accent">Criar conta</a>
       </p>
     </section>
@@ -74,8 +77,9 @@ export class LoginPage {
     this.error.set(null);
     try {
       const { login, password } = this.form.getRawValue();
-      await this.auth.login(login, password);
-      await this.router.navigateByUrl(safeReturnUrl(this.voltar()));
+      await this.auth.login(login.trim(), password);
+      // Conta criada antes da frase de recuperação: gera a frase antes de seguir.
+      await this.router.navigateByUrl(this.auth.needsRecoveryPhrase() ? '/frase-de-recuperacao' : safeReturnUrl(this.voltar()));
     } catch (error) {
       this.error.set(problemMessage(error, 'Não foi possível entrar.'));
     } finally {

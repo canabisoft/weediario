@@ -25,7 +25,7 @@ describe('authInterceptor + AuthService', () => {
     const login = auth.login('a@example.org', 'senha-bem-longa-123');
     backend.expectOne('/api/v1/auth/login').flush({ accessToken: token, expiresAt: '2030-01-01T00:00:00Z' });
     await Promise.resolve();
-    backend.expectOne('/api/v1/me').flush({ id: '1', username: 'grower', email: 'a@example.org', hasAvatar: false, role: 'GROWER' });
+    backend.expectOne('/api/v1/me').flush({ id: '1', username: 'grower', hasAvatar: false, role: 'GROWER', hasRecoveryPhrase: true });
     await login;
   }
 

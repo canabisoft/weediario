@@ -10,8 +10,10 @@ export type ProductCategory = 'NUTRIENT' | 'ADDITIVE' | 'SUBSTRATE' | 'PEST_CONT
 export type Dominance = 'INDICA' | 'INDICA_DOMINANT' | 'HYBRID' | 'SATIVA_DOMINANT' | 'SATIVA';
 export type FloweringSpeed = 'SHORT' | 'MEDIUM' | 'LONG';
 export type SeedKind = 'FEMINIZED' | 'REGULAR';
-export type CatalogSource = 'DATASET' | 'COMMUNITY';
-export type CatalogStatus = 'UNVERIFIED' | 'VERIFIED';
+/** BREEDER: semente cadastrada pelo próprio breeder (programa de breeders). */
+export type CatalogSource = 'DATASET' | 'COMMUNITY' | 'BREEDER';
+/** TESTING: semente de breeder em teste pela comunidade, ainda fora do banco oficial (só strains). */
+export type CatalogStatus = 'UNVERIFIED' | 'VERIFIED' | 'TESTING';
 export type RankingKind = 'STRAINS' | 'BREEDERS' | 'BRANDS' | 'PRODUCTS';
 
 /** Sugestão do autocomplete ou item resolvido. {@code parent*} = breeder da strain ou marca do produto. */
@@ -86,6 +88,43 @@ export interface ProductListItem {
   readonly diaries: number;
   /** Receitas públicas de nutrição que usam o produto. */
   readonly recipes: number;
+  /** Notas recebidas nas reviews pós-colheita e a média delas. */
+  readonly reviewCount: number;
+  readonly rating?: number;
+}
+
+/** Nota de um produto numa review pós-colheita. Sem autor; {@code diaryId} só se o diário for público. */
+export interface ProductReview {
+  readonly id: string;
+  readonly strainId: string;
+  readonly strain: string;
+  readonly breeder?: string;
+  readonly rating: number;
+  readonly diaryId?: string;
+  readonly createdAt: string;
+}
+
+/** Andamento do teste da comunidade (cultivadores e avaliações de fora do breeder). */
+export interface TestingProgress {
+  readonly testers: number;
+  readonly testersRequired: number;
+  readonly reviews: number;
+  readonly reviewsRequired: number;
+}
+
+export interface TestingStrainItem {
+  readonly id: string;
+  readonly name: string;
+  readonly breederId: string;
+  readonly breeder: string;
+  readonly floweringType?: 'PHOTOPERIOD' | 'AUTOFLOWER';
+  readonly dominance?: Dominance;
+  readonly genetics?: string;
+  readonly status: CatalogStatus;
+  readonly createdAt: string;
+  readonly promotedAt?: string;
+  /** Só enquanto está em teste. */
+  readonly progress?: TestingProgress;
 }
 
 export interface StrainTraits {
@@ -109,6 +148,10 @@ export interface StrainDetail extends StrainTraits {
   readonly reviewCount: number;
   readonly overall?: number;
   readonly avgGramsPerPlant?: number;
+  /** Quando a semente de breeder saiu do teste e entrou no banco oficial. */
+  readonly promotedAt?: string;
+  /** Andamento do teste (só para strains em teste). */
+  readonly testing?: TestingProgress;
 }
 
 export interface RankingRow {
@@ -153,6 +196,21 @@ export class CatalogDbApi {
 
   strain(id: string): Observable<StrainDetail> {
     return this.http.get<StrainDetail>(`/api/v1/catalog/strains/${id}`);
+  }
+
+  /** Sementes de breeders em teste pela comunidade (fora da listagem oficial). */
+  testingStrains(q: string, breederId?: string, page = 0, size = 20): Observable<Page<TestingStrainItem>> {
+    return this.http.get<Page<TestingStrainItem>>('/api/v1/catalog/strains/testing', {
+      params: compact({ q, breederId, page, size }),
+    });
+  }
+
+  product(id: string): Observable<ProductListItem> {
+    return this.http.get<ProductListItem>(`/api/v1/catalog/products/${id}`);
+  }
+
+  productReviews(id: string, page = 0): Observable<Page<ProductReview>> {
+    return this.http.get<Page<ProductReview>>(`/api/v1/catalog/products/${id}/reviews`, { params: { page, size: 20 } });
   }
 
   breeder(id: string): Observable<BreederListItem> {

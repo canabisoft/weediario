@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -29,9 +30,14 @@ public class CatalogModerationController {
         this.browse = browse;
     }
 
+    /** Tamanho de cada fila: tipos do catálogo e, em {@code REPRESENTATIVES}, pedidos de representantes de breeders. */
     @GetMapping("/counts")
-    public Map<RankingKind, Long> counts(@AuthenticationPrincipal Jwt principal) {
-        return browse.pendingCounts(Viewer.isModerator(principal));
+    public Map<String, Long> counts(@AuthenticationPrincipal Jwt principal) {
+        boolean moderator = Viewer.isModerator(principal);
+        Map<String, Long> counts = new LinkedHashMap<>();
+        browse.pendingCounts(moderator).forEach((kind, count) -> counts.put(kind.name(), count));
+        counts.put("REPRESENTATIVES", browse.pendingRepresentatives(moderator));
+        return counts;
     }
 
     @GetMapping("/{kind}")
