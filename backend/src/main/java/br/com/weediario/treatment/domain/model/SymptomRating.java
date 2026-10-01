@@ -27,6 +27,16 @@ public record SymptomRating(UUID id, UUID patientId, UUID symptomId, UUID doseId
 
     public static SymptomRating of(Symptom symptom, Dose dose, RatingMoment moment, int value, UUID recordedBy,
                                    Clock clock) {
+        return of(symptom, dose, moment, value, recordedBy, null, clock);
+    }
+
+    /** @param at quando a nota vale (check-in de um dia anterior); vazio = agora. Nunca no futuro. */
+    public static SymptomRating of(Symptom symptom, Dose dose, RatingMoment moment, int value, UUID recordedBy,
+                                   Instant at, Clock clock) {
+        Instant now = clock.instant();
+        if (at != null && at.isAfter(now.plusSeconds(600))) {
+            throw new DomainException("Registre só o que já aconteceu");
+        }
         if (symptom.archived()) {
             throw new DomainException("O sintoma \"" + symptom.name() + "\" foi arquivado");
         }
@@ -34,6 +44,6 @@ public record SymptomRating(UUID id, UUID patientId, UUID symptomId, UUID doseId
             throw new DomainException("Sintoma e dose são de pacientes diferentes");
         }
         return new SymptomRating(UUID.randomUUID(), symptom.patientId(), symptom.id(), dose == null ? null : dose.id(),
-                moment, symptom.validValue(value), clock.instant(), recordedBy);
+                moment, symptom.validValue(value), at == null ? now : at, recordedBy);
     }
 }

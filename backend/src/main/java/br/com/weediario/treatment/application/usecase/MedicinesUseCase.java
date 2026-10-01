@@ -21,7 +21,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -110,7 +109,7 @@ public final class MedicinesUseCase {
      *                          orientação de uso); nulo sem uso recente
      */
     public record BatchCard(UUID id, String name, MedicineForm form, Origin origin, BigDecimal thc, BigDecimal cbd,
-                            ConcentrationUnit concentrationUnit, StockUnit stockUnit, Set<DoseUnit> doseUnits,
+                            ConcentrationUnit concentrationUnit, StockUnit stockUnit, List<DoseUnit> doseUnits,
                             BigDecimal dropsPerMl, BigDecimal initialQuantity, BigDecimal remaining,
                             Integer estimatedDaysLeft, boolean expired, boolean expiresSoon, LocalDate manufacturedOn,
                             LocalDate expiresOn, String notes, boolean archived) {
@@ -125,7 +124,7 @@ public final class MedicinesUseCase {
             boolean soon = !expired && batch.expiresOn() != null
                     && !batch.expiresOn().isAfter(today.plusDays(EXPIRING_SOON_DAYS));
             return new BatchCard(batch.id(), batch.name(), batch.form(), batch.origin(), batch.thc(), batch.cbd(),
-                    batch.form().concentrationUnit(), batch.form().stockUnit(), batch.form().doseUnits(),
+                    batch.form().concentrationUnit(), batch.form().stockUnit(), batch.form().doseUnits().stream().sorted().toList(),
                     batch.dropsPerMl(), batch.initialQuantity(), batch.remaining(), daysLeft, expired, soon,
                     batch.manufacturedOn(), batch.expiresOn(), batch.notes(), batch.archived());
         }

@@ -52,6 +52,7 @@ export class MainLayout {
     { path: '/receitas', label: 'Receitas', icon: 'flask' },
     { path: '/growers', label: 'Ranking de growers', icon: 'trophy' },
     { path: '/equipamentos', label: 'Equipamentos', icon: 'bulb' },
+    { path: '/tratamento', label: 'Tratamento', icon: 'pill' },
   ];
 
   /** Só aparece para moderadores (o backend também exige o papel). */

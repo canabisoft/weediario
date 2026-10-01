@@ -5,7 +5,7 @@ import { DoseEntry, PendingAfter, Today, TreatmentApi } from '../core/api/treatm
 import { Icon } from '../shared/icon';
 import { DoseForm } from './dose-form';
 import { ScaleInput } from './scale-input';
-import { DOSE_UNIT_LABEL, SIDE_EFFECT_LABEL, clock, mg, quantity } from './treatment-text';
+import { DOSE_UNIT_LABEL, SIDE_EFFECT_LABEL, clock, isoDay, mg, quantity } from './treatment-text';
 
 /**
  * O dia do paciente: registrar uso em poucos toques, responder "como está agora?" depois de um uso, check-in
@@ -85,6 +85,11 @@ import { DOSE_UNIT_LABEL, SIDE_EFFECT_LABEL, clock, mg, quantity } from './treat
             <app-scale-input [label]="symptom.name" [kind]="symptom.kind" [value]="checkin()[symptom.id] ?? null"
                              (valueChange)="setCheckin(symptom.id, $event)" />
           }
+          <div>
+            <label class="wd-label" for="checkin-day">Dia</label>
+            <input id="checkin-day" type="date" class="wd-input w-auto text-base" [max]="todayIso" [value]="checkinDay()"
+                   (input)="checkinDay.set($any($event.target).value || todayIso)" />
+          </div>
           <button type="button" class="wd-button w-fit" [disabled]="busy() || !checkinCount()" (click)="saveCheckin()">Salvar check-in</button>
         </div>
       </details>
@@ -127,6 +132,8 @@ export class TodayPanel {
   private readonly after = signal<Record<string, Record<string, number>>>({});
   protected readonly checkin = signal<Record<string, number>>({});
   protected readonly checkinCount = computed(() => Object.keys(this.checkin()).length);
+  protected readonly todayIso = isoDay(new Date());
+  protected readonly checkinDay = signal(this.todayIso);
 
   protected time(instant: string): string {
     return clock(instant);
@@ -195,7 +202,14 @@ export class TodayPanel {
 
   protected saveCheckin(): void {
     const ratings = Object.entries(this.checkin()).map(([symptomId, value]) => ({ symptomId, value }));
-    this.run(this.api.checkin(this.patientId(), ratings), () => this.checkin.set({}));
+    // Dia anterior: a nota vale ao meio-dia daquele dia (só o dia importa no histórico).
+    const day = this.checkinDay();
+    const [y, m, d] = day.split('-').map(Number);
+    const at = day === this.todayIso ? undefined : new Date(y, m - 1, d, 12).toISOString();
+    this.run(this.api.checkin(this.patientId(), ratings, at), () => {
+      this.checkin.set({});
+      this.checkinDay.set(this.todayIso);
+    });
   }
 
   protected remove(dose: DoseEntry): void {

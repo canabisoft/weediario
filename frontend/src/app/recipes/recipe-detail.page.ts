@@ -7,12 +7,13 @@ import { RecipeIngredient, RecipeView, RecipesApi } from '../core/api/recipes.ap
 import { AuthService } from '../core/auth/auth.service';
 import { formatCompact, formatDecimal } from '../shared/decimal';
 import { Icon } from '../shared/icon';
+import { RecipeFeedback } from './recipe-feedback';
 import { APPLICATION_LABEL, KIND_LABEL, STAGE_LABEL, UNIT_LABEL, batchLabel } from './recipe-labels';
 
 @Component({
   selector: 'app-recipe-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, RecipeFeedback],
   template: `
     <a routerLink="/receitas" class="text-sm text-fg-muted">← Receitas</a>
     @if (state(); as s) {
@@ -76,6 +77,10 @@ import { APPLICATION_LABEL, KIND_LABEL, STAGE_LABEL, UNIT_LABEL, batchLabel } fr
             <h2 class="font-semibold">Modo de preparo e observações</h2>
             <p class="mt-2 whitespace-pre-line break-words">{{ r.notes }}</p>
           </section>
+        }
+
+        @if (r.visibility === 'PUBLIC') {
+          <app-recipe-feedback [recipeId]="r.id" />
         }
 
         <div class="mt-4 flex flex-wrap gap-2">

@@ -15,6 +15,7 @@ import { Icon } from '../shared/icon';
 import { ScaleInput } from './scale-input';
 import {
   DOSE_UNIT_LABEL,
+  FORM_UNITS,
   INTENSITY_LABEL,
   ROUTE_LABEL,
   SIDE_EFFECT_LABEL,
@@ -72,7 +73,7 @@ const ROUTES = Object.keys(ROUTE_LABEL) as Route[];
               <input id="dose-amount" class="wd-input w-32 text-base" inputmode="decimal" autocomplete="off" [value]="amountText()"
                      (input)="amountText.set($any($event.target).value)" required />
               <select class="wd-input w-auto text-base" aria-label="Unidade" [value]="unit()" (change)="unit.set($any($event.target).value)">
-                @for (option of medicine.doseUnits; track option) {
+                @for (option of unitsOf(medicine); track option) {
                   <option [value]="option">{{ unitLabel[option] }}</option>
                 }
               </select>
@@ -212,7 +213,7 @@ export class DoseForm {
 
   protected choose(medicine: Medicine): void {
     this.selected.set(medicine);
-    this.unit.set(medicine.doseUnits[0]);
+    this.unit.set(FORM_UNITS[medicine.form].dose[0]);
     this.route.set(USUAL_ROUTE[medicine.form]);
   }
 
@@ -280,6 +281,10 @@ export class DoseForm {
           this.error.set(problemMessage(error));
         },
       });
+  }
+
+  protected unitsOf(medicine: Medicine): DoseUnit[] {
+    return FORM_UNITS[medicine.form].dose;
   }
 
   protected concentrationOf(medicine: Medicine): string {

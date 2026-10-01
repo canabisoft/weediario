@@ -80,7 +80,7 @@ public final class TreatmentLogUseCase {
                     .orElseThrow(() -> new ResourceNotFoundException("Remédio"));
             Dose dose = repository.saveDose(Dose.record(batch, command.amount(), command.unit(), command.route(),
                     command.takenAt(), command.notes(), userId, clock));
-            saveRatings(patientId, dose, RatingMoment.BEFORE, command.before(), userId);
+            saveRatings(patientId, dose, RatingMoment.BEFORE, command.before(), userId, null);
             for (SideEffectInput effect : nullSafe(command.sideEffects())) {
                 repository.saveSideEffect(SideEffectEntry.of(patientId, dose.id(), effect.effect(), effect.intensity(),
                         userId, clock));
@@ -105,19 +105,19 @@ public final class TreatmentLogUseCase {
         }
         unitOfWork.run(() -> {
             access.roleOn(patientId, userId);
-            saveRatings(patientId, dose(patientId, doseId), RatingMoment.AFTER, ratings, userId);
+            saveRatings(patientId, dose(patientId, doseId), RatingMoment.AFTER, ratings, userId, null);
         });
     }
 
-    /** Check-in sem dose: como foi o dia, quantas crises, nota do sono. */
-    public void checkin(UUID patientId, UUID userId, List<RatingInput> ratings) {
+    /** Check-in sem dose: como foi o dia, quantas crises, nota do sono. {@code at} permite anotar um dia anterior. */
+    public void checkin(UUID patientId, UUID userId, List<RatingInput> ratings, Instant at) {
         limit(ratings, MAX_RATINGS, "notas");
         if (nullSafe(ratings).isEmpty()) {
             throw new DomainException("Informe ao menos uma nota");
         }
         unitOfWork.run(() -> {
             access.roleOn(patientId, userId);
-            saveRatings(patientId, null, RatingMoment.CHECKIN, ratings, userId);
+            saveRatings(patientId, null, RatingMoment.CHECKIN, ratings, userId, at);
         });
     }
 
@@ -221,7 +221,8 @@ public final class TreatmentLogUseCase {
 
     // ------------------------------------------------------------------------------------- auxiliares
 
-    private void saveRatings(UUID patientId, Dose dose, RatingMoment moment, List<RatingInput> ratings, UUID userId) {
+    private void saveRatings(UUID patientId, Dose dose, RatingMoment moment, List<RatingInput> ratings, UUID userId,
+                             Instant at) {
         Set<UUID> seen = new HashSet<>();
         for (RatingInput input : nullSafe(ratings)) {
             if (!seen.add(input.symptomId())) {
@@ -230,7 +231,7 @@ public final class TreatmentLogUseCase {
             Symptom symptom = repository.findSymptom(input.symptomId())
                     .filter(s -> s.patientId().equals(patientId))
                     .orElseThrow(() -> new ResourceNotFoundException("Sintoma"));
-            repository.saveRating(SymptomRating.of(symptom, dose, moment, input.value(), userId, clock));
+            repository.saveRating(SymptomRating.of(symptom, dose, moment, input.value(), userId, at, clock));
         }
     }
 

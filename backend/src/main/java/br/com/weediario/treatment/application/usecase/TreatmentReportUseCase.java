@@ -131,7 +131,10 @@ public final class TreatmentReportUseCase {
         List<RatingEntry> ratings = all.stream().filter(r -> r.symptomId().equals(symptom.id())).toList();
         LocalDate firstEdge = period.from().plusDays(EDGE_DAYS - 1L);
         LocalDate lastEdge = period.to().minusDays(EDGE_DAYS - 1L);
-        Function<RatingEntry, LocalDate> day = r -> r.recordedAt().atZone(zone).toLocalDate();
+        // Nota ligada a uma dose conta no dia da dose; check-in, no dia em que foi feito.
+        Map<UUID, Instant> doseTimes = doses.stream().collect(Collectors.toMap(DoseEntry::id, DoseEntry::takenAt));
+        Function<RatingEntry, LocalDate> day = r -> (r.doseId() == null ? r.recordedAt() : doseTimes.getOrDefault(r.doseId(),
+                r.recordedAt())).atZone(zone).toLocalDate();
         List<Integer> before = new ArrayList<>();
         List<Integer> after = new ArrayList<>();
         for (DoseEntry dose : doses) {

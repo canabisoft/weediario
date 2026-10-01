@@ -8,7 +8,7 @@ export type RecipeApplication = 'FERTIGATION' | 'SOIL_MIX' | 'TEA' | 'FOLIAR' | 
 export type RecipeStage = 'VEGETATIVE' | 'FLOWERING' | 'ALL';
 export type RecipeVisibility = 'PUBLIC' | 'PRIVATE';
 export type IngredientUnit = 'G' | 'MG' | 'KG' | 'ML' | 'L' | 'TSP' | 'TBSP' | 'UNIT';
-export type RecipeSort = 'RECENT' | 'MOST_REPLICATED' | 'MOST_USED';
+export type RecipeSort = 'RECENT' | 'MOST_REPLICATED' | 'MOST_USED' | 'TOP_RATED';
 
 export interface RecipeSummary {
   readonly id: string;
@@ -25,6 +25,9 @@ export interface RecipeSummary {
   readonly replications: number;
   readonly diaries: number;
   readonly updatedAt: string;
+  readonly ratingCount: number;
+  /** Média de 1 a 5 (ausente sem avaliações). */
+  readonly rating?: number;
 }
 
 export interface RecipeIngredient {
@@ -55,6 +58,34 @@ export interface RecipeView {
   readonly replicatedFrom?: { readonly id: string; readonly name: string; readonly author: string };
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly ratingCount: number;
+  readonly rating?: number;
+}
+
+export interface RecipeRating {
+  readonly average?: number;
+  readonly count: number;
+  /** Nota de quem está vendo, se já avaliou. */
+  readonly mine?: number;
+  /** Logado, não é o autor e a receita é pública. */
+  readonly canRate: boolean;
+}
+
+export interface RecipeComment {
+  readonly id: string;
+  readonly author: string;
+  readonly body: string;
+  readonly createdAt: string;
+  /** Ocultado por denúncias (só moderadores veem). */
+  readonly hidden: boolean;
+  readonly canDelete: boolean;
+  readonly canReport: boolean;
+}
+
+/** {@code sharedProducts}: produtos de marca da receita que o grower já usa. */
+export interface RecipeRecommendation {
+  readonly recipe: RecipeSummary;
+  readonly sharedProducts: number;
 }
 
 export interface RecipeInput {
@@ -130,6 +161,44 @@ export class RecipesApi {
 
   suggestIngredients(q: string): Observable<string[]> {
     return this.http.get<string[]>('/api/v1/recipes/ingredients/suggest', { params: { q } });
+  }
+
+  recommended(options: { diaryId?: string; kind?: RecipeKind; size?: number } = {}): Observable<RecipeRecommendation[]> {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(options)) {
+      if (value !== undefined) {
+        params = params.set(key, String(value));
+      }
+    }
+    return this.http.get<RecipeRecommendation[]>('/api/v1/recipes/recommended', { params });
+  }
+
+  rating(id: string): Observable<RecipeRating> {
+    return this.http.get<RecipeRating>(`/api/v1/recipes/${id}/rating`);
+  }
+
+  rate(id: string, stars: number): Observable<RecipeRating> {
+    return this.http.put<RecipeRating>(`/api/v1/recipes/${id}/rating`, { stars });
+  }
+
+  removeRating(id: string): Observable<RecipeRating> {
+    return this.http.delete<RecipeRating>(`/api/v1/recipes/${id}/rating`);
+  }
+
+  comments(id: string, page = 0): Observable<Page<RecipeComment>> {
+    return this.http.get<Page<RecipeComment>>(`/api/v1/recipes/${id}/comments`, { params: { page } });
+  }
+
+  comment(id: string, body: string): Observable<RecipeComment> {
+    return this.http.post<RecipeComment>(`/api/v1/recipes/${id}/comments`, { body });
+  }
+
+  deleteComment(id: string, commentId: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/recipes/${id}/comments/${commentId}`);
+  }
+
+  reportComment(id: string, commentId: string): Observable<void> {
+    return this.http.post<void>(`/api/v1/recipes/${id}/comments/${commentId}/report`, {});
   }
 
   ofDiary(diaryId: string): Observable<RecipeSummary[]> {

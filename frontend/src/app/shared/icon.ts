@@ -30,6 +30,7 @@ const PATHS = {
   chat: 'M4 5h16v11H9l-5 4z',
   bell: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',
   shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4',
+  pill: 'M10.5 20.5a5 5 0 0 1-7-7l6-6a5 5 0 0 1 7 7zM7 10l7 7',
   check: 'M5 12.5l4.5 4.5L19 7.5',
   logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
   edit: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',

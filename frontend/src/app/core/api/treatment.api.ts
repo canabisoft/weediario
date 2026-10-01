@@ -300,8 +300,9 @@ export class TreatmentApi {
     return this.http.put<void>(`${BASE}/patients/${patientId}/doses/${doseId}/after`, { ratings });
   }
 
-  checkin(patientId: string, ratings: RatingInput[]): Observable<void> {
-    return this.http.post<void>(`${BASE}/patients/${patientId}/checkins`, { ratings });
+  /** @param at para anotar um dia anterior; sem ele, vale agora */
+  checkin(patientId: string, ratings: RatingInput[], at?: string): Observable<void> {
+    return this.http.post<void>(`${BASE}/patients/${patientId}/checkins`, compact({ ratings, at }));
   }
 
   timeline(patientId: string, from?: string, to?: string): Observable<Timeline> {

@@ -247,6 +247,39 @@ class TreatmentIntegrationTest extends IntegrationTestSupport {
         mvc.perform(authed(get(API + "/consent"), grower)).andExpect(jsonPath("$.accepted").value(false));
     }
 
+    @Test
+    void lateEntriesCountOnTheDayTheyHappenedAndDropsComeFirst() throws Exception {
+        Session grower = newGrower();
+        consent(grower);
+        String patientId = createPatient(grower, "Registro atrasado");
+        String pain = symptom(grower, patientId, "Dor", "SCALE");
+        String seizures = symptom(grower, patientId, "Crises", "COUNT");
+        String oil = medicine(grower, patientId, "{\"name\":\"Óleo\",\"form\":\"OIL\",\"cbd\":20,\"initialQuantity\":30}");
+        mvc.perform(authed(get(API + "/patients/{id}/medicines", patientId), grower))
+                .andExpect(jsonPath("$[0].doseUnits[0]").value("DROP"));
+
+        Instant twoDaysAgo = Instant.now().minus(2, ChronoUnit.DAYS);
+        recordDose(grower, patientId, """
+                {"batchId":"%s","amount":10,"unit":"DROP","takenAt":"%s","before":[{"symptomId":"%s","value":8}]}"""
+                .formatted(oil, twoDaysAgo, pain));
+        mvc.perform(authed(post(API + "/patients/{id}/checkins", patientId), grower).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ratings\":[{\"symptomId\":\"%s\",\"value\":3}],\"at\":\"%s\"}".formatted(seizures, twoDaysAgo)))
+                .andExpect(status().isCreated());
+        mvc.perform(authed(post(API + "/patients/{id}/checkins", patientId), grower).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ratings\":[{\"symptomId\":\"%s\",\"value\":1}],\"at\":\"%s\"}"
+                                .formatted(seizures, Instant.now().plus(1, ChronoUnit.DAYS))))
+                .andExpect(status().isUnprocessableEntity());
+
+        JsonNode days = body(mvc.perform(authed(get(API + "/patients/{id}/series", patientId), grower))
+                .andExpect(status().isOk()).andReturn()).get("days");
+        JsonNode today = days.get(days.size() - 1);
+        JsonNode thatDay = days.get(days.size() - 3);
+        assertThat(today.get("symptoms").size()).isZero();
+        assertThat(thatDay.get("doses").asInt()).isEqualTo(1);
+        assertThat(thatDay.get("symptoms").get(pain).asInt()).isEqualTo(8);
+        assertThat(thatDay.get("symptoms").get(seizures).asInt()).isEqualTo(3);
+    }
+
     // --------------------------------------------------------------------------------------- helpers
 
     private void consent(Session session) throws Exception {

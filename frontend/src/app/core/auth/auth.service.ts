@@ -39,9 +39,10 @@ export class AuthService {
     }
   }
 
-  async login(email: string, password: string): Promise<void> {
+  /** @param login e-mail ou apelido */
+  async login(login: string, password: string): Promise<void> {
     const response = await firstValueFrom(
-      this.http.post<AccessTokenResponse>(`${AUTH}/login`, { email, password }),
+      this.http.post<AccessTokenResponse>(`${AUTH}/login`, { login, password }),
     );
     this.token.set(response.accessToken);
     await firstValueFrom(this.loadMe());

@@ -9,6 +9,7 @@ import br.com.weediario.identity.domain.model.Email;
 import br.com.weediario.identity.domain.model.LoginAttempts;
 import br.com.weediario.identity.domain.model.PasswordHash;
 import br.com.weediario.identity.domain.model.User;
+import br.com.weediario.identity.domain.model.Username;
 import br.com.weediario.identity.domain.repository.LoginAttemptsRepository;
 import br.com.weediario.identity.domain.repository.UserRepository;
 import br.com.weediario.identity.domain.service.PasswordHasher;
@@ -46,14 +47,14 @@ public final class AuthenticateUserUseCase {
     }
 
     public AuthenticatedSession execute(Command command) {
-        String attemptKey = keyHasher.keyOf(normalize(command.email()));
+        String attemptKey = keyHasher.keyOf(normalize(command.login()));
         Instant now = clock.instant();
         LoginAttempts current = unitOfWork.execute(() -> attempts.find(attemptKey)).orElse(LoginAttempts.none(now));
         current.lockRemaining(now).ifPresent(remaining -> {
             throw new LoginThrottledException(remaining);
         });
 
-        Optional<User> candidate = findUser(command.email());
+        Optional<User> candidate = findUser(command.login());
         String password = command.password() == null ? "" : command.password();
         boolean passwordMatches = passwordHasher.matches(
                 password, candidate.map(User::passwordHash).orElse(timingDecoy));
@@ -70,19 +71,26 @@ public final class AuthenticateUserUseCase {
         });
     }
 
-    private Optional<User> findUser(String rawEmail) {
+    /** Com "@" é e-mail; sem, é apelido (que não aceita "@"). Formato inválido conta como conta inexistente. */
+    private Optional<User> findUser(String rawLogin) {
+        if (rawLogin == null) {
+            return Optional.empty();
+        }
         try {
-            return users.findByEmail(new Email(rawEmail));
+            return rawLogin.contains("@")
+                    ? users.findByEmail(new Email(rawLogin))
+                    : users.findByUsername(new Username(rawLogin.strip()).value());
         } catch (DomainException invalidFormat) {
             return Optional.empty();
         }
     }
 
-    private static String normalize(String rawEmail) {
-        return rawEmail == null ? "" : rawEmail.strip().toLowerCase(Locale.ROOT);
+    private static String normalize(String rawLogin) {
+        return rawLogin == null ? "" : rawLogin.strip().toLowerCase(Locale.ROOT);
     }
 
-    public record Command(String email, String password) {
+    /** @param login e-mail ou apelido */
+    public record Command(String login, String password) {
 
         @Override
         public String toString() {

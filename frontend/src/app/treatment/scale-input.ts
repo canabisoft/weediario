@@ -14,12 +14,12 @@ let nextId = 0;
     @if (kind() === 'SCALE') {
       <fieldset>
         <legend class="mb-1 text-sm font-medium">{{ label() }}</legend>
-        <div class="flex flex-wrap gap-1">
+        <div class="grid grid-cols-11 gap-0.5 sm:gap-1">
           @for (n of scale; track n) {
             <label class="cursor-pointer">
               <input type="radio" class="peer sr-only" [name]="group" [value]="n" [checked]="value() === n" (change)="value.set(n)" />
               <span
-                class="grid size-8 place-items-center rounded-lg border border-line text-sm tabular-nums peer-checked:border-accent peer-checked:bg-accent peer-checked:font-bold peer-checked:text-accent-fg peer-focus-visible:outline-2 peer-focus-visible:outline-accent"
+                class="grid h-9 place-items-center rounded-lg border border-line text-sm tabular-nums peer-checked:border-accent peer-checked:bg-accent peer-checked:font-bold peer-checked:text-accent-fg peer-focus-visible:outline-2 peer-focus-visible:outline-accent"
                 >{{ n }}</span
               >
             </label>

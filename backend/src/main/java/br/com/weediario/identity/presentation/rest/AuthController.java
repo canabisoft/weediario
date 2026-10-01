@@ -52,7 +52,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AccessTokenResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthenticatedSession session = authenticateUser.execute(
-                new AuthenticateUserUseCase.Command(request.email(), request.password()));
+                new AuthenticateUserUseCase.Command(request.login(), request.password()));
         return withSession(session);
     }
 

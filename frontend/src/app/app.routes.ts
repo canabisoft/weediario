@@ -108,6 +108,18 @@ export const routes: Routes = [
     loadComponent: () => import('./profile/my-profile.page').then((m) => m.MyProfilePage),
   },
   {
+    path: 'tratamento',
+    title: 'Tratamento · weediário',
+    canActivate: [authGuard],
+    loadComponent: () => import('./treatment/treatment.page').then((m) => m.TreatmentPage),
+  },
+  {
+    path: 'tratamento/:patientId',
+    title: 'Tratamento · weediário',
+    canActivate: [authGuard],
+    loadComponent: () => import('./treatment/patient.page').then((m) => m.TreatmentPatientPage),
+  },
+  {
     path: 'notificacoes',
     title: 'Notificações · weediário',
     canActivate: [authGuard],

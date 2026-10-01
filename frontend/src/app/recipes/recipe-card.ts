@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RecipeSummary } from '../core/api/recipes.api';
+import { formatDecimal } from '../shared/decimal';
 import { Icon } from '../shared/icon';
 import { APPLICATION_LABEL, KIND_LABEL, STAGE_LABEL, batchLabel } from './recipe-labels';
 
@@ -31,6 +32,12 @@ import { APPLICATION_LABEL, KIND_LABEL, STAGE_LABEL, batchLabel } from './recipe
         {{ r.ingredientNames.join(', ') }}{{ r.ingredientCount > r.ingredientNames.length ? '…' : '' }}
       </p>
       <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-muted">
+        @if (r.ratingCount && r.rating != null) {
+          <span class="inline-flex items-center gap-0.5 font-semibold text-fg" [title]="r.ratingCount + ' avaliações'">
+            <app-icon name="star" class="size-3.5 text-accent" [filled]="true" />{{ stars(r.rating) }}
+            <span class="font-normal text-fg-muted">({{ r.ratingCount }})</span>
+          </span>
+        }
         @if (showAuthor()) {
           <span>por {{ r.author }}</span>
         }
@@ -47,6 +54,10 @@ export class RecipeCard {
   protected readonly kind = KIND_LABEL;
   protected readonly application = APPLICATION_LABEL;
   protected readonly stage = STAGE_LABEL;
+
+  protected stars(value: number): string {
+    return formatDecimal(value, 1);
+  }
 
   protected batch(recipe: RecipeSummary): string {
     return batchLabel(recipe.application, recipe.batchLiters);

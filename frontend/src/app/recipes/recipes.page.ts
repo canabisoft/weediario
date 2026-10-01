@@ -7,11 +7,13 @@ import { RecipeKind, RecipeSort, RecipeSummary, RecipesApi } from '../core/api/r
 import { AuthService } from '../core/auth/auth.service';
 import { Icon } from '../shared/icon';
 import { RecipeCard } from './recipe-card';
+import { RecommendedRecipes } from './recommended-recipes';
 
 type Tab = 'explorar' | 'minhas';
 
 const SORTS: readonly { id: RecipeSort; label: string }[] = [
   { id: 'RECENT', label: 'Mais recentes' },
+  { id: 'TOP_RATED', label: 'Mais bem avaliadas' },
   { id: 'MOST_USED', label: 'Mais usadas em cultivos' },
   { id: 'MOST_REPLICATED', label: 'Mais replicadas' },
 ];
@@ -23,7 +25,7 @@ const SORTS: readonly { id: RecipeSort; label: string }[] = [
 @Component({
   selector: 'app-recipes-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, RecipeCard],
+  imports: [RouterLink, Icon, RecipeCard, RecommendedRecipes],
   template: `
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
@@ -73,6 +75,11 @@ const SORTS: readonly { id: RecipeSort; label: string }[] = [
           </button>
         </p>
       }
+    }
+
+    @if (tab() === 'explorar' && auth.isLoggedIn() && !q() && !produto() && !pagina()) {
+      <app-recommended-recipes class="mt-6" [kind]="kind()" />
+      <h2 class="mt-6 font-semibold">Todas as receitas</h2>
     }
 
     @if (result(); as page) {

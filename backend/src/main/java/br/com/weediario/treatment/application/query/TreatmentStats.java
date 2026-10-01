@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 /**
  * Agregações por dia do que foi registrado: mg usados e notas dos sintomas. São só somas e médias do histórico,
@@ -38,10 +37,13 @@ public final class TreatmentStats {
             dosesByDay.computeIfAbsent(dose.takenAt().atZone(zone).toLocalDate(), d -> new ArrayList<>()).add(dose);
         }
         Map<LocalDate, List<RatingEntry>> ratingsByDay = new TreeMap<>();
-        Stream.concat(doses.stream().flatMap(dose -> dose.ratings().stream()), checkins.stream())
-                .forEach(rating -> ratingsByDay
-                        .computeIfAbsent(rating.recordedAt().atZone(zone).toLocalDate(), d -> new ArrayList<>())
-                        .add(rating));
+        for (DoseEntry dose : doses) {
+            LocalDate day = dose.takenAt().atZone(zone).toLocalDate();
+            ratingsByDay.computeIfAbsent(day, d -> new ArrayList<>()).addAll(dose.ratings());
+        }
+        for (RatingEntry checkin : checkins) {
+            ratingsByDay.computeIfAbsent(checkin.recordedAt().atZone(zone).toLocalDate(), d -> new ArrayList<>()).add(checkin);
+        }
 
         List<DayPoint> points = new ArrayList<>();
         for (LocalDate day = from; !day.isAfter(to); day = day.plusDays(1)) {

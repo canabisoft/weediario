@@ -79,6 +79,24 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    void logsInWithUsernameOrEmail() throws Exception {
+        register("grower_apelido", "apelido@example.org");
+
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"login":"Grower_Apelido","password":"senha-bem-longa-123"}"""))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"login":"apelido@example.org","password":"senha-bem-longa-123"}"""))
+                .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"login":"grower_apelido","password":"senha-errada-errada"}"""))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void loginFailuresAreIndistinguishable() throws Exception {
         register("grower_tres", "tres@example.org");
 

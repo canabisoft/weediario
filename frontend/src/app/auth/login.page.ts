@@ -15,8 +15,16 @@ import { AuthService } from '../core/auth/auth.service';
 
       <form class="wd-card mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
         <div>
-          <label class="wd-label" for="email">E-mail</label>
-          <input id="email" type="email" class="wd-input" formControlName="email" autocomplete="username" />
+          <label class="wd-label" for="login">E-mail ou apelido</label>
+          <input
+            id="login"
+            type="text"
+            class="wd-input"
+            formControlName="login"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+          />
         </div>
         <div>
           <label class="wd-label" for="password">Senha</label>
@@ -52,7 +60,7 @@ export class LoginPage {
   readonly voltar = input<string | undefined>();
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    login: ['', Validators.required],
     password: ['', Validators.required],
   });
   protected readonly busy = signal(false);
@@ -65,8 +73,8 @@ export class LoginPage {
     this.busy.set(true);
     this.error.set(null);
     try {
-      const { email, password } = this.form.getRawValue();
-      await this.auth.login(email, password);
+      const { login, password } = this.form.getRawValue();
+      await this.auth.login(login, password);
       await this.router.navigateByUrl(safeReturnUrl(this.voltar()));
     } catch (error) {
       this.error.set(problemMessage(error, 'Não foi possível entrar.'));

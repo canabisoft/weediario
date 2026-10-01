@@ -209,7 +209,7 @@ public class PdfReportRenderer implements ReportRenderer {
             document.add(new Paragraph("Nenhum uso registrado no período.", body));
             return;
         }
-        PdfPTable table = table(new float[]{2.4f, 3.4f, 1.8f, 1.8f, 1.5f, 1.5f, 4, 3});
+        PdfPTable table = table(new float[]{2.4f, 3.2f, 2.3f, 1.9f, 1.5f, 1.5f, 3.8f, 2.8f});
         table.setHeaderRows(1);
         headerRow(table, "Data e hora", "Produto", "Quantidade", "Via", "THC (mg)", "CBD (mg)", "Notas (antes / depois)",
                 "Observações");
@@ -283,7 +283,7 @@ public class PdfReportRenderer implements ReportRenderer {
             return;
         }
         Plot notes = new Plot(canvas.createTemplate(CHART_WIDTH, 130), days.size());
-        notes.grid(font, 10, 0, "nota média do dia (0–10)");
+        notes.grid(font, 10, 1, "nota média do dia (0–10)");
         float legend = LEFT;
         for (int s = 0; s < scales.size(); s++) {
             UUID symptom = scales.get(s).id();

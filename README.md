@@ -115,6 +115,21 @@ O canal de notificações guarda as conexões abertas em memória: com mais de u
 avisa quem está conectado nela (para escalar, trocar o `SseNotificationHub` por um pub/sub, como o LISTEN/NOTIFY
 do Postgres).
 
+### Acompanhamento de tratamento (cannabis medicinal)
+
+Área privada em `/tratamento` para registrar o uso de remédios prontos (óleo, flor, pomada, gomas, extrato...),
+as notas de sintomas antes e depois, os efeitos indesejados e o estoque de cada lote, com um relatório em PDF para
+levar à consulta. Cada conta pode acompanhar perfis próprios ou de dependentes e convidar cuidadores.
+
+- **Só registro, nunca orientação.** O app não sugere dose, horário, produto ou ajuste (ver RDC 657/2022 da ANVISA
+  sobre software como dispositivo médico). Os mg são aritmética sobre a concentração do rótulo, e o relatório traz
+  somas e médias do que foi registrado, com o aviso em todas as páginas.
+- **Dado sensível (LGPD, art. 11).** Exige consentimento específico por conta, nunca aparece em feed, ranking,
+  perfil ou notificações, pode ser exportado em JSON e apagado por completo a qualquer momento.
+- **Textos cifrados.** Nomes e observações vão para o banco cifrados com AES-256-GCM. A chave é
+  `WEEDIARIO_HEALTH_KEY` no `.env`: `scripts/setup-env` cria e acrescenta a chave a um `.env` antigo. **Guarde uma
+  cópia segura dela**: sem a chave, esses textos ficam ilegíveis (inclusive em backups).
+
 ---
 
 ## Desenvolvimento local

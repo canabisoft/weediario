@@ -266,7 +266,7 @@ public class TreatmentController {
     @ResponseStatus(HttpStatus.CREATED)
     public void checkin(@AuthenticationPrincipal Jwt principal, @PathVariable UUID patientId,
                         @Valid @RequestBody RatingsRequest request) {
-        log.checkin(patientId, Viewer.requireId(principal), request.inputs());
+        log.checkin(patientId, Viewer.requireId(principal), request.inputs(), request.at());
     }
 
     @DeleteMapping("/patients/{patientId}/ratings/{ratingId}")
@@ -358,7 +358,8 @@ public class TreatmentController {
         }
     }
 
-    public record RatingsRequest(@NotNull @Size(min = 1, max = 12) List<@Valid RatingRequest> ratings) {
+    /** @param at só para check-in: quando a nota vale (para anotar um dia anterior); vazio = agora */
+    public record RatingsRequest(@NotNull @Size(min = 1, max = 12) List<@Valid RatingRequest> ratings, Instant at) {
 
         List<RatingInput> inputs() {
             return ratings.stream().map(RatingRequest::input).toList();

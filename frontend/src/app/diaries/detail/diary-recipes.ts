@@ -5,6 +5,7 @@ import { problemMessage } from '../../core/api/problem';
 import { RecipeSummary, RecipesApi } from '../../core/api/recipes.api';
 import { Icon } from '../../shared/icon';
 import { RecipeCard } from '../../recipes/recipe-card';
+import { RecommendedRecipes } from '../../recipes/recommended-recipes';
 
 const MAX_RECIPES = 5;
 
@@ -15,7 +16,7 @@ const MAX_RECIPES = 5;
 @Component({
   selector: 'app-diary-recipes',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, RecipeCard],
+  imports: [RouterLink, Icon, RecipeCard, RecommendedRecipes],
   template: `
     <h2 class="font-semibold">Receitas de nutrição</h2>
 
@@ -72,6 +73,10 @@ const MAX_RECIPES = 5;
       @if (error()) {
         <p role="alert" class="mt-2 text-sm text-danger">{{ error() }}</p>
       }
+      @if (recipes().length < max) {
+        <app-recommended-recipes class="mt-5" title="Sugestões para este cultivo" [diaryId]="diaryId()" [size]="2"
+                                 actionLabel="Usar neste cultivo" [refresh]="refresh()" (picked)="use($event)" />
+      }
     }
   `,
 })
@@ -90,6 +95,7 @@ export class DiaryRecipes {
     return this.mine().filter((recipe) => !linked.has(recipe.id));
   });
   protected readonly busy = signal(false);
+  protected readonly refresh = signal(0);
   protected readonly error = signal<string | null>(null);
 
   constructor() {
@@ -103,6 +109,11 @@ export class DiaryRecipes {
         }
       });
     });
+  }
+
+  /** Receita sugerida da comunidade: entra no cultivo como está (para ajustar, o caminho é replicar). */
+  protected use(recipe: RecipeSummary): void {
+    this.save([...this.recipes().map((r) => r.id), recipe.id]);
   }
 
   protected link(select: HTMLSelectElement): void {
@@ -123,6 +134,7 @@ export class DiaryRecipes {
     this.api.setDiaryRecipes(this.diaryId(), ids).subscribe({
       next: (recipes) => {
         this.recipes.set(recipes);
+        this.refresh.update((n) => n + 1);
         this.busy.set(false);
       },
       error: (error) => {
