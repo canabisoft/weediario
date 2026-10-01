@@ -26,5 +26,5 @@ public interface RecipeFeedbackRepository {
     long countCommentsByAuthorSince(UUID authorId, Instant since);
 
     /** Registra a denúncia (uma por grower) e devolve quantas denúncias distintas o comentário tem. */
-    long report(UUID commentId, UUID reporterId, Instant reportedAt);
+
 }

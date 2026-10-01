@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
+import { TERMS_VERSION } from '../legal/terms.page';
 import { PrivacyNote } from '../shared/privacy-note';
 
 @Component({
@@ -38,6 +39,14 @@ import { PrivacyNote } from '../shared/privacy-note';
           <p class="mt-1 text-xs text-fg-muted">Mínimo de 12 caracteres. Uma frase longa é mais segura e fácil de lembrar.</p>
         </div>
 
+        <label class="flex items-start gap-2 text-sm">
+          <input type="checkbox" class="mt-0.5 size-5" formControlName="acceptTerms" />
+          <span>
+            Li e aceito os <a routerLink="/termos" target="_blank" class="font-semibold text-accent">Termos de Uso</a>
+            (versão {{ termsVersion }}), incluindo a proibição de qualquer comércio. Tenho 18 anos ou mais.
+          </span>
+        </label>
+
         @if (error()) {
           <p role="alert" class="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{{ error() }}</p>
         }
@@ -63,7 +72,9 @@ export class RegisterPage {
     username: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(30), Validators.pattern(/^[A-Za-z0-9_.]+$/)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(12), Validators.maxLength(128)]],
+    acceptTerms: [false, [Validators.requiredTrue]],
   });
+  protected readonly termsVersion = TERMS_VERSION;
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -75,7 +86,7 @@ export class RegisterPage {
     this.error.set(null);
     try {
       const { username, email, password } = this.form.getRawValue();
-      await this.auth.register(username, email, password);
+      await this.auth.register(username, email, password, TERMS_VERSION);
       await this.router.navigateByUrl('/perfil');
     } catch (error) {
       this.error.set(problemMessage(error, 'Não foi possível criar a conta.'));

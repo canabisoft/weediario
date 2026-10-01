@@ -43,6 +43,8 @@ public class JwtAccessTokenIssuer implements AccessTokenIssuer {
                 .issuedAt(now)
                 .expiresAt(expiresAt)
                 .claim(SecurityConfig.ROLES_CLAIM, List.of(user.role().name()))
+                // Versão dos Termos de Uso aceita: sem a vigente, a API não aceita publicações.
+                .claim(TermsAcceptanceFilter.TERMS_CLAIM, user.termsVersion().orElse(""))
                 .build();
         JwsHeader header = JwsHeader.with(JwtConfig.ALGORITHM).build();
         String token = encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

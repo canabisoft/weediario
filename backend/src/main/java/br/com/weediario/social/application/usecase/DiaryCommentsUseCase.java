@@ -7,7 +7,9 @@ import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
 import br.com.weediario.social.application.port.DiaryAudience;
 import br.com.weediario.social.application.port.InteractionNotifier;
-import br.com.weediario.social.application.port.Pseudonymizer;
+import br.com.weediario.social.application.port.CommentModeration;
+import br.com.weediario.shared.domain.CommerceFilter;
+import br.com.weediario.shared.domain.CommerceFilter.Verdict;
 import br.com.weediario.social.application.query.CommentReadModel;
 import br.com.weediario.social.application.query.CommentReadModel.CommentView;
 import br.com.weediario.social.domain.model.Comment;
@@ -32,18 +34,18 @@ public final class DiaryCommentsUseCase {
     private final DiaryAudience diaries;
     private final CommentRepository comments;
     private final CommentReadModel readModel;
-    private final Pseudonymizer pseudonymizer;
+    private final CommentModeration moderation;
     private final InteractionNotifier notifier;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public DiaryCommentsUseCase(DiaryAudience diaries, CommentRepository comments, CommentReadModel readModel,
-                                Pseudonymizer pseudonymizer, InteractionNotifier notifier, UnitOfWork unitOfWork,
+                                CommentModeration moderation, InteractionNotifier notifier, UnitOfWork unitOfWork,
                                 Clock clock) {
         this.diaries = diaries;
         this.comments = comments;
         this.readModel = readModel;
-        this.pseudonymizer = pseudonymizer;
+        this.moderation = moderation;
         this.notifier = notifier;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
@@ -57,12 +59,25 @@ public final class DiaryCommentsUseCase {
         });
     }
 
+    /**
+     * Filtro anti-comércio: contato/PIX é bloqueado; cara de anúncio é salvo oculto e vai para a moderação
+     * (sem notificar o dono do diário enquanto isso).
+     */
     public UUID post(UUID diaryId, UUID authorId, String body) {
+        Verdict verdict = CommerceFilter.requireAllowedOrHeld(body);
         return unitOfWork.execute(() -> {
             CommentableDiary diary = visibleDiary(diaryId, Optional.of(authorId));
             ensureWithinRateLimit(authorId);
-            UUID id = comments.save(Comment.post(diary, authorId, body, clock)).id();
-            notifier.commentPosted(diary, authorId);
+            Comment comment = Comment.post(diary, authorId, body, clock);
+            if (verdict.held()) {
+                comment.holdForModeration();
+            }
+            UUID id = comments.save(comment).id();
+            if (verdict.held()) {
+                moderation.heldByFilter(id, verdict.reason());
+            } else {
+                notifier.commentPosted(diary, authorId);
+            }
             return id;
         });
     }
@@ -75,20 +90,6 @@ public final class DiaryCommentsUseCase {
                 throw new ResourceNotFoundException("Comentário");
             }
             comments.delete(comment.id());
-        });
-    }
-
-    public void report(UUID diaryId, UUID commentId, UUID reporterId) {
-        unitOfWork.run(() -> {
-            CommentableDiary diary = visibleDiary(diaryId, Optional.of(reporterId));
-            Comment comment = commentOf(diary, commentId);
-            if (!comment.canBeReportedBy(reporterId)) {
-                throw new DomainException("Não é possível denunciar o próprio comentário");
-            }
-            long reports = comments.report(comment.id(), pseudonymizer.pseudonymOf(reporterId, comment.id()),
-                    clock.instant());
-            comment.registerReports(reports);
-            comments.save(comment);
         });
     }
 

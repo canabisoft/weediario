@@ -62,13 +62,6 @@ public class DiarySocialController {
         comments.delete(diaryId, commentId, Viewer.requireId(principal), Viewer.isModerator(principal));
     }
 
-    @PostMapping("/comments/{commentId}/report")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void reportComment(@AuthenticationPrincipal Jwt principal, @PathVariable UUID diaryId,
-                              @PathVariable UUID commentId) {
-        comments.report(diaryId, commentId, Viewer.requireId(principal));
-    }
-
     /** Só contagens; {@code mine} traz apenas as reações de quem está logado. */
     @GetMapping("/reactions")
     public ReactionSummary reactions(@AuthenticationPrincipal Jwt principal, @PathVariable UUID diaryId) {

@@ -2,6 +2,7 @@ package br.com.weediario.social.infrastructure.config;
 
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.social.application.port.DiaryAudience;
+import br.com.weediario.social.application.port.CommentModeration;
 import br.com.weediario.social.application.port.GrowerLookup;
 import br.com.weediario.social.application.port.InteractionNotifier;
 import br.com.weediario.social.application.port.Pseudonymizer;
@@ -10,7 +11,6 @@ import br.com.weediario.social.application.query.GrowerDirectory;
 import br.com.weediario.social.application.usecase.DiaryCommentsUseCase;
 import br.com.weediario.social.application.usecase.DiaryReactionsUseCase;
 import br.com.weediario.social.application.usecase.GrowersUseCase;
-import br.com.weediario.social.application.usecase.ModerateCommentsUseCase;
 import br.com.weediario.social.domain.repository.CommentRepository;
 import br.com.weediario.social.domain.repository.FollowRepository;
 import br.com.weediario.social.domain.repository.ReactionRepository;
@@ -24,9 +24,9 @@ public class SocialConfig {
 
     @Bean
     DiaryCommentsUseCase diaryCommentsUseCase(DiaryAudience diaries, CommentRepository comments,
-                                              CommentReadModel readModel, Pseudonymizer pseudonymizer,
+                                              CommentReadModel readModel, CommentModeration moderation,
                                               InteractionNotifier notifier, UnitOfWork unitOfWork, Clock clock) {
-        return new DiaryCommentsUseCase(diaries, comments, readModel, pseudonymizer, notifier, unitOfWork, clock);
+        return new DiaryCommentsUseCase(diaries, comments, readModel, moderation, notifier, unitOfWork, clock);
     }
 
     @Bean
@@ -40,11 +40,5 @@ public class SocialConfig {
                                                 Pseudonymizer pseudonymizer, InteractionNotifier notifier,
                                                 UnitOfWork unitOfWork, Clock clock) {
         return new DiaryReactionsUseCase(diaries, reactions, pseudonymizer, notifier, unitOfWork, clock);
-    }
-
-    @Bean
-    ModerateCommentsUseCase moderateCommentsUseCase(CommentRepository comments, CommentReadModel readModel,
-                                                    UnitOfWork unitOfWork) {
-        return new ModerateCommentsUseCase(comments, readModel, unitOfWork);
     }
 }

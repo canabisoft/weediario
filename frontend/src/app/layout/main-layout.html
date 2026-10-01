@@ -163,6 +163,20 @@
     </div>
   </ng-template>
 
+  @if (auth.needsTermsAcceptance()) {
+    <p role="status" class="flex flex-wrap items-center justify-center gap-3 border-b border-line bg-warn/15 px-4 py-2 text-sm">
+      Atualizamos os Termos de Uso. Pra continuar publicando, leia e aceite a nova versão.
+      <a routerLink="/termos" class="font-semibold text-accent underline">Ler e aceitar</a>
+    </p>
+  }
+
+  @if (appUpdate.available()) {
+    <p role="status" class="flex flex-wrap items-center justify-center gap-3 border-b border-line bg-accent/15 px-4 py-2 text-sm">
+      Tem versão nova do weediário.
+      <button type="button" class="font-semibold text-accent underline" (click)="appUpdate.apply()">Atualizar agora</button>
+    </p>
+  }
+
   @if (!connectivity.online()) {
     <p role="status" class="border-b border-line bg-surface-raised px-4 py-2 text-center text-sm text-fg-muted">
       Sem conexão. As ferramentas continuam funcionando normalmente.

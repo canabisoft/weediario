@@ -6,6 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ConnectivityService } from '../core/network/connectivity.service';
 import { AuthService } from '../core/auth/auth.service';
 import { NotificationCenter } from '../core/notifications/notification-center';
+import { AppUpdateService } from '../core/update/app-update.service';
 import { ThemeService } from '../core/theme/theme.service';
 import { Avatar } from '../shared/avatar';
 import { Icon, IconName } from '../shared/icon';
@@ -37,6 +38,7 @@ export class MainLayout {
   protected readonly auth = inject(AuthService);
   protected readonly connectivity = inject(ConnectivityService);
   protected readonly notifications = inject(NotificationCenter);
+  protected readonly appUpdate = inject(AppUpdateService);
   private readonly router = inject(Router);
   /** Sem suporte a matchMedia (navegadores antigos), assume celular: a gaveta sempre funciona. */
   private readonly desktopMedia = desktopMediaQuery(inject(DOCUMENT).defaultView);
@@ -61,6 +63,8 @@ export class MainLayout {
   protected readonly secondaryNav: readonly NavItem[] = [
     { path: '/ferramentas', label: 'Ferramentas', icon: 'tools' },
     { path: '/ajustes', label: 'Ajustes', icon: 'settings' },
+    { path: '/manifesto', label: 'Manifesto', icon: 'shield' },
+    { path: '/termos', label: 'Termos de Uso', icon: 'diaries' },
   ];
 
   constructor() {

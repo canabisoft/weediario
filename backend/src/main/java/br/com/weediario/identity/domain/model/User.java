@@ -27,12 +27,16 @@ public final class User {
     private AccountStatus status;
     private String bio;
     private UUID avatarImageId;
+    private String termsVersion;
+    private Instant termsAcceptedAt;
+    /** Bio e foto ocultadas do público pela moderação (o dono continua vendo). */
+    private boolean profileHidden;
     private final Instant createdAt;
     private Instant updatedAt;
 
     private User(UserId id, Username username, Email email, PasswordHash passwordHash,
-                 Role role, AccountStatus status, String bio, UUID avatarImageId,
-                 Instant createdAt, Instant updatedAt) {
+                 Role role, AccountStatus status, String bio, UUID avatarImageId, String termsVersion,
+                 Instant termsAcceptedAt, boolean profileHidden, Instant createdAt, Instant updatedAt) {
         this.id = Guard.notNull(id, "Id");
         this.username = Guard.notNull(username, "Nome de usuário");
         this.email = Guard.notNull(email, "E-mail");
@@ -41,24 +45,32 @@ public final class User {
         this.status = Guard.notNull(status, "Status");
         this.bio = validBio(bio);
         this.avatarImageId = avatarImageId;
+        this.termsVersion = termsVersion;
+        this.termsAcceptedAt = termsAcceptedAt;
+        this.profileHidden = profileHidden;
         this.createdAt = Guard.notNull(createdAt, "Data de criação");
         this.updatedAt = Guard.notNull(updatedAt, "Data de atualização");
     }
 
-    public static User register(Username username, Email email, PasswordHash passwordHash, Clock clock) {
+    /** Só cria a conta com o aceite da versão vigente dos Termos de Uso (versão e data/hora ficam registradas). */
+    public static User register(Username username, Email email, PasswordHash passwordHash, String acceptedTermsVersion,
+                                Clock clock) {
         if (username.isReserved()) {
             throw new DomainException("Nome de usuário indisponível");
         }
+        String terms = TermsOfUse.requireCurrent(acceptedTermsVersion);
         Instant now = clock.instant();
         return new User(UserId.newId(), username, email, passwordHash, Role.GROWER, AccountStatus.ACTIVE, null, null,
-                now, now);
+                terms, now, false, now, now);
     }
 
     /** Reconstitui um usuário já persistido; não aplica regras de criação. */
     public static User restore(UserId id, Username username, Email email, PasswordHash passwordHash,
                                Role role, AccountStatus status, String bio, UUID avatarImageId,
+                               String termsVersion, Instant termsAcceptedAt, boolean profileHidden,
                                Instant createdAt, Instant updatedAt) {
-        return new User(id, username, email, passwordHash, role, status, bio, avatarImageId, createdAt, updatedAt);
+        return new User(id, username, email, passwordHash, role, status, bio, avatarImageId, termsVersion,
+                termsAcceptedAt, profileHidden, createdAt, updatedAt);
     }
 
     public boolean canAuthenticate() {
@@ -83,9 +95,50 @@ public final class User {
         return previous;
     }
 
+    public void acceptTerms(String version, Clock clock) {
+        this.termsVersion = TermsOfUse.requireCurrent(version);
+        this.termsAcceptedAt = clock.instant();
+        this.updatedAt = this.termsAcceptedAt;
+    }
+
+    public boolean hasAcceptedCurrentTerms() {
+        return TermsOfUse.CURRENT_VERSION.equals(termsVersion);
+    }
+
     public void suspend(Clock clock) {
-        this.status = AccountStatus.SUSPENDED;
+        changeStatus(AccountStatus.SUSPENDED, clock);
+    }
+
+    public void ban(Clock clock) {
+        changeStatus(AccountStatus.BANNED, clock);
+    }
+
+    public void reinstate(Clock clock) {
+        changeStatus(AccountStatus.ACTIVE, clock);
+    }
+
+    private void changeStatus(AccountStatus newStatus, Clock clock) {
+        if (role != Role.GROWER) {
+            throw new DomainException("Contas da equipe não são moderadas por aqui");
+        }
+        this.status = newStatus;
         this.updatedAt = clock.instant();
+    }
+
+    /** Moderação: oculta (ou volta a mostrar) bio e foto para o público. */
+    public void hideProfile(boolean hidden, Clock clock) {
+        this.profileHidden = hidden;
+        this.updatedAt = clock.instant();
+    }
+
+    /** Moderação: remove bio e foto. @return a foto removida, para o chamador apagar o arquivo */
+    public Optional<UUID> clearProfile(Clock clock) {
+        Optional<UUID> previous = Optional.ofNullable(avatarImageId);
+        this.bio = null;
+        this.avatarImageId = null;
+        this.profileHidden = false;
+        this.updatedAt = clock.instant();
+        return previous;
     }
 
     public UserId id() {
@@ -118,6 +171,18 @@ public final class User {
 
     public Optional<UUID> avatarImageId() {
         return Optional.ofNullable(avatarImageId);
+    }
+
+    public Optional<String> termsVersion() {
+        return Optional.ofNullable(termsVersion);
+    }
+
+    public Optional<Instant> termsAcceptedAt() {
+        return Optional.ofNullable(termsAcceptedAt);
+    }
+
+    public boolean profileHidden() {
+        return profileHidden;
     }
 
     public Instant createdAt() {

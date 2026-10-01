@@ -17,47 +17,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ModerationIntegrationTest extends IntegrationTestSupport {
 
-    // ---------------------------------------------------------------------------------- comentários
-
-    @Test
-    void moderatorReviewsReportedCommentsWithoutSeeingWhoReported() throws Exception {
-        Session owner = newGrower();
-        Session author = newGrower();
-        Session moderator = moderator();
-        UUID diaryId = createDiary(owner, "Moderada", "PUBLIC", LocalDate.now().toString());
-        String commentId = comment(author, diaryId, "comentário polêmico");
-        for (int i = 0; i < 3; i++) {
-            report(newGrower(), diaryId, commentId);
-        }
-
-        mvc.perform(authed(get("/api/v1/moderation/comments"), owner)).andExpect(status().isForbidden());
-        mvc.perform(get("/api/v1/moderation/comments")).andExpect(status().isUnauthorized());
-
-        JsonNode queued = queuedComment(moderator, commentId);
-        assertThat(queued.get("hidden").asBoolean()).isTrue();
-        assertThat(queued.get("reports").asInt()).isEqualTo(3);
-        assertThat(queued.get("author").asText()).isEqualTo(author.username());
-        assertThat(queued.get("diaryTitle").asText()).isEqualTo("Tenda de teste");
-        assertThat(queued.fieldNames()).toIterable().doesNotContain("reporter", "reporters");
-        mvc.perform(authed(get("/api/v1/moderation/comments/counts"), moderator))
-                .andExpect(jsonPath("$.hidden").isNumber());
-
-        // Denúncias improcedentes: volta a aparecer e sai da fila.
-        mvc.perform(authed(post("/api/v1/moderation/comments/{id}/keep", commentId), owner))
-                .andExpect(status().isForbidden());
-        mvc.perform(authed(post("/api/v1/moderation/comments/{id}/keep", commentId), moderator))
-                .andExpect(status().isNoContent());
-        mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId)).andExpect(jsonPath("$.items[0].id").value(commentId));
-        assertThat(queuedComment(moderator, commentId)).isNull();
-
-        // Nova denúncia volta para a fila, e a moderação pode remover.
-        report(newGrower(), diaryId, commentId);
-        assertThat(queuedComment(moderator, commentId).get("reports").asInt()).isEqualTo(1);
-        mvc.perform(authed(delete("/api/v1/moderation/comments/{id}", commentId), moderator))
-                .andExpect(status().isNoContent());
-        mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId)).andExpect(jsonPath("$.totalItems").value(0));
-    }
-
     // ------------------------------------------------------------------------------------- catálogo
 
     @Test
@@ -156,12 +115,6 @@ class ModerationIntegrationTest extends IntegrationTestSupport {
 
     // --------------------------------------------------------------------------------------- helpers
 
-    private JsonNode queuedComment(Session moderator, String commentId) throws Exception {
-        JsonNode items = body(mvc.perform(authed(get("/api/v1/moderation/comments?size=100"), moderator))
-                .andExpect(status().isOk()).andReturn()).get("items");
-        return find(items, commentId);
-    }
-
     private static JsonNode find(JsonNode items, String id) {
         for (JsonNode item : items) {
             if (item.get("id").asText().equals(id)) {
@@ -169,17 +122,6 @@ class ModerationIntegrationTest extends IntegrationTestSupport {
             }
         }
         return null;
-    }
-
-    private String comment(Session author, UUID diaryId, String text) throws Exception {
-        return body(mvc.perform(authed(post("/api/v1/diaries/{id}/comments", diaryId), author)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"body\":\"" + text + "\"}"))
-                .andExpect(status().isCreated()).andReturn()).get("id").asText();
-    }
-
-    private void report(Session reporter, UUID diaryId, String commentId) throws Exception {
-        mvc.perform(authed(post("/api/v1/diaries/{d}/comments/{c}/report", diaryId, commentId), reporter))
-                .andExpect(status().isNoContent());
     }
 
     private String resolve(Session grower, String kind, String payload) throws Exception {

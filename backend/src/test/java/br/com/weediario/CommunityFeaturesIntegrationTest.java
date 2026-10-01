@@ -156,7 +156,8 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
     void reservedUsernamesCannotBeRegistered() throws Exception {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username":"ranking","email":"r@example.org","password":"senha-bem-longa-123"}"""))
+                                {"username":"ranking","email":"r@example.org","password":"senha-bem-longa-123",
+                                 "acceptedTermsVersion":"1.0"}"""))
                 .andExpect(status().isUnprocessableEntity());
     }
 

@@ -103,9 +103,21 @@ de acesso e não repassa o IP do visitante. O cookie de sessão é `Secure` e s�
 
 ### Moderação
 
-O painel `/moderacao` (denúncias de comentários e cadastros da comunidade no catálogo) aparece para contas com papel
-`MODERATOR` ou `ADMIN`. Ainda não há tela para promover alguém; use o banco e peça para a pessoa entrar de novo
-(o papel vai no token de acesso):
+Regras em `/termos` (Termos de Uso, versão atual 1.0). O cadastro exige o aceite, e o banco guarda só a versão e a
+data/hora. Ao mudar o texto, suba `TermsOfUse.CURRENT_VERSION` (backend) e `TERMS_VERSION` (frontend): quem aceitou uma
+versão antiga continua lendo, baixando e apagando dados, mas não publica até aceitar a nova.
+
+- **Filtro anti-comércio** (`CommerceFilter`): bloqueia telefone, CPF/CNPJ, chave PIX e links de WhatsApp/Telegram;
+  segura para revisão textos com cara de anúncio ("vendo 5g", "chama no zap", "faço entrega"). Vale para comentários,
+  diários e updates públicos, reviews, receitas, comentários de receita e bio. Nomes do catálogo são só bloqueados.
+- **Denúncias** em qualquer conteúdo público, com motivo e de forma anônima (pseudônimo HMAC por conteúdo). Com 3
+  denúncias distintas o conteúdo sai do ar até a moderação decidir.
+- **Painel `/moderacao`** (papel `MODERATOR` ou `ADMIN`): fila unificada, manter/remover, suspender ou banir, reativar
+  conta. Cada decisão vai para `moderation_log` (só inserção, 5 anos), sem IP, sem quem denunciou e sem o conteúdo, só
+  o SHA-256 do texto removido. `ADMIN` exporta o log em CSV para atender ordem judicial.
+
+Ainda não há tela para promover moderadores; use o banco e peça para a pessoa entrar de novo (o papel vai no token de
+acesso):
 
 ```sh
 docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "update users set role = '"'"'MODERATOR'"'"' where username = '"'"'apelido'"'"'"'

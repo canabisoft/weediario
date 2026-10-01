@@ -14,6 +14,9 @@ public interface RefreshTokenRepository {
 
     void revokeFamily(UUID familyId, Instant now);
 
+    /** Encerra todas as sessões da conta (suspensão ou banimento). */
+    void revokeAllOfUser(UUID userId, Instant now);
+
     /** Se a sessão (família) ainda tem algum token não revogado e não expirado. */
     boolean hasActiveToken(UUID familyId, Instant now);
 }

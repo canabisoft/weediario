@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.UUID;
@@ -37,6 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public abstract class IntegrationTestSupport {
 
     protected static final String PASSWORD = "senha-bem-longa-123";
+    /** Versão vigente dos Termos de Uso (o cadastro exige o aceite). */
+    protected static final String TERMS = "1.0";
 
     @Autowired
     protected MockMvc mvc;
@@ -58,7 +61,8 @@ public abstract class IntegrationTestSupport {
         String email = username + "@example.org";
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username":"%s","email":"%s","password":"%s"}""".formatted(username, email, PASSWORD)))
+                                {"username":"%s","email":"%s","password":"%s","acceptedTermsVersion":"%s"}"""
+                                .formatted(username, email, PASSWORD, TERMS)))
                 .andExpect(status().isCreated());
         MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -99,6 +103,13 @@ public abstract class IntegrationTestSupport {
                 .andExpect(status().isCreated())
                 .andReturn();
         return UUID.fromString(body(result).get("id").asText());
+    }
+
+    /** Denúncia pelo endpoint unificado de moderação. */
+    protected ResultActions report(Session reporter, String targetType, Object targetId, String reason) throws Exception {
+        return mvc.perform(authed(post("/api/v1/reports"), reporter).contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"targetType":"%s","targetId":"%s","reason":"%s"}""".formatted(targetType, targetId, reason)));
     }
 
     protected MockHttpServletRequestBuilder authed(MockHttpServletRequestBuilder request, Session session) {

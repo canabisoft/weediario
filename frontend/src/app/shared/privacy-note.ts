@@ -2,16 +2,19 @@ import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, inject, input
 import { Icon } from './icon';
 
 /**
- * Mensagens de privacidade exibidas em rodízio. Alternam entre os dois compromissos da plataforma:
- * não guardar logs e limpar os metadados das fotos antes de publicar.
+ * Mensagens exibidas em rodízio. Alternam entre os três compromissos da plataforma: não guardar logs, limpar os
+ * metadados das fotos antes de publicar e não ser lugar de comércio (Termos de Uso).
  */
 export const PRIVACY_MESSAGES: readonly string[] = [
   'Aqui não tem log: o que rola na sua tenda fica entre você e a comunidade.',
   'Foto limpa: a gente tira GPS, modelo do celular e data antes de postar.',
+  'Aqui é diário, não é feira: nada de venda, troca ou contato pra negócio.',
   'Não guardamos logs. Seu corre é só seu.',
   'Antes de ir pro ar, cada foto passa por uma faxina nos metadados.',
+  'Viu alguém vendendo? Denuncia, que a moderação resolve. A denúncia é anônima.',
   'Sem logs, sem rastro das suas atividades. Cultiva em paz.',
   'Postou foto? Relaxa, os metadados já ficaram pra trás.',
+  'Telefone, PIX e link de grupo não passam: o weediário é pra trocar experiência, não pra negociar.',
 ];
 
 const ROTATION_MS = 7000;

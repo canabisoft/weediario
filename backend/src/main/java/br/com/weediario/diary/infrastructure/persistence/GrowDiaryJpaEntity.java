@@ -88,6 +88,9 @@ public class GrowDiaryJpaEntity {
     @Column(nullable = false, length = 20)
     private Visibility visibility;
 
+    @Column(name = "moderation_hold", nullable = false)
+    private boolean moderationHold;
+
     @Column(name = "started_on", nullable = false)
     private LocalDate startedOn;
 
@@ -134,6 +137,7 @@ public class GrowDiaryJpaEntity {
         entity.setupSnapshot = diary.setup().orElse(null);
         entity.status = diary.status();
         entity.visibility = diary.visibility();
+        entity.moderationHold = diary.moderationHold();
         entity.startedOn = diary.startedOn();
         entity.endedOn = diary.endedOn();
         entity.harvestDryGrams = diary.harvest().map(Harvest::dryGrams).orElse(null);
@@ -149,6 +153,6 @@ public class GrowDiaryJpaEntity {
         return GrowDiary.restore(new GrowDiaryId(id), new GrowerId(ownerId), title, new Strain(strainName, breeder, strainId, breederId),
                 floweringType, seedSex, medium, setupSnapshot, status, visibility, startedOn, endedOn,
                 harvestDryGrams == null ? null : new Harvest(harvestDryGrams, harvestPlants), currentStage, lastUpdateOn,
-                createdAt, updatedAt);
+                createdAt, updatedAt, moderationHold);
     }
 }

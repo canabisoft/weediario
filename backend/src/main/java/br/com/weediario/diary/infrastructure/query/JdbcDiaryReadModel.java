@@ -39,7 +39,7 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
     private static final String SELECT = """
             select d.id, d.title, u.username, d.strain_name, d.breeder, d.strain_id, d.flowering_type, d.seed_sex, d.medium,
                    d.status, d.visibility, d.current_stage, d.started_on, d.ended_on, d.last_update_on,
-                   d.harvest_dry_grams, d.harvest_plants,
+                   d.harvest_dry_grams, d.harvest_plants, d.moderation_hold,
                    (select count(*) from diary_updates du where du.diary_id = d.id) as updates_count,
                    (select count(*) from diary_comments dc where dc.diary_id = d.id and not dc.hidden) as comments_count,
                    (select count(*) from diary_reactions dr where dr.diary_id = d.id) as reactions_count,
@@ -170,7 +170,8 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
             rs.getLong("comments_count"),
             rs.getLong("reactions_count"),
             rs.getObject("cover_photo_id", UUID.class),
-            parseSetup(rs.getString("setup_snapshot")));
+            parseSetup(rs.getString("setup_snapshot")),
+            rs.getBoolean("moderation_hold"));
     }
 
     @Override

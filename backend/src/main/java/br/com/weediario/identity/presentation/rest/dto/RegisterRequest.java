@@ -18,7 +18,11 @@ public record RegisterRequest(
 
         @NotBlank
         @Size(min = PasswordPolicy.MIN_LENGTH, max = PasswordPolicy.MAX_LENGTH)
-        String password) {
+        String password,
+
+        /** Versão dos Termos de Uso aceita (caixa marcada no cadastro). Sem ela, não há cadastro. */
+        @NotBlank @Size(max = 10)
+        String acceptedTermsVersion) {
 
     @Override
     public String toString() {

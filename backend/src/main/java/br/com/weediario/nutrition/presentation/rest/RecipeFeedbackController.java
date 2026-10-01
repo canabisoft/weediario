@@ -93,12 +93,6 @@ public class RecipeFeedbackController {
         feedback.deleteComment(id, commentId, Viewer.requireId(principal), Viewer.isModerator(principal));
     }
 
-    @PostMapping("/api/v1/recipes/{id}/comments/{commentId}/report")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void report(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id, @PathVariable UUID commentId) {
-        feedback.report(id, commentId, Viewer.requireId(principal));
-    }
-
     public record RatingRequest(@NotNull @Min(1) @Max(5) Integer stars) {
     }
 

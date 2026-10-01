@@ -33,6 +33,11 @@ public class JpaRefreshTokenRepository implements RefreshTokenRepository {
     }
 
     @Override
+    public void revokeAllOfUser(UUID userId, Instant now) {
+        jpa.revokeAllOfUser(userId, now);
+    }
+
+    @Override
     public boolean hasActiveToken(UUID familyId, Instant now) {
         return jpa.existsByFamilyIdAndRevokedAtIsNullAndExpiresAtAfter(familyId, now);
     }

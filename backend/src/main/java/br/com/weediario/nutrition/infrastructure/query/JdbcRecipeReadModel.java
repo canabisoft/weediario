@@ -151,9 +151,10 @@ public class JdbcRecipeReadModel implements RecipeReadModel {
     }
 
     @Override
-    public PageResult<CommentRow> comments(UUID recipeId, boolean includeHidden, PageQuery page) {
-        String where = " where c.recipe_id = :recipeId" + (includeHidden ? "" : " and not c.hidden");
+    public PageResult<CommentRow> comments(UUID recipeId, boolean includeHidden, Optional<UUID> viewerId, PageQuery page) {
+        String where = " where c.recipe_id = :recipeId" + (includeHidden ? "" : " and (not c.hidden or c.author_id = :viewerId)");
         MapSqlParameterSource params = new MapSqlParameterSource("recipeId", recipeId)
+                .addValue("viewerId", viewerId.orElse(null), Types.OTHER)
                 .addValue("limit", page.size()).addValue("offset", page.offset());
         String from = " from recipe_comments c join users u on u.id = c.author_id and u.status = 'ACTIVE'";
         Long total = jdbc.queryForObject("select count(*)" + from + where, params, Long.class);

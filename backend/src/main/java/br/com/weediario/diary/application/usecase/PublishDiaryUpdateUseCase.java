@@ -2,7 +2,10 @@ package br.com.weediario.diary.application.usecase;
 
 import br.com.weediario.diary.application.DiaryAccess;
 import br.com.weediario.diary.application.DiaryUpdateView;
+import br.com.weediario.diary.application.port.DiaryModeration;
 import br.com.weediario.diary.application.port.PhotoLibrary;
+import br.com.weediario.shared.domain.CommerceFilter;
+import br.com.weediario.shared.domain.CommerceFilter.Verdict;
 import br.com.weediario.diary.application.port.UpdateNotifier;
 import br.com.weediario.diary.domain.model.DiaryUpdate;
 import br.com.weediario.diary.domain.model.GrowDiary;
@@ -31,17 +34,20 @@ public final class PublishDiaryUpdateUseCase {
     private final DiaryUpdateRepository updates;
     private final PhotoLibrary photos;
     private final UpdateNotifier notifier;
+    private final DiaryModeration moderation;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public PublishDiaryUpdateUseCase(DiaryAccess access, GrowDiaryRepository diaries, DiaryUpdateRepository updates,
-                                     PhotoLibrary photos, UpdateNotifier notifier, UnitOfWork unitOfWork,
+                                     PhotoLibrary photos, UpdateNotifier notifier, DiaryModeration moderation,
+                                     UnitOfWork unitOfWork,
                                      Clock clock) {
         this.access = access;
         this.diaries = diaries;
         this.updates = updates;
         this.photos = photos;
         this.notifier = notifier;
+        this.moderation = moderation;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -61,8 +67,17 @@ public final class PublishDiaryUpdateUseCase {
                     command.photoIds(),
                     clock);
             photos.attach(author, update.photoIds());
+            // Nota em diário público passa pelo filtro anti-comércio; retida, o diário inteiro sai do público.
+            Verdict verdict = diary.visibility() == Visibility.PUBLIC ? CommerceFilter.requireAllowedOrHeld(command.note())
+                    : Verdict.ALLOWED;
+            if (verdict.held()) {
+                diary.holdForModeration(clock);
+            }
             diaries.save(diary);
             DiaryUpdateView view = DiaryUpdateView.of(updates.save(update), diary);
+            if (verdict.held()) {
+                moderation.heldByFilter(diary.id().value(), verdict.reason());
+            }
             notifier.updatePublished(diary.id().value(), diary.ownerId().value(),
                     diary.visibility() == Visibility.PUBLIC);
             return view;

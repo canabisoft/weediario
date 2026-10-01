@@ -93,6 +93,7 @@ public interface DiaryReadModel {
             long commentsCount,
             long reactionsCount,
             UUID coverPhotoId,
-            SetupSnapshot setup) {
+            SetupSnapshot setup,
+            boolean moderationHold) {
     }
 }

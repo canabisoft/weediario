@@ -21,7 +21,8 @@ import java.util.UUID;
 public class JdbcGrowerDirectory implements GrowerDirectory {
 
     private static final String STATS = """
-            select u.id, u.username, u.bio, u.avatar_image_id is not null as has_avatar,
+            select u.id, u.username, case when u.profile_hidden then null else u.bio end as bio,
+                   u.avatar_image_id is not null and not u.profile_hidden as has_avatar,
                    (select count(*) from grow_diaries d
                      where d.owner_id = u.id and d.visibility = 'PUBLIC') as diaries,
                    (select count(*) from diary_reactions r join grow_diaries d on d.id = r.diary_id
@@ -109,7 +110,7 @@ public class JdbcGrowerDirectory implements GrowerDirectory {
     @Override
     public List<FollowedGrower> followedBy(UUID followerId) {
         return jdbc.query("""
-                select u.username, u.avatar_image_id is not null as has_avatar
+                select u.username, u.avatar_image_id is not null and not u.profile_hidden as has_avatar
                   from grower_follows f
                   join users u on u.id = f.followee_id and u.status = 'ACTIVE'
                  where f.follower_id = :follower

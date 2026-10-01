@@ -1,5 +1,9 @@
 package br.com.weediario.nutrition.application.usecase;
 
+import br.com.weediario.nutrition.application.port.RecipeModeration;
+import br.com.weediario.nutrition.domain.model.RecipeVisibility;
+import br.com.weediario.shared.domain.CommerceFilter;
+import br.com.weediario.shared.domain.CommerceFilter.Verdict;
 import br.com.weediario.nutrition.application.port.ProductCatalog;
 import br.com.weediario.nutrition.application.port.ProductCatalog.CatalogProduct;
 import br.com.weediario.nutrition.application.query.RecipeReadModel;
@@ -40,11 +44,13 @@ public final class ManageRecipesUseCase {
     private final RecipeRepository recipes;
     private final RecipeReadModel readModel;
     private final ProductCatalog catalog;
+    private final RecipeModeration moderation;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public ManageRecipesUseCase(RecipeRepository recipes, RecipeReadModel readModel, ProductCatalog catalog,
-                                UnitOfWork unitOfWork, Clock clock) {
+                                RecipeModeration moderation, UnitOfWork unitOfWork, Clock clock) {
+        this.moderation = moderation;
         this.recipes = recipes;
         this.readModel = readModel;
         this.catalog = catalog;
@@ -54,21 +60,28 @@ public final class ManageRecipesUseCase {
 
     public RecipeView create(UUID ownerId, Command command) {
         RecipeDetails details = details(command);
+        Verdict verdict = publicVerdict(details, command.visibility());
         UUID id = unitOfWork.execute(() -> {
             if (recipes.countByOwner(ownerId) >= MAX_RECIPES_PER_GROWER) {
                 throw new DomainException("Limite de " + MAX_RECIPES_PER_GROWER + " receitas atingido");
             }
-            return recipes.save(Recipe.create(ownerId, details, command.visibility(), clock)).id().value();
+            Recipe saved = recipes.save(Recipe.create(ownerId, details, command.visibility(), clock));
+            holdIfNeeded(saved, verdict);
+            return saved.id().value();
         });
         return view(id);
     }
 
     public RecipeView update(UUID recipeId, UUID ownerId, Command command) {
         RecipeDetails details = details(command);
+        Verdict verdict = publicVerdict(details, command.visibility());
         unitOfWork.run(() -> {
             Recipe recipe = owned(recipeId, ownerId);
+            if (command.visibility() == RecipeVisibility.PUBLIC && recipes.heldByModeration(recipe.id())) {
+                throw new DomainException("Esta receita está retida pela moderação e não pode voltar a ser pública agora");
+            }
             recipe.revise(details, command.visibility(), clock);
-            recipes.save(recipe);
+            holdIfNeeded(recipes.save(recipe), verdict);
         });
         return view(recipeId);
     }
@@ -97,6 +110,26 @@ public final class ManageRecipesUseCase {
                 .filter(found -> found.isVisibleTo(viewerId))
                 .orElseThrow(() -> new ResourceNotFoundException("Receita"));
         return new Viewed(view(recipeId), viewerId.map(recipe::isOwnedBy).orElse(false));
+    }
+
+    /** Receita pública passa pelo filtro anti-comércio (nome, observações e ingredientes sem marca). */
+    private static Verdict publicVerdict(RecipeDetails details, RecipeVisibility visibility) {
+        if (visibility != RecipeVisibility.PUBLIC) {
+            return Verdict.ALLOWED;
+        }
+        List<String> texts = new java.util.ArrayList<>(List.of(details.name()));
+        if (details.notes() != null) {
+            texts.add(details.notes());
+        }
+        details.ingredients().forEach(ingredient -> texts.add(ingredient.name()));
+        return CommerceFilter.requireAllowedOrHeld(texts.toArray(String[]::new));
+    }
+
+    private void holdIfNeeded(Recipe recipe, Verdict verdict) {
+        if (verdict.held()) {
+            recipes.holdForModeration(recipe.id());
+            moderation.recipeHeld(recipe.id().value(), verdict.reason());
+        }
     }
 
     private Recipe owned(UUID recipeId, UUID ownerId) {

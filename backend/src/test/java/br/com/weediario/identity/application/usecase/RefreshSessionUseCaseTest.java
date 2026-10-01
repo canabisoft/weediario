@@ -8,6 +8,7 @@ import br.com.weediario.identity.application.port.RefreshTokenCodec;
 import br.com.weediario.identity.domain.model.Email;
 import br.com.weediario.identity.domain.model.PasswordHash;
 import br.com.weediario.identity.domain.model.RefreshToken;
+import br.com.weediario.identity.domain.model.TermsOfUse;
 import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.identity.domain.model.UserId;
 import br.com.weediario.identity.domain.model.Username;
@@ -58,7 +59,7 @@ class RefreshSessionUseCaseTest {
     @BeforeEach
     void setUp() {
         user = users.save(User.register(new Username("grower_anon"), new Email("anon@example.org"),
-                new PasswordHash("$argon2id$fake"), clock));
+                new PasswordHash("$argon2id$fake"), TermsOfUse.CURRENT_VERSION, clock));
     }
 
     @Test
@@ -179,6 +180,11 @@ class RefreshSessionUseCaseTest {
         @Override
         public void revokeFamily(UUID familyId, Instant now) {
             store.values().stream().filter(t -> t.familyId().equals(familyId)).forEach(t -> t.revoke(now));
+        }
+
+        @Override
+        public void revokeAllOfUser(UUID userId, Instant now) {
+            store.values().stream().filter(t -> t.userId().value().equals(userId)).forEach(t -> t.revoke(now));
         }
 
         @Override

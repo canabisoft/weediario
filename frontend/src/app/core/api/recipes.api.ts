@@ -197,10 +197,6 @@ export class RecipesApi {
     return this.http.delete<void>(`/api/v1/recipes/${id}/comments/${commentId}`);
   }
 
-  reportComment(id: string, commentId: string): Observable<void> {
-    return this.http.post<void>(`/api/v1/recipes/${id}/comments/${commentId}/report`, {});
-  }
-
   ofDiary(diaryId: string): Observable<RecipeSummary[]> {
     return this.http.get<RecipeSummary[]>(`/api/v1/diaries/${diaryId}/recipes`);
   }

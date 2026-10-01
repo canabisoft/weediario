@@ -108,6 +108,7 @@ class SocialIntegrationTest extends IntegrationTestSupport {
         UUID diaryId = createDiary(owner, "Reported", "PUBLIC", LocalDate.now().toString());
         String commentId = comment(author, diaryId, "conteúdo abusivo");
 
+        report(author, "COMMENT", commentId, "SPAM").andExpect(status().isUnprocessableEntity()); // o próprio autor não
         Session reporter = newGrower();
         report(reporter, diaryId, commentId);
         report(reporter, diaryId, commentId); // repetida: não conta
@@ -117,8 +118,6 @@ class SocialIntegrationTest extends IntegrationTestSupport {
         report(newGrower(), diaryId, commentId);
         assertThat(commentCount(diaryId)).isZero();
 
-        mvc.perform(authed(post("/api/v1/diaries/{d}/comments/{c}/report", diaryId, commentId), author))
-                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
@@ -177,8 +176,7 @@ class SocialIntegrationTest extends IntegrationTestSupport {
     }
 
     private void report(Session session, UUID diaryId, String commentId) throws Exception {
-        mvc.perform(authed(post("/api/v1/diaries/{d}/comments/{c}/report", diaryId, commentId), session))
-                .andExpect(status().isNoContent());
+        report(session, "COMMENT", commentId, "INAPPROPRIATE").andExpect(status().isOk());
     }
 
     private long commentCount(UUID diaryId) throws Exception {

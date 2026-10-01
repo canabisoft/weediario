@@ -1,5 +1,8 @@
 package br.com.weediario.nutrition.application.usecase;
 
+import br.com.weediario.nutrition.application.port.RecipeModeration;
+import br.com.weediario.shared.domain.CommerceFilter;
+import br.com.weediario.shared.domain.CommerceFilter.Verdict;
 import br.com.weediario.nutrition.application.query.RecipeReadModel;
 import br.com.weediario.nutrition.application.query.RecipeReadModel.CommentRow;
 import br.com.weediario.nutrition.domain.model.Recipe;
@@ -32,11 +35,13 @@ public final class RecipeFeedbackUseCase {
     private final RecipeRepository recipes;
     private final RecipeFeedbackRepository feedback;
     private final RecipeReadModel readModel;
+    private final RecipeModeration moderation;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public RecipeFeedbackUseCase(RecipeRepository recipes, RecipeFeedbackRepository feedback, RecipeReadModel readModel,
-                                 UnitOfWork unitOfWork, Clock clock) {
+                                 RecipeModeration moderation, UnitOfWork unitOfWork, Clock clock) {
+        this.moderation = moderation;
         this.recipes = recipes;
         this.feedback = feedback;
         this.readModel = readModel;
@@ -76,11 +81,13 @@ public final class RecipeFeedbackUseCase {
     public PageResult<CommentView> comments(UUID recipeId, Optional<UUID> viewerId, boolean moderator, PageQuery page) {
         return unitOfWork.execute(() -> {
             Recipe recipe = visible(recipeId, viewerId);
-            return readModel.comments(recipeId, moderator, page).map(row -> view(row, recipe, viewerId, moderator));
+            return readModel.comments(recipeId, moderator, viewerId, page).map(row -> view(row, recipe, viewerId, moderator));
         });
     }
 
+    /** Filtro anti-comércio: contato/PIX é bloqueado; cara de anúncio fica oculto e vai para a moderação. */
     public CommentView postComment(UUID recipeId, UUID authorId, String body) {
+        Verdict verdict = CommerceFilter.requireAllowedOrHeld(body);
         return unitOfWork.execute(() -> {
             Recipe recipe = visible(recipeId, Optional.of(authorId));
             Instant now = clock.instant();
@@ -88,7 +95,14 @@ public final class RecipeFeedbackUseCase {
                     || feedback.countCommentsByAuthorSince(authorId, now.minus(Duration.ofDays(1))) >= MAX_COMMENTS_PER_DAY) {
                 throw new DomainException("Muitos comentários em pouco tempo. Tente novamente em instantes.");
             }
-            RecipeComment comment = feedback.save(RecipeComment.post(recipe, authorId, body, clock));
+            RecipeComment posted = RecipeComment.post(recipe, authorId, body, clock);
+            if (verdict.held()) {
+                posted.holdForModeration();
+            }
+            RecipeComment comment = feedback.save(posted);
+            if (verdict.held()) {
+                moderation.commentHeld(comment.id(), verdict.reason());
+            }
             return readModel.comment(comment.id())
                     .map(row -> view(row, recipe, Optional.of(authorId), false))
                     .orElseThrow();
@@ -103,18 +117,6 @@ public final class RecipeFeedbackUseCase {
                 throw new ResourceNotFoundException("Comentário");
             }
             feedback.deleteComment(commentId);
-        });
-    }
-
-    public void report(UUID recipeId, UUID commentId, UUID reporterId) {
-        unitOfWork.run(() -> {
-            Recipe recipe = visible(recipeId, Optional.of(reporterId));
-            RecipeComment comment = commentOf(recipe, commentId);
-            if (!comment.canBeReportedBy(reporterId)) {
-                throw new DomainException("Não é possível denunciar o próprio comentário");
-            }
-            comment.registerReports(feedback.report(commentId, reporterId, clock.instant()));
-            feedback.save(comment);
         });
     }
 

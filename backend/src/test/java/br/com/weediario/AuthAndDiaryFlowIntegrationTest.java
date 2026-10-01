@@ -125,7 +125,7 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
     private void register(String username, String email) throws Exception {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username":"%s","email":"%s","password":"senha-bem-longa-123"}"""
+                                {"username":"%s","email":"%s","password":"senha-bem-longa-123","acceptedTermsVersion":"1.0"}"""
                                 .formatted(username, email)))
                 .andExpect(status().isCreated());
     }

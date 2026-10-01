@@ -49,10 +49,12 @@ const EMPTY_PAGE = { items: [], page: 0, size: 0, totalItems: 0, totalPages: 0 }
  * Detalhe de uma strain ou banco de sementes: características do catálogo (base pública + comunidade),
  * uso nos diários, médias das reviews e curadoria (completar informações; moderadores verificam e juntam duplicatas).
  */
+import { ReportButton } from '../shared/report-button';
+
 @Component({
   selector: 'app-catalog-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker, SeedbankShowcase],
+  imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker, SeedbankShowcase, ReportButton],
   template: `
     <a routerLink="/strains" [queryParams]="kind() === 'seedbank' ? { aba: 'bancos' } : {}" class="text-sm text-fg-muted">
       ← {{ kind() === 'strain' ? 'Strains' : 'Bancos de sementes' }}
@@ -217,6 +219,9 @@ const EMPTY_PAGE = { items: [], page: 0, size: 0, totalItems: 0, totalPages: 0 }
                 }
                 @if (review.diaryId) {
                   <a [routerLink]="['/diarios', review.diaryId]" class="ml-auto text-xs text-accent">Ver o diário</a>
+                }
+                @if (auth.isLoggedIn() && review.author !== auth.me()?.username) {
+                  <app-report-button targetType="REVIEW" [targetId]="review.id" />
                 }
               </p>
               <p class="mt-1 flex flex-wrap gap-x-3 text-xs text-fg-muted">

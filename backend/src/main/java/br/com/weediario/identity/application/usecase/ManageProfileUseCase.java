@@ -1,5 +1,11 @@
 package br.com.weediario.identity.application.usecase;
 
+import br.com.weediario.identity.application.port.ProfileModeration;
+import br.com.weediario.identity.domain.model.TermsOfUse;
+import br.com.weediario.shared.domain.CommerceFilter;
+import br.com.weediario.shared.domain.CommerceFilter.Verdict;
+import java.time.Instant;
+
 import br.com.weediario.identity.application.port.AvatarImages;
 import br.com.weediario.identity.application.port.AvatarImages.AvatarFile;
 import br.com.weediario.identity.domain.model.User;
@@ -19,12 +25,15 @@ public final class ManageProfileUseCase {
 
     private final UserRepository users;
     private final AvatarImages avatars;
+    private final ProfileModeration moderation;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
-    public ManageProfileUseCase(UserRepository users, AvatarImages avatars, UnitOfWork unitOfWork, Clock clock) {
+    public ManageProfileUseCase(UserRepository users, AvatarImages avatars, ProfileModeration moderation,
+                                UnitOfWork unitOfWork, Clock clock) {
         this.users = users;
         this.avatars = avatars;
+        this.moderation = moderation;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -33,10 +42,28 @@ public final class ManageProfileUseCase {
         return unitOfWork.execute(() -> MyProfile.of(load(userId)));
     }
 
+    /** A bio é pública: passa pelo filtro anti-comércio (bloqueia contato/PIX; anúncio vai para análise). */
     public MyProfile updateBio(UUID userId, String bio) {
+        Verdict verdict = CommerceFilter.requireAllowedOrHeld(bio);
         return unitOfWork.execute(() -> {
             User user = load(userId);
             user.updateBio(bio, clock);
+            if (verdict.held()) {
+                user.hideProfile(true, clock);
+            }
+            MyProfile profile = MyProfile.of(users.save(user));
+            if (verdict.held()) {
+                moderation.heldByFilter(userId, verdict.reason());
+            }
+            return profile;
+        });
+    }
+
+    /** Aceite (ou novo aceite) da versão vigente dos Termos de Uso: guarda só versão e data/hora. */
+    public MyProfile acceptTerms(UUID userId, String version) {
+        return unitOfWork.execute(() -> {
+            User user = load(userId);
+            user.acceptTerms(version, clock);
             return MyProfile.of(users.save(user));
         });
     }
@@ -61,6 +88,7 @@ public final class ManageProfileUseCase {
     public Optional<AvatarFile> avatarOf(String username) {
         return unitOfWork.execute(() -> users.findByUsername(username)
                         .filter(User::canAuthenticate)
+                        .filter(user -> !user.profileHidden())
                         .flatMap(User::avatarImageId))
                 .flatMap(avatars::open);
     }
@@ -72,12 +100,21 @@ public final class ManageProfileUseCase {
     private record Holder(MyProfile profile, Optional<UUID> previous) {
     }
 
-    /** Visível só para o próprio usuário (inclui o e-mail). */
-    public record MyProfile(UUID id, String username, String email, String bio, boolean hasAvatar, String role) {
+    /**
+     * Visível só para o próprio usuário (inclui o e-mail).
+     *
+     * @param termsAccepted  se a versão aceita é a vigente (sem isso não dá para publicar)
+     * @param profileHidden  bio/foto ocultadas do público pela moderação
+     */
+    public record MyProfile(UUID id, String username, String email, String bio, boolean hasAvatar, String role,
+                            String termsVersion, Instant termsAcceptedAt, boolean termsAccepted, String currentTermsVersion,
+                            boolean profileHidden) {
 
         static MyProfile of(User user) {
             return new MyProfile(user.id().value(), user.username().value(), user.email().value(),
-                    user.bio().orElse(null), user.avatarImageId().isPresent(), user.role().name());
+                    user.bio().orElse(null), user.avatarImageId().isPresent(), user.role().name(),
+                    user.termsVersion().orElse(null), user.termsAcceptedAt().orElse(null),
+                    user.hasAcceptedCurrentTerms(), TermsOfUse.CURRENT_VERSION, user.profileHidden());
         }
     }
 }

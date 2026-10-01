@@ -9,6 +9,7 @@ import { SocialApi } from '../../core/api/social.api';
 import { AuthService } from '../../core/auth/auth.service';
 import { Avatar } from '../../shared/avatar';
 import { Icon } from '../../shared/icon';
+import { ReportButton } from '../../shared/report-button';
 
 /**
  * Conversa do diário. O texto é exibido por interpolação (escapado pelo Angular), nunca como HTML.
@@ -16,7 +17,7 @@ import { Icon } from '../../shared/icon';
 @Component({
   selector: 'app-diary-comments',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Avatar, Icon],
+  imports: [ReactiveFormsModule, RouterLink, Avatar, Icon, ReportButton],
   template: `
     <h2 class="text-lg font-semibold">Comentários</h2>
 
@@ -35,6 +36,9 @@ import { Icon } from '../../shared/icon';
                   <span class="rounded-full bg-accent/15 px-2 text-xs font-semibold text-accent">autor</span>
                 }
                 <time class="text-xs text-fg-muted" [attr.datetime]="comment.createdAt">{{ when(comment.createdAt) }}</time>
+                @if (comment.underReview) {
+                  <span class="rounded-full bg-warn/20 px-2 text-xs" title="Só você vê este comentário até a moderação revisar">em análise pela moderação</span>
+                }
               </p>
               <p class="mt-1 whitespace-pre-line break-words">{{ comment.body }}</p>
               @if (auth.isLoggedIn()) {
@@ -44,9 +48,7 @@ import { Icon } from '../../shared/icon';
                       <app-icon name="trash" class="size-3.5" /> Apagar
                     </button>
                   } @else {
-                    <button type="button" class="inline-flex items-center gap-1" (click)="report(comment)">
-                      <app-icon name="flag" class="size-3.5" /> Denunciar
-                    </button>
+                    <app-report-button targetType="COMMENT" [targetId]="comment.id" (reported)="refresh()" />
                   }
                 </div>
               }
@@ -129,24 +131,11 @@ export class DiaryComments {
     });
   }
 
-  protected report(comment: Comment): void {
-    if (!confirm('Denunciar este comentário para a moderação?')) {
-      return;
-    }
-    this.api.reportComment(this.diaryId(), comment.id).subscribe({
-      next: () => {
-        this.message.set('Denúncia registrada. Obrigado por ajudar a manter a comunidade saudável.');
-        this.refresh();
-      },
-      error: (error) => this.message.set(problemMessage(error)),
-    });
-  }
-
   protected when(instant: string): string {
     return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(instant));
   }
 
-  private refresh(): void {
+  protected refresh(): void {
     this.reload$.next();
     this.changed.emit();
   }

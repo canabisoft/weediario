@@ -31,10 +31,6 @@ export class SocialApi {
     return this.http.delete<void>(`/api/v1/diaries/${diaryId}/comments/${commentId}`);
   }
 
-  reportComment(diaryId: string, commentId: string): Observable<void> {
-    return this.http.post<void>(`/api/v1/diaries/${diaryId}/comments/${commentId}/report`, {});
-  }
-
   reactions(diaryId: string): Observable<ReactionSummary> {
     return this.http.get<ReactionSummary>(`/api/v1/diaries/${diaryId}/reactions`);
   }

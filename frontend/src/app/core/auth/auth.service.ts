@@ -24,6 +24,9 @@ export class AuthService {
   readonly me = signal<MyProfile | null>(null);
   readonly isLoggedIn = computed(() => this.me() !== null);
   readonly isModerator = computed(() => ['MODERATOR', 'ADMIN'].includes(this.me()?.role ?? ''));
+  readonly isAdmin = computed(() => this.me()?.role === 'ADMIN');
+  /** Logado, mas ainda sem aceitar a versão vigente dos Termos de Uso (não consegue publicar). */
+  readonly needsTermsAcceptance = computed(() => !!this.me() && !this.me()!.termsAccepted);
 
   private refreshInFlight: Observable<string | null> | null = null;
 
@@ -48,8 +51,9 @@ export class AuthService {
     await firstValueFrom(this.loadMe());
   }
 
-  async register(username: string, email: string, password: string): Promise<void> {
-    await firstValueFrom(this.http.post<void>(`${AUTH}/register`, { username, email, password }));
+  /** {@code acceptedTermsVersion}: versão dos Termos de Uso marcada como lida e aceita no cadastro. */
+  async register(username: string, email: string, password: string, acceptedTermsVersion: string): Promise<void> {
+    await firstValueFrom(this.http.post<void>(`${AUTH}/register`, { username, email, password, acceptedTermsVersion }));
     await this.login(email, password);
   }
 
@@ -81,6 +85,13 @@ export class AuthService {
 
   loadMe(): Observable<MyProfile> {
     return this.http.get<MyProfile>('/api/v1/me').pipe(tap((profile) => this.me.set(profile)));
+  }
+
+  /** Aceite da versão vigente dos Termos de Uso; renova o token para a API liberar publicações. */
+  async acceptTerms(version: string): Promise<void> {
+    const profile = await firstValueFrom(this.http.put<MyProfile>('/api/v1/me/terms', { version }));
+    this.me.set(profile);
+    await firstValueFrom(this.refresh());
   }
 
   updateMe(profile: MyProfile): void {

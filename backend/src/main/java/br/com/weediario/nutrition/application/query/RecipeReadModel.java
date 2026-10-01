@@ -33,7 +33,8 @@ public interface RecipeReadModel {
     List<RecipeSummary> summaries(Collection<UUID> recipeIds);
 
     /** Comentários em ordem cronológica. Ocultos (por denúncias) só entram para moderadores. */
-    PageResult<CommentRow> comments(UUID recipeId, boolean includeHidden, PageQuery page);
+    /** Ocultados pela moderação aparecem para a moderação e para o próprio autor ("em análise"). */
+    PageResult<CommentRow> comments(UUID recipeId, boolean includeHidden, Optional<UUID> viewerId, PageQuery page);
 
     Optional<CommentRow> comment(UUID commentId);
 

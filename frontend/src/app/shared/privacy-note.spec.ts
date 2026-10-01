@@ -4,15 +4,16 @@ import { PRIVACY_MESSAGES, PrivacyNote } from './privacy-note';
 describe('PrivacyNote', () => {
   afterEach(() => vi.useRealTimers());
 
-  it('alternates between the no-logs and the photo-metadata messages', () => {
-    const aboutLogs = (message: string) => /log/i.test(message);
-    const aboutPhotos = (message: string) => /foto|metadados/i.test(message);
+  it('alternates between no logs, clean photos and no commerce, never repeating a theme in a row', () => {
+    const theme = (message: string) =>
+      /log/i.test(message) ? 'logs' : /foto|metadados/i.test(message) ? 'photos' : /vend|negoci|negóci|feira|denunc|pix/i.test(message) ? 'rules' : null;
 
     PRIVACY_MESSAGES.forEach((message, i) => {
       const next = PRIVACY_MESSAGES[(i + 1) % PRIVACY_MESSAGES.length];
-      expect(aboutLogs(message) !== aboutLogs(next)).toBe(true);
-      expect(aboutLogs(message) || aboutPhotos(message)).toBe(true);
+      expect(theme(message)).not.toBeNull();
+      expect(theme(message)).not.toBe(theme(next));
     });
+    expect(new Set(PRIVACY_MESSAGES.map(theme)).size).toBe(3);
   });
 
   it('never softens the promise with "dentro do possível"', () => {

@@ -11,13 +11,12 @@ import java.util.UUID;
 /**
  * Comentário em um diário. O autor aparece só pelo apelido; nenhum dado de origem (IP, aparelho) é guardado.
  * <p>
- * Moderação comunitária: depois de {@link #HIDE_AFTER_REPORTS} denúncias distintas o comentário é ocultado
- * automaticamente até um moderador decidir.
+ * Denúncias e decisões ficam no contexto de moderação; aqui o comentário só sabe se está oculto (retido pelo
+ * filtro anti-comércio ou por denúncias, aguardando a moderação).
  */
 public final class Comment {
 
     public static final int BODY_MAX_LENGTH = 2000;
-    public static final int HIDE_AFTER_REPORTS = 3;
 
     private final UUID id;
     private final UUID diaryId;
@@ -51,19 +50,9 @@ public final class Comment {
         return moderator || authorId.equals(requesterId) || diary.isOwnedBy(requesterId);
     }
 
-    public boolean canBeReportedBy(UUID reporterId) {
-        return !authorId.equals(reporterId);
-    }
-
-    public void registerReports(long distinctReports) {
-        if (distinctReports >= HIDE_AFTER_REPORTS) {
-            hidden = true;
-        }
-    }
-
-    /** Um moderador revisou as denúncias e decidiu manter o comentário: ele volta a aparecer. */
-    public void keepAfterReview() {
-        hidden = false;
+    /** Retido pelo filtro anti-comércio: salvo, mas fora do público até a moderação decidir. */
+    public void holdForModeration() {
+        hidden = true;
     }
 
     /** Texto guardado como veio (o Angular faz o escape); só removemos caracteres de controle. */

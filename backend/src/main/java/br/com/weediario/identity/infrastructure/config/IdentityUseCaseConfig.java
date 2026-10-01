@@ -3,6 +3,7 @@ package br.com.weediario.identity.infrastructure.config;
 import br.com.weediario.identity.application.SessionIssuer;
 import br.com.weediario.identity.application.port.AccessTokenIssuer;
 import br.com.weediario.identity.application.port.AvatarImages;
+import br.com.weediario.identity.application.port.ProfileModeration;
 import br.com.weediario.identity.application.port.LoginKeyHasher;
 import br.com.weediario.identity.application.port.RefreshTokenCodec;
 import br.com.weediario.identity.application.usecase.AuthenticateUserUseCase;
@@ -51,9 +52,9 @@ public class IdentityUseCaseConfig {
     }
 
     @Bean
-    ManageProfileUseCase manageProfileUseCase(UserRepository users, AvatarImages avatars, UnitOfWork unitOfWork,
-                                              Clock clock) {
-        return new ManageProfileUseCase(users, avatars, unitOfWork, clock);
+    ManageProfileUseCase manageProfileUseCase(UserRepository users, AvatarImages avatars, ProfileModeration moderation,
+                                              UnitOfWork unitOfWork, Clock clock) {
+        return new ManageProfileUseCase(users, avatars, moderation, unitOfWork, clock);
     }
 
     @Bean

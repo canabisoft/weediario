@@ -132,6 +132,16 @@ export const routes: Routes = [
     loadComponent: () => import('./moderation/moderation.page').then((m) => m.ModerationPage),
   },
   {
+    path: 'termos',
+    title: 'Termos de Uso · weediário',
+    loadComponent: () => import('./legal/terms.page').then((m) => m.TermsPage),
+  },
+  {
+    path: 'manifesto',
+    title: 'Manifesto · weediário',
+    loadComponent: () => import('./manifesto/manifesto.page').then((m) => m.ManifestoPage),
+  },
+  {
     path: 'ferramentas',
     title: 'Ferramentas · weediário',
     loadComponent: () => import('./tools/tools.page').then((m) => m.ToolsPage),

@@ -31,6 +31,8 @@ public final class GrowDiary {
     private SetupSnapshot setup;
     private DiaryStatus status;
     private Visibility visibility;
+    /** Retido pela moderação (filtro anti-comércio ou denúncias): fica privado e não volta a ser público. */
+    private boolean moderationHold;
     private final LocalDate startedOn;
     private LocalDate endedOn;
     private Harvest harvest;
@@ -81,6 +83,18 @@ public final class GrowDiary {
         Instant now = clock.instant();
         return new GrowDiary(GrowDiaryId.newId(), ownerId, title, strain, floweringType, seedSex, medium, setup,
                 DiaryStatus.IN_PROGRESS, visibility, startedOn, null, null, GrowthStage.initialFor(seedSex), null, now, now);
+    }
+
+    /** Reconstitui um diário já persistido, com a marca de retenção da moderação. */
+    public static GrowDiary restore(GrowDiaryId id, GrowerId ownerId, String title, Strain strain,
+                                    FloweringType floweringType, SeedSex seedSex, GrowMedium medium,
+                                    SetupSnapshot setup, DiaryStatus status, Visibility visibility, LocalDate startedOn,
+                                    LocalDate endedOn, Harvest harvest, GrowthStage currentStage,
+                                    LocalDate lastUpdateOn, Instant createdAt, Instant updatedAt, boolean moderationHold) {
+        GrowDiary diary = restore(id, ownerId, title, strain, floweringType, seedSex, medium, setup, status, visibility,
+                startedOn, endedOn, harvest, currentStage, lastUpdateOn, createdAt, updatedAt);
+        diary.moderationHold = moderationHold;
+        return diary;
     }
 
     /** Reconstitui um diário já persistido; não aplica regras de criação. */
@@ -134,8 +148,23 @@ public final class GrowDiary {
     }
 
     public void changeVisibility(Visibility newVisibility, Clock clock) {
-        this.visibility = Guard.notNull(newVisibility, "Visibilidade");
+        Guard.notNull(newVisibility, "Visibilidade");
+        if (moderationHold && newVisibility == Visibility.PUBLIC) {
+            throw new DomainException("Este diário está retido pela moderação e não pode voltar a ser público agora");
+        }
+        this.visibility = newVisibility;
         touch(clock);
+    }
+
+    /** Filtro anti-comércio ou moderação: sai do público e fica travado até a moderação decidir. */
+    public void holdForModeration(Clock clock) {
+        this.visibility = Visibility.PRIVATE;
+        this.moderationHold = true;
+        touch(clock);
+    }
+
+    public boolean moderationHold() {
+        return moderationHold;
     }
 
     /**

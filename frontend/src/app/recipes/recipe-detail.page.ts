@@ -9,11 +9,12 @@ import { formatCompact, formatDecimal } from '../shared/decimal';
 import { Icon } from '../shared/icon';
 import { RecipeFeedback } from './recipe-feedback';
 import { APPLICATION_LABEL, KIND_LABEL, STAGE_LABEL, UNIT_LABEL, batchLabel } from './recipe-labels';
+import { ReportButton } from '../shared/report-button';
 
 @Component({
   selector: 'app-recipe-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, RecipeFeedback],
+  imports: [RouterLink, Icon, RecipeFeedback, ReportButton],
   template: `
     <a routerLink="/receitas" class="text-sm text-fg-muted">← Receitas</a>
     @if (state(); as s) {
@@ -36,6 +37,9 @@ import { APPLICATION_LABEL, KIND_LABEL, STAGE_LABEL, UNIT_LABEL, batchLabel } fr
               · replicada de <a [routerLink]="['/receitas', origin.id]" class="underline">{{ origin.name }}</a>, de {{ origin.author }}
             }
           </p>
+          @if (auth.isLoggedIn() && r.visibility === 'PUBLIC' && r.author !== auth.me()?.username) {
+            <app-report-button targetType="RECIPE" [targetId]="r.id" label="Denunciar receita" />
+          }
           <p class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-fg-muted">
             <span class="inline-flex items-center gap-1"><app-icon name="userPlus" class="size-4" />{{ r.replications }} {{ r.replications === 1 ? 'replicação' : 'replicações' }}</span>
             <span class="inline-flex items-center gap-1"><app-icon name="leaf" class="size-4" />{{ r.diaries }} {{ r.diaries === 1 ? 'cultivo público' : 'cultivos públicos' }}</span>

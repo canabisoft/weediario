@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Comentários de contas suspensas e comentários ocultados por denúncia ficam fora da listagem.
+ * Comentários de contas suspensas ficam fora da listagem; os ocultados pela moderação só aparecem para o autor.
  */
 @Component
 public class JdbcCommentReadModel implements CommentReadModel {
@@ -22,7 +22,7 @@ public class JdbcCommentReadModel implements CommentReadModel {
               from diary_comments c
               join users u on u.id = c.author_id and u.status = 'ACTIVE'
               join grow_diaries d on d.id = c.diary_id
-             where c.diary_id = :diaryId and not c.hidden
+             where c.diary_id = :diaryId and (not c.hidden or c.author_id = :viewerId)
             """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -39,7 +39,7 @@ public class JdbcCommentReadModel implements CommentReadModel {
                 .addValue("offset", page.offset());
         Long total = jdbc.queryForObject("select count(*) " + FROM, params, Long.class);
         List<CommentView> items = jdbc.query("""
-                select c.id, u.username, u.avatar_image_id is not null as has_avatar,
+                select c.id, u.username, u.avatar_image_id is not null and not u.profile_hidden as has_avatar, c.hidden,
                        c.author_id = d.owner_id as by_diary_author, c.body, c.created_at,
                        coalesce(c.author_id = :viewerId or d.owner_id = :viewerId, false) as deletable
                 """ + FROM + " order by c.created_at, c.id limit :limit offset :offset",
@@ -51,45 +51,8 @@ public class JdbcCommentReadModel implements CommentReadModel {
                         rs.getBoolean("by_diary_author"),
                         rs.getString("body"),
                         rs.getTimestamp("created_at").toInstant(),
-                        rs.getBoolean("deletable")));
+                        rs.getBoolean("deletable"),
+                        rs.getBoolean("hidden")));
         return PageResult.of(items, page, total == null ? 0 : total);
-    }
-
-    @Override
-    public PageResult<ReportedComment> reportedComments(PageQuery page) {
-        MapSqlParameterSource params = new MapSqlParameterSource("limit", page.size()).addValue("offset", page.offset());
-        Long total = jdbc.queryForObject(
-                "select count(*) from diary_comments c where exists (select 1 from comment_reports r where r.comment_id = c.id)",
-                params, Long.class);
-        List<ReportedComment> items = jdbc.query("""
-                select c.id, c.diary_id, d.title, u.username, c.body, c.hidden, c.created_at, r.reports
-                  from diary_comments c
-                  join (select comment_id, count(*) as reports from comment_reports group by comment_id) r
-                    on r.comment_id = c.id
-                  join users u on u.id = c.author_id
-                  join grow_diaries d on d.id = c.diary_id
-                 order by c.hidden desc, r.reports desc, c.created_at desc, c.id
-                 limit :limit offset :offset""",
-                params,
-                (rs, rowNum) -> new ReportedComment(
-                        rs.getObject("id", UUID.class),
-                        rs.getObject("diary_id", UUID.class),
-                        rs.getString("title"),
-                        rs.getString("username"),
-                        rs.getString("body"),
-                        rs.getLong("reports"),
-                        rs.getBoolean("hidden"),
-                        rs.getTimestamp("created_at").toInstant()));
-        return PageResult.of(items, page, total == null ? 0 : total);
-    }
-
-    @Override
-    public ReportCounts reportCounts() {
-        return jdbc.queryForObject("""
-                select count(*) as reported, count(*) filter (where c.hidden) as hidden
-                  from diary_comments c
-                 where exists (select 1 from comment_reports r where r.comment_id = c.id)""",
-                new MapSqlParameterSource(),
-                (rs, rowNum) -> new ReportCounts(rs.getLong("reported"), rs.getLong("hidden")));
     }
 }

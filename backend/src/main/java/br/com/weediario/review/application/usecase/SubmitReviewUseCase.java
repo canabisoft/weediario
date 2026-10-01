@@ -1,5 +1,9 @@
 package br.com.weediario.review.application.usecase;
 
+import br.com.weediario.review.application.port.ReviewModeration;
+import br.com.weediario.shared.domain.CommerceFilter;
+import br.com.weediario.shared.domain.CommerceFilter.Verdict;
+
 import br.com.weediario.review.application.port.ReviewedGrows;
 import br.com.weediario.review.domain.model.Ratings;
 import br.com.weediario.review.domain.model.Review;
@@ -21,12 +25,15 @@ public final class SubmitReviewUseCase {
 
     private final ReviewedGrows grows;
     private final ReviewRepository reviews;
+    private final ReviewModeration moderation;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
-    public SubmitReviewUseCase(ReviewedGrows grows, ReviewRepository reviews, UnitOfWork unitOfWork, Clock clock) {
+    public SubmitReviewUseCase(ReviewedGrows grows, ReviewRepository reviews, ReviewModeration moderation,
+                               UnitOfWork unitOfWork, Clock clock) {
         this.grows = grows;
         this.reviews = reviews;
+        this.moderation = moderation;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -35,6 +42,8 @@ public final class SubmitReviewUseCase {
         Ratings ratings = new Ratings(command.vigor(), command.pestResistance(), command.easeOfGrowth(),
                 command.yield(), command.terpeneProfile());
         SeedbankRatings seedbankRatings = command.seedbankRatings();
+        // O relato é público: passa pelo filtro anti-comércio.
+        Verdict verdict = CommerceFilter.requireAllowedOrHeld(command.report());
 
         return unitOfWork.execute(() -> {
             ReviewedGrow grow = grows.find(command.diaryId())
@@ -43,8 +52,14 @@ public final class SubmitReviewUseCase {
             if (reviews.existsForDiary(grow.diaryId())) {
                 throw new DomainException("Este cultivo já foi avaliado");
             }
-            Review review = reviews.save(Review.submit(grow, command.authorId(), ratings, seedbankRatings,
-                    command.report(), clock));
+            Review submitted = Review.submit(grow, command.authorId(), ratings, seedbankRatings, command.report(), clock);
+            if (verdict.held()) {
+                submitted.holdForModeration();
+            }
+            Review review = reviews.save(submitted);
+            if (verdict.held()) {
+                moderation.heldByFilter(review.id(), verdict.reason());
+            }
             return new SubmittedReview(review.id(), review.strainId().value(), review.ratings().average());
         });
     }

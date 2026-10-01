@@ -47,6 +47,15 @@ public class UserJpaEntity {
     @Column(name = "avatar_image_id")
     private UUID avatarImageId;
 
+    @Column(name = "terms_version", length = 10)
+    private String termsVersion;
+
+    @Column(name = "terms_accepted_at")
+    private Instant termsAcceptedAt;
+
+    @Column(name = "profile_hidden", nullable = false)
+    private boolean profileHidden;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -66,6 +75,9 @@ public class UserJpaEntity {
         entity.status = user.status();
         entity.bio = user.bio().orElse(null);
         entity.avatarImageId = user.avatarImageId().orElse(null);
+        entity.termsVersion = user.termsVersion().orElse(null);
+        entity.termsAcceptedAt = user.termsAcceptedAt().orElse(null);
+        entity.profileHidden = user.profileHidden();
         entity.createdAt = user.createdAt();
         entity.updatedAt = user.updatedAt();
         return entity;
@@ -73,6 +85,6 @@ public class UserJpaEntity {
 
     User toDomain() {
         return User.restore(new UserId(id), new Username(username), new Email(email), new PasswordHash(passwordHash),
-                role, status, bio, avatarImageId, createdAt, updatedAt);
+                role, status, bio, avatarImageId, termsVersion, termsAcceptedAt, profileHidden, createdAt, updatedAt);
     }
 }

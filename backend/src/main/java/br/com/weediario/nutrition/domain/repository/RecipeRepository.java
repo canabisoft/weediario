@@ -12,6 +12,11 @@ public interface RecipeRepository {
 
     Recipe save(Recipe recipe);
 
+    /** Moderação: a receita fica privada e não volta a ser pública até a moderação decidir. */
+    void holdForModeration(RecipeId id);
+
+    boolean heldByModeration(RecipeId id);
+
     Optional<Recipe> findById(RecipeId id);
 
     List<Recipe> findAllById(Collection<RecipeId> ids);

@@ -8,12 +8,11 @@ import java.util.UUID;
 
 /**
  * Comentário numa receita pública (dúvidas, ajustes, resultados). O autor aparece só pelo apelido; nenhum dado de
- * origem é guardado. Como nos diários, é ocultado depois de {@link #HIDE_AFTER_REPORTS} denúncias distintas.
+ * origem é guardado. Denúncias e decisões ficam no contexto de moderação (ocultado depois de 3 denúncias).
  */
 public final class RecipeComment {
 
     public static final int BODY_MAX_LENGTH = 1000;
-    public static final int HIDE_AFTER_REPORTS = 3;
 
     private final UUID id;
     private final RecipeId recipeId;
@@ -46,14 +45,9 @@ public final class RecipeComment {
         return moderator || authorId.equals(requesterId) || recipe.isOwnedBy(requesterId);
     }
 
-    public boolean canBeReportedBy(UUID reporterId) {
-        return !authorId.equals(reporterId);
-    }
-
-    public void registerReports(long distinctReports) {
-        if (distinctReports >= HIDE_AFTER_REPORTS) {
-            hidden = true;
-        }
+    /** Retido pelo filtro anti-comércio: salvo, mas fora do público até a moderação decidir. */
+    public void holdForModeration() {
+        hidden = true;
     }
 
     /** Texto guardado como veio (o Angular faz o escape); só removemos caracteres de controle. */

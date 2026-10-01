@@ -1,7 +1,6 @@
 package br.com.weediario.social.infrastructure.persistence;
 
 import br.com.weediario.social.domain.model.Comment;
-import br.com.weediario.social.domain.model.ReactorPseudonym;
 import br.com.weediario.social.domain.repository.CommentRepository;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -55,25 +54,6 @@ public class JdbcCommentRepository implements CommentRepository {
                 "select count(*) from diary_comments where author_id = :authorId and created_at >= :since",
                 new MapSqlParameterSource("authorId", authorId).addValue("since", Timestamp.from(since)), Long.class);
         return count == null ? 0 : count;
-    }
-
-    @Override
-    public long report(UUID commentId, ReactorPseudonym reporter, Instant at) {
-        MapSqlParameterSource params = new MapSqlParameterSource("commentId", commentId)
-                .addValue("reporter", reporter.value())
-                .addValue("at", Timestamp.from(at));
-        jdbc.update("""
-                insert into comment_reports (comment_id, reporter, created_at) values (:commentId, :reporter, :at)
-                on conflict do nothing""", params);
-        Long total = jdbc.queryForObject("select count(*) from comment_reports where comment_id = :commentId",
-                params, Long.class);
-        return total == null ? 0 : total;
-    }
-
-    @Override
-    public void clearReports(UUID commentId) {
-        jdbc.update("delete from comment_reports where comment_id = :commentId",
-                new MapSqlParameterSource("commentId", commentId));
     }
 
     private static final RowMapper<Comment> MAPPER = (rs, rowNum) -> Comment.restore(

@@ -43,7 +43,8 @@ public record DiaryCard(
         long reactionsCount,
         UUID coverPhotoId,
         SetupSnapshot setup,
-        String coverThumbnailUrl) {
+        String coverThumbnailUrl,
+        boolean moderationHold) {
 
     public static DiaryCard of(DiarySummary summary, LocalDate today) {
         GrowAge age = GrowAge.of(summary.startedOn(), summary.endedOn(), today);
@@ -53,6 +54,7 @@ public record DiaryCard(
                 summary.currentStage(), summary.startedOn(), summary.endedOn(), summary.lastUpdateOn(),
                 age.day(), age.week(), summary.harvest(), summary.updatesCount(), summary.commentsCount(), summary.reactionsCount(),
                 summary.coverPhotoId(), summary.setup(),
-                summary.coverPhotoId() == null ? null : DiaryPhotoView.thumbnailUrl(summary.id(), summary.coverPhotoId()));
+                summary.coverPhotoId() == null ? null : DiaryPhotoView.thumbnailUrl(summary.id(), summary.coverPhotoId()),
+                summary.moderationHold());
     }
 }

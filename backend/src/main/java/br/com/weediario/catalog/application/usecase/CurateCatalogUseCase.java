@@ -1,5 +1,6 @@
 package br.com.weediario.catalog.application.usecase;
 
+import br.com.weediario.shared.domain.CommerceFilter;
 import br.com.weediario.catalog.application.CatalogItem;
 import br.com.weediario.catalog.domain.model.Brand;
 import br.com.weediario.catalog.domain.model.Breeder;
@@ -46,6 +47,9 @@ public final class CurateCatalogUseCase {
      * @return {@code true} se algo foi acrescentado
      */
     public boolean contribute(UUID strainId, StrainTraits contribution, boolean moderator) {
+        // Texto livre que vai a público: sem contato, PIX ou anúncio (aqui não há fila, então retenção também bloqueia).
+        CommerceFilter.requireAllowed(contribution.genetics(), String.join(" ", contribution.flavors()),
+                String.join(" ", contribution.effects()));
         return unitOfWork.execute(() -> {
             CatalogStrain strain = strain(strainId);
             boolean changed;

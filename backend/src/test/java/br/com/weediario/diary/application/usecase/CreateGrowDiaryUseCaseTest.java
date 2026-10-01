@@ -42,7 +42,8 @@ class CreateGrowDiaryUseCaseTest {
 
     private final InMemoryGrowDiaryRepository diaries = new InMemoryGrowDiaryRepository();
     private final CreateGrowDiaryUseCase useCase = new CreateGrowDiaryUseCase(
-            diaries, new NoSetups(), new FakeCatalog(), grower -> Set.of(ACTIVE_GROWER).contains(grower.value()), new DirectUnitOfWork(), CLOCK);
+            diaries, new NoSetups(), new FakeCatalog(), grower -> Set.of(ACTIVE_GROWER).contains(grower.value()),
+            (diaryId, reason) -> { }, new DirectUnitOfWork(), CLOCK);
 
     @Test
     void createsDiaryWithDefaults() {

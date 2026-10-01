@@ -26,11 +26,12 @@ import { DiaryTimeline } from './detail/diary-timeline';
 import { ReviewForm } from './detail/review-form';
 
 type Loaded = { diary: DiaryCard; error: null } | { diary: null; error: string };
+import { ReportButton } from '../shared/report-button';
 
 @Component({
   selector: 'app-diary-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, DiaryComments, DiaryOwnerPanel, DiaryProducts, DiaryRecipes, DiaryReactions, DiaryTimeline, ReviewForm],
+  imports: [RouterLink, Icon, DiaryComments, DiaryOwnerPanel, DiaryProducts, DiaryRecipes, DiaryReactions, DiaryTimeline, ReviewForm, ReportButton],
   template: `
     @if (loaded(); as state) {
       @if (state.diary; as d) {
@@ -55,6 +56,15 @@ type Loaded = { diary: DiaryCard; error: null } | { diary: null; error: string }
               {{ d.breeder ? ' · ' + d.breeder : '' }} · por
               <a [routerLink]="['/growers', d.author]" class="font-semibold text-fg">{{ d.author }}</a>
             </p>
+            @if (d.moderationHold && isOwner()) {
+              <p class="mt-3 rounded-xl border border-warn/50 bg-warn/10 p-3 text-sm" role="status">
+                Este diário está retido pela moderação e ficou privado até a revisão. Ele pode ter caído no filtro
+                anti-comércio ou recebido denúncias. Veja os <a routerLink="/termos" class="font-semibold text-accent">Termos de Uso</a>.
+              </p>
+            }
+            @if (auth.isLoggedIn() && !isOwner() && d.visibility === 'PUBLIC') {
+              <app-report-button class="mt-2" targetType="DIARY" [targetId]="d.id" label="Denunciar diário" />
+            }
           </header>
 
           <dl class="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
@@ -130,7 +140,7 @@ type Loaded = { diary: DiaryCard; error: null } | { diary: null; error: string }
 })
 export class DiaryDetailPage {
   private readonly api = inject(DiariesApi);
-  private readonly auth = inject(AuthService);
+  protected readonly auth = inject(AuthService);
 
   /** Parâmetro de rota. */
   readonly id = input.required<string>();

@@ -117,6 +117,19 @@ public class JdbcRecipeRepository implements RecipeRepository {
     }
 
     @Override
+    public void holdForModeration(RecipeId id) {
+        jdbc.update("update recipes set moderation_hold = true, visibility = 'PRIVATE' where id = :id",
+                new MapSqlParameterSource("id", id.value()));
+    }
+
+    @Override
+    public boolean heldByModeration(RecipeId id) {
+        Boolean held = jdbc.queryForObject("select coalesce((select moderation_hold from recipes where id = :id), false)",
+                new MapSqlParameterSource("id", id.value()), Boolean.class);
+        return Boolean.TRUE.equals(held);
+    }
+
+    @Override
     public long countByOwner(UUID ownerId) {
         Long count = jdbc.queryForObject("select count(*) from recipes where owner_id = :ownerId",
                 new MapSqlParameterSource("ownerId", ownerId), Long.class);

@@ -26,7 +26,11 @@ import { MEDIUM_LABEL, STAGE_LABEL, STATUS_LABEL } from '../shared/labels';
         <span class="absolute left-2 top-2 rounded-full bg-canvas/85 px-2 py-0.5 text-xs font-semibold text-fg">
           {{ stage[d.currentStage] }} · semana {{ d.currentWeek }}
         </span>
-        @if (d.visibility === 'PRIVATE') {
+        @if (d.moderationHold) {
+          <span class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-warn/90 px-2 py-0.5 text-xs font-semibold text-black">
+            <app-icon name="eyeOff" class="size-3" /> Em análise
+          </span>
+        } @else if (d.visibility === 'PRIVATE') {
           <span class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-canvas/85 px-2 py-0.5 text-xs">
             <app-icon name="lock" class="size-3" /> Privado
           </span>

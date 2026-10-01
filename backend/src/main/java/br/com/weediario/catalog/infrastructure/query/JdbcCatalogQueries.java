@@ -33,7 +33,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
             left join lateral (
                 select count(*) as review_count,
                        round(avg((rv.vigor + rv.pest_resistance + rv.ease_of_growth + rv.yield_rating + rv.terpene_profile) / 5.0), 1) as overall
-                  from reviews rv join users ru on ru.id = rv.author_id and ru.status = 'ACTIVE'
+                  from reviews rv join users ru on ru.id = rv.author_id and ru.status = 'ACTIVE' and not rv.hidden
                  where rv.strain_id = s.id) r on true
             """;
 
@@ -360,7 +360,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
               left join lateral (
                   select count(*) as review_count,
                          round(avg((rv.seedbank_germination + rv.seedbank_stability + rv.seedbank_service) / 3.0), 1) as overall
-                    from reviews rv join users ru on ru.id = rv.author_id and ru.status = 'ACTIVE'
+                    from reviews rv join users ru on ru.id = rv.author_id and ru.status = 'ACTIVE' and not rv.hidden
                    where rv.seedbank_id = b.id) r on true
             """.formatted(PUBLIC_DIARIES);
 

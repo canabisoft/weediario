@@ -1,5 +1,6 @@
 package br.com.weediario.nutrition.infrastructure.config;
 
+import br.com.weediario.nutrition.application.port.RecipeModeration;
 import br.com.weediario.nutrition.application.port.GrowDiaries;
 import br.com.weediario.nutrition.application.port.ProductCatalog;
 import br.com.weediario.nutrition.application.query.RecipeReadModel;
@@ -21,8 +22,9 @@ public class NutritionConfig {
 
     @Bean
     ManageRecipesUseCase manageRecipesUseCase(RecipeRepository recipes, RecipeReadModel readModel,
-                                              ProductCatalog catalog, UnitOfWork unitOfWork, Clock clock) {
-        return new ManageRecipesUseCase(recipes, readModel, catalog, unitOfWork, clock);
+                                              ProductCatalog catalog, RecipeModeration moderation,
+                                              UnitOfWork unitOfWork, Clock clock) {
+        return new ManageRecipesUseCase(recipes, readModel, catalog, moderation, unitOfWork, clock);
     }
 
     @Bean
@@ -38,8 +40,9 @@ public class NutritionConfig {
 
     @Bean
     RecipeFeedbackUseCase recipeFeedbackUseCase(RecipeRepository recipes, RecipeFeedbackRepository feedback,
-                                                RecipeReadModel readModel, UnitOfWork unitOfWork, Clock clock) {
-        return new RecipeFeedbackUseCase(recipes, feedback, readModel, unitOfWork, clock);
+                                                RecipeReadModel readModel, RecipeModeration moderation,
+                                                UnitOfWork unitOfWork, Clock clock) {
+        return new RecipeFeedbackUseCase(recipes, feedback, readModel, moderation, unitOfWork, clock);
     }
 
     @Bean

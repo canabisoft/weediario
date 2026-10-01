@@ -2,6 +2,7 @@ package br.com.weediario.identity.application.usecase;
 
 import br.com.weediario.identity.application.exception.RegistrationRejectedException;
 import br.com.weediario.identity.domain.model.Email;
+import br.com.weediario.identity.domain.model.TermsOfUse;
 import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.identity.domain.model.UserId;
 import br.com.weediario.identity.domain.model.Username;
@@ -31,6 +32,7 @@ public final class RegisterUserUseCase {
         Username username = new Username(command.username());
         Email email = new Email(command.email());
         PasswordPolicy.validate(command.password());
+        TermsOfUse.requireCurrent(command.acceptedTermsVersion());
 
         // Hash fora da transação: Argon2 é deliberadamente lento e não deve segurar conexão com o banco.
         var passwordHash = passwordHasher.hash(command.password());
@@ -43,11 +45,12 @@ public final class RegisterUserUseCase {
             if (users.existsByEmail(email)) {
                 throw new RegistrationRejectedException();
             }
-            return users.save(User.register(username, email, passwordHash, clock)).id();
+            return users.save(User.register(username, email, passwordHash, command.acceptedTermsVersion(), clock)).id();
         });
     }
 
-    public record Command(String username, String email, String password) {
+    /** @param acceptedTermsVersion versão dos Termos de Uso que a pessoa marcou como lida e aceita no cadastro */
+    public record Command(String username, String email, String password, String acceptedTermsVersion) {
 
         @Override
         public String toString() {

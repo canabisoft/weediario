@@ -3,6 +3,9 @@ package br.com.weediario.diary.application.usecase;
 import br.com.weediario.diary.application.GrowDiaryView;
 import br.com.weediario.diary.application.exception.GrowerNotAllowedException;
 import br.com.weediario.diary.application.port.CatalogLookup;
+import br.com.weediario.diary.application.port.DiaryModeration;
+import br.com.weediario.shared.domain.CommerceFilter;
+import br.com.weediario.shared.domain.CommerceFilter.Verdict;
 import br.com.weediario.diary.application.port.CatalogLookup.CatalogStrainRef;
 import br.com.weediario.diary.application.port.GrowerDirectory;
 import br.com.weediario.diary.domain.model.FloweringType;
@@ -44,21 +47,28 @@ public final class CreateGrowDiaryUseCase {
     private final GrowSetupRepository setups;
     private final CatalogLookup catalog;
     private final GrowerDirectory growers;
+    private final DiaryModeration moderation;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public CreateGrowDiaryUseCase(GrowDiaryRepository diaries, GrowSetupRepository setups, CatalogLookup catalog,
-                                  GrowerDirectory growers, UnitOfWork unitOfWork, Clock clock) {
+                                  GrowerDirectory growers, DiaryModeration moderation, UnitOfWork unitOfWork,
+                                  Clock clock) {
         this.diaries = diaries;
         this.setups = setups;
         this.catalog = catalog;
         this.growers = growers;
+        this.moderation = moderation;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
 
     public GrowDiaryView execute(Command command) {
         GrowerId owner = new GrowerId(command.ownerId());
+        Visibility visibility = command.visibility() == null ? Visibility.PUBLIC : command.visibility();
+        // Título de diário público passa pelo filtro anti-comércio; o de diário privado só quando ficar público.
+        Verdict verdict = visibility == Visibility.PUBLIC ? CommerceFilter.requireAllowedOrHeld(command.title())
+                : Verdict.ALLOWED;
 
         return unitOfWork.execute(() -> {
             ensureCanOpenNewDiary(owner);
@@ -76,11 +86,18 @@ public final class CreateGrowDiaryUseCase {
                     command.floweringType(),
                     command.seedSex(),
                     medium,
-                    command.visibility() == null ? Visibility.PUBLIC : command.visibility(),
+                    visibility,
                     command.startedOn() == null ? LocalDate.now(clock) : command.startedOn(),
                     setup,
                     clock);
-            return GrowDiaryView.of(diaries.save(diary), LocalDate.now(clock));
+            if (verdict.held()) {
+                diary.holdForModeration(clock);
+            }
+            GrowDiaryView view = GrowDiaryView.of(diaries.save(diary), LocalDate.now(clock));
+            if (verdict.held()) {
+                moderation.heldByFilter(diary.id().value(), verdict.reason());
+            }
+            return view;
         });
     }
 

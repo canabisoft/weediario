@@ -31,12 +31,12 @@ public class JdbcStrainCatalog implements StrainCatalog {
     private static final String REVIEWED = """
               from strains s
               join reviews r on r.strain_id = s.id
-              join users u on u.id = r.author_id and u.status = 'ACTIVE'
+              join users u on u.id = r.author_id and u.status = 'ACTIVE' and not r.hidden
             """;
     /** Qualquer strain do catálogo, mesmo sem reviews (contagem zero e médias nulas). */
     private static final String ANY = """
               from strains s
-              left join (reviews r join users u on u.id = r.author_id and u.status = 'ACTIVE') on r.strain_id = s.id
+              left join (reviews r join users u on u.id = r.author_id and u.status = 'ACTIVE' and not r.hidden) on r.strain_id = s.id
             """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -59,7 +59,7 @@ public class JdbcStrainCatalog implements StrainCatalog {
                 select count(distinct s.id)
                   from strains s
                   join reviews r on r.strain_id = s.id
-                  join users u on u.id = r.author_id and u.status = 'ACTIVE'
+                  join users u on u.id = r.author_id and u.status = 'ACTIVE' and not r.hidden
                 """ + where, params, Long.class);
         List<StrainSummary> items = jdbc.query(SUMMARY + REVIEWED + where
                 + " group by s.id order by review_count desc, overall desc, s.name limit :limit offset :offset",
@@ -80,7 +80,7 @@ public class JdbcStrainCatalog implements StrainCatalog {
                 .addValue("offset", page.offset());
         String from = """
                   from reviews r
-                  join users u on u.id = r.author_id and u.status = 'ACTIVE'
+                  join users u on u.id = r.author_id and u.status = 'ACTIVE' and not r.hidden
                   join grow_diaries d on d.id = r.diary_id
                  where r.strain_id = :strainId
                 """;
@@ -100,7 +100,7 @@ public class JdbcStrainCatalog implements StrainCatalog {
                 .addValue("offset", page.offset());
         String from = """
                   from reviews r
-                  join users u on u.id = r.author_id and u.status = 'ACTIVE'
+                  join users u on u.id = r.author_id and u.status = 'ACTIVE' and not r.hidden
                   join strains s on s.id = r.strain_id
                   join grow_diaries d on d.id = r.diary_id
                  where lower(u.username) = lower(:username)

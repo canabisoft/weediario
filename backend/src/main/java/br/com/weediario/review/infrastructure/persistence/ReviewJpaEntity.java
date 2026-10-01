@@ -61,6 +61,9 @@ public class ReviewJpaEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(nullable = false)
+    private boolean hidden;
+
     protected ReviewJpaEntity() {
     }
 
@@ -83,6 +86,7 @@ public class ReviewJpaEntity {
         });
         entity.report = review.report();
         entity.createdAt = review.createdAt();
+        entity.hidden = review.hidden();
         return entity;
     }
 
@@ -90,6 +94,6 @@ public class ReviewJpaEntity {
         return Review.restore(id, new StrainId(strainId), diaryId, authorId,
                 new Ratings(vigor, pestResistance, easeOfGrowth, yieldRating, terpeneProfile), seedbankId,
                 seedbankId == null ? null : new SeedbankRatings(seedbankGermination, seedbankStability, seedbankService),
-                report, createdAt);
+                report, createdAt, hidden);
     }
 }

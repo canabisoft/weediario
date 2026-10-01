@@ -89,6 +89,8 @@ export interface DiaryCard {
   readonly setup?: SetupSnapshot;
   /** Miniatura da capa (WebP ~400px): é o que o feed deve exibir. */
   readonly coverThumbnailUrl?: string;
+  /** Retido pela moderação: privado e travado até a decisão (só o dono vê). */
+  readonly moderationHold?: boolean;
 }
 
 /** Resposta das operações de escrita em diários. */
@@ -132,6 +134,8 @@ export interface Comment {
   readonly body: string;
   readonly createdAt: string;
   readonly deletable: boolean;
+  /** Oculto do público aguardando a moderação (só o autor vê). */
+  readonly underReview?: boolean;
 }
 
 export interface ReactionSummary {
@@ -194,6 +198,14 @@ export interface MyProfile {
   readonly bio?: string;
   readonly hasAvatar: boolean;
   readonly role: string;
+  /** Versão dos Termos de Uso aceita e quando. */
+  readonly termsVersion?: string;
+  readonly termsAcceptedAt?: string;
+  /** Aceitou a versão vigente? Sem isso, a API não aceita publicações. */
+  readonly termsAccepted: boolean;
+  readonly currentTermsVersion: string;
+  /** Bio e foto ocultadas do público pela moderação. */
+  readonly profileHidden: boolean;
 }
 
 export interface GrowerProfile {

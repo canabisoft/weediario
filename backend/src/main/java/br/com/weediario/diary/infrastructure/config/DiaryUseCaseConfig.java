@@ -3,6 +3,7 @@ package br.com.weediario.diary.infrastructure.config;
 import br.com.weediario.diary.application.DiaryAccess;
 import br.com.weediario.diary.application.port.CatalogLookup;
 import br.com.weediario.diary.application.port.GrowerDirectory;
+import br.com.weediario.diary.application.port.DiaryModeration;
 import br.com.weediario.diary.application.port.PhotoLibrary;
 import br.com.weediario.diary.application.port.UpdateNotifier;
 import br.com.weediario.diary.application.query.BrowseDiariesUseCase;
@@ -41,8 +42,8 @@ public class DiaryUseCaseConfig {
     @Bean
     CreateGrowDiaryUseCase createGrowDiaryUseCase(GrowDiaryRepository diaries, GrowSetupRepository setups,
                                                   CatalogLookup catalog, GrowerDirectory growers,
-                                                  UnitOfWork unitOfWork, Clock clock) {
-        return new CreateGrowDiaryUseCase(diaries, setups, catalog, growers, unitOfWork, clock);
+                                                  DiaryModeration moderation, UnitOfWork unitOfWork, Clock clock) {
+        return new CreateGrowDiaryUseCase(diaries, setups, catalog, growers, moderation, unitOfWork, clock);
     }
 
     @Bean
@@ -59,15 +60,17 @@ public class DiaryUseCaseConfig {
 
     @Bean
     ChangeDiaryVisibilityUseCase changeDiaryVisibilityUseCase(DiaryAccess access, GrowDiaryRepository diaries,
+                                                              DiaryUpdateRepository updates, DiaryModeration moderation,
                                                               UnitOfWork unitOfWork, Clock clock) {
-        return new ChangeDiaryVisibilityUseCase(access, diaries, unitOfWork, clock);
+        return new ChangeDiaryVisibilityUseCase(access, diaries, updates, moderation, unitOfWork, clock);
     }
 
     @Bean
     PublishDiaryUpdateUseCase publishDiaryUpdateUseCase(DiaryAccess access, GrowDiaryRepository diaries,
                                                         DiaryUpdateRepository updates, PhotoLibrary photos,
-                                                        UpdateNotifier notifier, UnitOfWork unitOfWork, Clock clock) {
-        return new PublishDiaryUpdateUseCase(access, diaries, updates, photos, notifier, unitOfWork, clock);
+                                                        UpdateNotifier notifier, DiaryModeration moderation,
+                                                        UnitOfWork unitOfWork, Clock clock) {
+        return new PublishDiaryUpdateUseCase(access, diaries, updates, photos, notifier, moderation, unitOfWork, clock);
     }
 
     @Bean

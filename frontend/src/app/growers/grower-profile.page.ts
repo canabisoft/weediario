@@ -33,10 +33,12 @@ function accumulate<T>(acc: Page<T>, next: Page<T>): Page<T> {
  * Perfil público: apelido, bio, nível, estatísticas dos diários públicos, setups já usados em diários
  * públicos, diários e reviews. Só entra o que já é público em outro lugar; a lista de seguidores nunca aparece.
  */
+import { ReportButton } from '../shared/report-button';
+
 @Component({
   selector: 'app-grower-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Avatar, Icon, DiaryCardComponent, RecipeCard],
+  imports: [RouterLink, Avatar, Icon, DiaryCardComponent, RecipeCard, ReportButton],
   template: `
     @if (loaded(); as state) {
       @if (state.profile; as p) {
@@ -49,6 +51,9 @@ function accumulate<T>(acc: Page<T>, next: Page<T>): Page<T> {
             </span>
             @if (p.bio) {
               <p class="mt-2 whitespace-pre-line text-fg-muted">{{ p.bio }}</p>
+            }
+            @if (auth.isLoggedIn() && !p.isViewer) {
+              <app-report-button class="mt-1" targetType="PROFILE" [targetId]="p.username" label="Denunciar perfil" />
             }
           </div>
           @if (p.isViewer) {
@@ -146,6 +151,9 @@ function accumulate<T>(acc: Page<T>, next: Page<T>): Page<T> {
                   </span>
                 </p>
                 <p class="line-clamp-3 whitespace-pre-line text-sm">{{ review.report }}</p>
+                @if (auth.isLoggedIn() && !p.isViewer) {
+                  <app-report-button targetType="REVIEW" [targetId]="review.id" />
+                }
                 <p class="flex gap-3 text-xs text-fg-muted">
                   <time [attr.datetime]="review.createdAt">{{ date(review.createdAt) }}</time>
                   @if (review.diaryId) {

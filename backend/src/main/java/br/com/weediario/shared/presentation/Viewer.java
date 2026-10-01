@@ -22,6 +22,14 @@ public final class Viewer {
         return UUID.fromString(principal.getSubject());
     }
 
+    public static boolean isAdmin(Jwt principal) {
+        if (principal == null) {
+            return false;
+        }
+        List<String> roles = principal.getClaimAsStringList("roles");
+        return roles != null && roles.contains("ADMIN");
+    }
+
     public static boolean isModerator(Jwt principal) {
         if (principal == null) {
             return false;

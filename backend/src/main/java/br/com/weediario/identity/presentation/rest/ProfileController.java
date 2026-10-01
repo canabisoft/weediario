@@ -7,6 +7,7 @@ import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.presentation.Viewer;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.CacheControl;
@@ -38,6 +39,12 @@ public class ProfileController {
         return profiles.me(Viewer.requireId(principal));
     }
 
+    /** Aceite da versão vigente dos Termos de Uso (contas antigas aceitam antes de voltar a publicar). */
+    @PutMapping("/api/v1/me/terms")
+    public MyProfile acceptTerms(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody TermsRequest request) {
+        return profiles.acceptTerms(Viewer.requireId(principal), request.version());
+    }
+
     @PutMapping("/api/v1/me/profile")
     public MyProfile updateProfile(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody ProfileRequest request) {
         return profiles.updateBio(Viewer.requireId(principal), request.bio());
@@ -67,5 +74,8 @@ public class ProfileController {
     }
 
     public record AvatarRequest(@NotNull UUID imageId) {
+    }
+
+    public record TermsRequest(@NotBlank @Size(max = 10) String version) {
     }
 }

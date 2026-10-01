@@ -81,17 +81,4 @@ public class JdbcRecipeFeedbackRepository implements RecipeFeedbackRepository {
                 new MapSqlParameterSource("authorId", authorId).addValue("since", Timestamp.from(since)), Long.class);
         return count == null ? 0 : count;
     }
-
-    @Override
-    public long report(UUID commentId, UUID reporterId, Instant reportedAt) {
-        MapSqlParameterSource params = new MapSqlParameterSource("commentId", commentId)
-                .addValue("reporterId", reporterId).addValue("reportedAt", Timestamp.from(reportedAt));
-        jdbc.update("""
-                insert into recipe_comment_reports (comment_id, reporter_id, reported_at)
-                values (:commentId, :reporterId, :reportedAt)
-                on conflict do nothing""", params);
-        Long count = jdbc.queryForObject("select count(*) from recipe_comment_reports where comment_id = :commentId",
-                params, Long.class);
-        return count == null ? 0 : count;
-    }
 }

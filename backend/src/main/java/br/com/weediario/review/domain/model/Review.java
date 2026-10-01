@@ -26,6 +26,8 @@ public final class Review {
     private final SeedbankRatings seedbankRatings;
     private final String report;
     private final Instant createdAt;
+    /** Oculto do público, aguardando a moderação (filtro anti-comércio ou denúncias). */
+    private boolean hidden;
 
     private Review(UUID id, StrainId strainId, UUID diaryId, UUID authorId, Ratings ratings, UUID seedbankId,
                    SeedbankRatings seedbankRatings, String report, Instant createdAt) {
@@ -69,6 +71,23 @@ public final class Review {
     public static Review restore(UUID id, StrainId strainId, UUID diaryId, UUID authorId, Ratings ratings,
                                  UUID seedbankId, SeedbankRatings seedbankRatings, String report, Instant createdAt) {
         return new Review(id, strainId, diaryId, authorId, ratings, seedbankId, seedbankRatings, report, createdAt);
+    }
+
+    public static Review restore(UUID id, StrainId strainId, UUID diaryId, UUID authorId, Ratings ratings,
+                                 UUID seedbankId, SeedbankRatings seedbankRatings, String report, Instant createdAt,
+                                 boolean hidden) {
+        Review review = restore(id, strainId, diaryId, authorId, ratings, seedbankId, seedbankRatings, report, createdAt);
+        review.hidden = hidden;
+        return review;
+    }
+
+    /** Retida pelo filtro anti-comércio: salva, mas fora do público até a moderação decidir. */
+    public void holdForModeration() {
+        hidden = true;
+    }
+
+    public boolean hidden() {
+        return hidden;
     }
 
     /** Texto guardado como veio (o Angular faz o escape); só removemos caracteres de controle. */

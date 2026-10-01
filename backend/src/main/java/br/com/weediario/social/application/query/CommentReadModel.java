@@ -9,34 +9,22 @@ import java.util.UUID;
 
 public interface CommentReadModel {
 
-    /** Comentários visíveis (não ocultados por denúncia), mais antigos primeiro, como numa conversa. */
+    /**
+     * Comentários visíveis, mais antigos primeiro, como numa conversa. Os ocultados pela moderação só aparecem para
+     * quem escreveu (marcados como "em análise").
+     */
     PageResult<CommentView> visibleComments(UUID diaryId, Optional<UUID> viewerId, PageQuery page);
 
     /**
      * @param byDiaryAuthor destaque "autor do diário" na conversa
      * @param deletable     se quem está vendo pode apagar (autor do comentário ou dono do diário)
+     * @param underReview   oculto do público aguardando a moderação (só o autor vê)
      */
-    /** Fila da moderação: comentários com denúncia, ocultados primeiro, depois os mais denunciados. */
-    PageResult<ReportedComment> reportedComments(PageQuery page);
-
-    /** Quantos comentários têm denúncia pendente e quantos deles já foram ocultados automaticamente. */
-    ReportCounts reportCounts();
-
-    /**
-     * @param reports denúncias distintas (quem denunciou nunca é exposto, nem para a moderação)
-     */
-    record ReportedComment(UUID id, UUID diaryId, String diaryTitle, String author, String body, long reports,
-                           boolean hidden, Instant createdAt) {
-    }
-
-    record ReportCounts(long reported, long hidden) {
-    }
-
     record CommentView(UUID id, String author, boolean authorHasAvatar, boolean byDiaryAuthor, String body,
-                       Instant createdAt, boolean deletable) {
+                       Instant createdAt, boolean deletable, boolean underReview) {
 
         public CommentView asModerator() {
-            return new CommentView(id, author, authorHasAvatar, byDiaryAuthor, body, createdAt, true);
+            return new CommentView(id, author, authorHasAvatar, byDiaryAuthor, body, createdAt, true, underReview);
         }
     }
 }

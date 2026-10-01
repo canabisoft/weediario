@@ -82,13 +82,11 @@ class RecipeFeedbackIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.items[0].body").value("Funciona em coco?"))
                 .andExpect(jsonPath("$.items[0].canDelete").value(false))
                 .andExpect(jsonPath("$.items[0].authorId").doesNotExist());
-        mvc.perform(authed(post("/api/v1/recipes/{id}/comments/{c}/report", id, commentId), asker))
-                .andExpect(status().isUnprocessableEntity());
+        report(asker, "RECIPE_COMMENT", commentId, "SPAM").andExpect(status().isUnprocessableEntity());
 
         // Três denúncias distintas ocultam o comentário para o público.
         for (int i = 0; i < 3; i++) {
-            mvc.perform(authed(post("/api/v1/recipes/{id}/comments/{c}/report", id, commentId), newGrower()))
-                    .andExpect(status().isNoContent());
+            report(newGrower(), "RECIPE_COMMENT", commentId, "INAPPROPRIATE").andExpect(status().isOk());
         }
         mvc.perform(get("/api/v1/recipes/{id}/comments", id)).andExpect(jsonPath("$.totalItems").value(0));
         mvc.perform(authed(get("/api/v1/recipes/{id}/comments", id), moderator()))

@@ -1,5 +1,6 @@
 package br.com.weediario.catalog.application.usecase;
 
+import br.com.weediario.shared.domain.CommerceFilter;
 import br.com.weediario.catalog.application.CatalogItem;
 import br.com.weediario.catalog.application.Resolution;
 import br.com.weediario.catalog.domain.model.Brand;
@@ -46,6 +47,7 @@ public final class ResolveCatalogUseCase {
     }
 
     public Resolution resolveBreeder(String name, boolean confirmNew, UUID userId) {
+        CommerceFilter.requireAllowed(name);
         return unitOfWork.execute(() -> {
             String key = CatalogKey.breeder(name);
             var existing = catalog.findBreederByKey(key);
@@ -66,6 +68,7 @@ public final class ResolveCatalogUseCase {
     }
 
     public Resolution resolveStrain(String name, UUID breederId, boolean confirmNew, UUID userId) {
+        CommerceFilter.requireAllowed(name);
         return unitOfWork.execute(() -> {
             Breeder breeder = breederId == null ? null
                     : catalog.findBreeder(breederId).orElseThrow(() -> new ResourceNotFoundException("Breeder"));
@@ -89,6 +92,7 @@ public final class ResolveCatalogUseCase {
     }
 
     public Resolution resolveBrand(String name, boolean confirmNew, UUID userId) {
+        CommerceFilter.requireAllowed(name);
         return unitOfWork.execute(() -> {
             String key = CatalogKey.of(name);
             var existing = catalog.findBrandByKey(key);
@@ -109,6 +113,7 @@ public final class ResolveCatalogUseCase {
 
     public Resolution resolveProduct(UUID brandId, String name, ProductCategory category, boolean confirmNew,
                                      UUID userId) {
+        CommerceFilter.requireAllowed(name);
         return unitOfWork.execute(() -> {
             Brand brand = catalog.findBrand(brandId).orElseThrow(() -> new ResourceNotFoundException("Marca"));
             String key = CatalogKey.of(name);
@@ -137,6 +142,7 @@ public final class ResolveCatalogUseCase {
      * sem etapa de confirmação.
      */
     public CatalogItem ensureStrain(String strainName, String breederName, UUID userId) {
+        CommerceFilter.requireAllowed(strainName, breederName);
         UUID breederId = breederName == null || breederName.isBlank() || CatalogKey.breeder(breederName).isEmpty()
                 ? null
                 : resolveBreeder(breederName, true, userId).item().id();

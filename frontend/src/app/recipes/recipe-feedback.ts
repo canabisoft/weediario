@@ -13,10 +13,12 @@ import { StarInput } from '../shared/rating';
 /**
  * Estrelas (a recomendação da comunidade, que ordena o ranking) e comentários de uma receita pública.
  */
+import { ReportButton } from '../shared/report-button';
+
 @Component({
   selector: 'app-recipe-feedback',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icon, StarInput],
+  imports: [FormsModule, RouterLink, Icon, StarInput, ReportButton],
   template: `
     <section class="wd-card mt-4" aria-labelledby="rating-title">
       <h2 id="rating-title" class="font-semibold">Avaliação da comunidade</h2>
@@ -54,11 +56,11 @@ import { StarInput } from '../shared/rating';
               <a [routerLink]="['/growers', comment.author]" class="font-semibold">{{ comment.author }}</a>
               <time class="text-xs text-fg-muted" [attr.datetime]="comment.createdAt">{{ date(comment.createdAt) }}</time>
               @if (comment.hidden) {
-                <span class="rounded-full bg-warn/20 px-2 text-xs">oculto por denúncias</span>
+                <span class="rounded-full bg-warn/20 px-2 text-xs">em análise pela moderação</span>
               }
               <span class="ml-auto flex gap-3 text-xs text-fg-muted">
-                @if (comment.canReport) {
-                  <button type="button" (click)="report(comment)">Denunciar</button>
+                @if (comment.canReport && !comment.hidden) {
+                  <app-report-button targetType="RECIPE_COMMENT" [targetId]="comment.id" (reported)="loadComments(recipeId())" />
                 }
                 @if (comment.canDelete) {
                   <button type="button" (click)="remove(comment)">Apagar</button>
@@ -138,15 +140,6 @@ export class RecipeFeedback {
     }
   }
 
-  protected report(comment: RecipeComment): void {
-    if (confirm('Denunciar este comentário para a moderação?')) {
-      this.run(this.api.reportComment(this.recipeId(), comment.id), () => {
-        this.message.set('Obrigado. Com várias denúncias o comentário é ocultado até a moderação revisar.');
-        this.loadComments(this.recipeId());
-      });
-    }
-  }
-
   protected num(value: number): string {
     return formatDecimal(value, 1);
   }
@@ -155,7 +148,7 @@ export class RecipeFeedback {
     return formatDate(value.slice(0, 10));
   }
 
-  private loadComments(id: string): void {
+  protected loadComments(id: string): void {
     this.api.comments(id).subscribe({ next: (page) => this.comments.set(page.items), error: () => this.comments.set([]) });
   }
 

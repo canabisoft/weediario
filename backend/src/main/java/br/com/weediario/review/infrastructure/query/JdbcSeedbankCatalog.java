@@ -29,12 +29,12 @@ public class JdbcSeedbankCatalog implements SeedbankCatalog {
     private static final String REVIEWED = """
               from breeders b
               join reviews r on r.seedbank_id = b.id
-              join users u on u.id = r.author_id and u.status = 'ACTIVE'
+              join users u on u.id = r.author_id and u.status = 'ACTIVE' and not r.hidden
             """;
     /** Qualquer breeder do catálogo, mesmo sem reviews (contagem zero e médias nulas). */
     private static final String ANY = """
               from breeders b
-              left join (reviews r join users u on u.id = r.author_id and u.status = 'ACTIVE') on r.seedbank_id = b.id
+              left join (reviews r join users u on u.id = r.author_id and u.status = 'ACTIVE' and not r.hidden) on r.seedbank_id = b.id
             """;
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -57,7 +57,7 @@ public class JdbcSeedbankCatalog implements SeedbankCatalog {
                 select count(distinct b.id)
                   from breeders b
                   join reviews r on r.seedbank_id = b.id
-                  join users u on u.id = r.author_id and u.status = 'ACTIVE'
+                  join users u on u.id = r.author_id and u.status = 'ACTIVE' and not r.hidden
                 """ + where, params, Long.class);
         List<SeedbankSummary> items = jdbc.query(SUMMARY + REVIEWED + where
                         + " group by b.id order by review_count desc, overall desc, b.name limit :limit offset :offset",
@@ -78,7 +78,7 @@ public class JdbcSeedbankCatalog implements SeedbankCatalog {
                 .addValue("offset", page.offset());
         String from = """
                   from reviews r
-                  join users u on u.id = r.author_id and u.status = 'ACTIVE'
+                  join users u on u.id = r.author_id and u.status = 'ACTIVE' and not r.hidden
                   join grow_diaries d on d.id = r.diary_id
                   join strains s on s.id = r.strain_id
                  where r.seedbank_id = :seedbankId
