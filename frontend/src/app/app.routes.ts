@@ -47,6 +47,28 @@ export const routes: Routes = [
     loadComponent: () => import('./catalog/most-used.page').then((m) => m.MostUsedPage),
   },
   {
+    path: 'receitas',
+    title: 'Receitas de nutrição · weediário',
+    loadComponent: () => import('./recipes/recipes.page').then((m) => m.RecipesPage),
+  },
+  {
+    path: 'receitas/nova',
+    title: 'Nova receita · weediário',
+    canActivate: [authGuard],
+    loadComponent: () => import('./recipes/recipe-editor.page').then((m) => m.RecipeEditorPage),
+  },
+  {
+    path: 'receitas/:id',
+    title: 'Receita · weediário',
+    loadComponent: () => import('./recipes/recipe-detail.page').then((m) => m.RecipeDetailPage),
+  },
+  {
+    path: 'receitas/:id/editar',
+    title: 'Editar receita · weediário',
+    canActivate: [authGuard],
+    loadComponent: () => import('./recipes/recipe-editor.page').then((m) => m.RecipeEditorPage),
+  },
+  {
     path: 'strains',
     title: 'Catálogo · weediário',
     loadComponent: () => import('./catalog/catalog.page').then((m) => m.CatalogPage),

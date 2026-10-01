@@ -51,7 +51,9 @@ public interface DiaryReadModel {
             String strain,
             FeedSort sort,
             boolean following,
-            String author) {
+            String author,
+            UUID strainId,
+            UUID breederId) {
 
         public FeedFilter {
             author = author == null || author.isBlank() ? null : author.strip();

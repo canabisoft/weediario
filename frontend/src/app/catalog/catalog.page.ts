@@ -13,12 +13,15 @@ type Tab = 'strains' | 'bancos' | 'produtos';
 interface Row {
   readonly id: string;
   readonly link: string[];
+  readonly query?: Record<string, string>;
   readonly name: string;
   readonly subtitle: string;
   readonly source: 'DATASET' | 'COMMUNITY';
   readonly verified: boolean;
   readonly usage: number;
   readonly score?: number;
+  /** Só produtos: receitas públicas que usam o produto. */
+  readonly recipes?: number;
 }
 
 /**
@@ -83,7 +86,7 @@ interface Row {
       <ul class="mt-2 grid gap-2">
         @for (row of page.items; track row.id) {
           <li>
-            <a [routerLink]="row.link" class="wd-card flex items-center gap-3 hover:border-accent/50">
+            <a [routerLink]="row.link" [queryParams]="row.query" class="wd-card flex items-center gap-3 hover:border-accent/50">
               <span class="min-w-0 flex-1">
                 <span class="flex items-center gap-2">
                   <span class="truncate font-semibold">{{ row.name }}</span>
@@ -99,6 +102,11 @@ interface Row {
                   <span class="flex items-center justify-end gap-1 font-bold"><app-icon name="star" class="size-4 text-accent" [filled]="true" />{{ num(row.score) }}</span>
                 }
                 <span class="block text-xs text-fg-muted">{{ row.usage }} {{ row.usage === 1 ? 'diário' : 'diários' }}</span>
+                @if (row.recipes) {
+                  <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">
+                    <app-icon name="flask" class="size-3" /> {{ row.recipes }} {{ row.recipes === 1 ? 'receita' : 'receitas' }}
+                  </span>
+                }
               </span>
             </a>
           </li>
@@ -202,12 +210,15 @@ export class CatalogPage {
           ...result,
           items: result.items.map((p) => ({
             id: p.id,
-            link: ['/mais-usados'],
+            // Com receitas, o card leva às receitas que usam o produto; senão, ao ranking.
+            link: p.recipes ? ['/receitas'] : ['/mais-usados'],
+            query: p.recipes ? { produto: p.id, nome: `${p.brand} ${p.name}` } : undefined,
             name: p.name,
             subtitle: `${p.brand} · ${CATEGORY_LABEL[p.category]}`,
             source: p.source,
             verified: p.status === 'VERIFIED',
             usage: p.diaries,
+            recipes: p.recipes,
           })),
         })),
       );

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +34,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RefreshSessionUseCaseTest {
 
-    private final Clock clock = Clock.fixed(Instant.parse("2026-09-29T12:00:00Z"), ZoneOffset.UTC);
+    private static final Duration REUSE_GRACE = Duration.ofSeconds(30);
+
+    private final MutableClock clock = new MutableClock(Instant.parse("2026-09-29T12:00:00Z"));
     private final InMemoryRefreshTokens refreshTokens = new InMemoryRefreshTokens();
     private final InMemoryUsers users = new InMemoryUsers();
     private final RefreshTokenCodec codec = new CountingCodec();
@@ -48,7 +51,7 @@ class RefreshSessionUseCaseTest {
     private final SessionIssuer sessionIssuer =
             new SessionIssuer(accessTokens, codec, refreshTokens, Duration.ofDays(7), clock);
     private final RefreshSessionUseCase useCase =
-            new RefreshSessionUseCase(refreshTokens, users, codec, sessionIssuer, unitOfWork, clock);
+            new RefreshSessionUseCase(refreshTokens, users, codec, sessionIssuer, unitOfWork, clock, REUSE_GRACE);
 
     private User user;
 
@@ -73,9 +76,34 @@ class RefreshSessionUseCaseTest {
     void reuseOfRotatedTokenRevokesWholeFamily() {
         AuthenticatedSession first = sessionIssuer.startSession(user);
         AuthenticatedSession second = useCase.execute(first.refreshToken());
+        clock.advance(REUSE_GRACE.plusSeconds(1));
 
         assertThatThrownBy(() -> useCase.execute(first.refreshToken())).isInstanceOf(InvalidSessionException.class);
         assertThatThrownBy(() -> useCase.execute(second.refreshToken())).isInstanceOf(InvalidSessionException.class);
+    }
+
+    @Test
+    void reuseRightAfterRotationIsTreatedAsRaceAndKeepsSession() {
+        // F5 que aborta a página depois de o servidor rotacionar, mas antes de o navegador gravar o cookie novo.
+        AuthenticatedSession first = sessionIssuer.startSession(user);
+        useCase.execute(first.refreshToken());
+        clock.advance(REUSE_GRACE);
+
+        AuthenticatedSession retried = useCase.execute(first.refreshToken());
+
+        assertThat(retried.refreshToken()).isNotEqualTo(first.refreshToken());
+        assertThat(useCase.execute(retried.refreshToken()).accessToken()).isNotBlank();
+    }
+
+    @Test
+    void reuseAfterLogoutIsRejectedEvenWithinGrace() {
+        AuthenticatedSession first = sessionIssuer.startSession(user);
+        useCase.execute(first.refreshToken());
+        refreshTokens.revokeFamily(
+                refreshTokens.findByTokenHash(codec.hash(first.refreshToken())).orElseThrow().familyId(),
+                clock.instant());
+
+        assertThatThrownBy(() -> useCase.execute(first.refreshToken())).isInstanceOf(InvalidSessionException.class);
     }
 
     @Test
@@ -91,6 +119,33 @@ class RefreshSessionUseCaseTest {
         users.save(user);
 
         assertThatThrownBy(() -> useCase.execute(session.refreshToken())).isInstanceOf(InvalidSessionException.class);
+    }
+
+    private static final class MutableClock extends Clock {
+        private Instant now;
+
+        MutableClock(Instant now) {
+            this.now = now;
+        }
+
+        void advance(Duration duration) {
+            now = now.plus(duration);
+        }
+
+        @Override
+        public Instant instant() {
+            return now;
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return this;
+        }
     }
 
     private static final class CountingCodec implements RefreshTokenCodec {
@@ -124,6 +179,12 @@ class RefreshSessionUseCaseTest {
         @Override
         public void revokeFamily(UUID familyId, Instant now) {
             store.values().stream().filter(t -> t.familyId().equals(familyId)).forEach(t -> t.revoke(now));
+        }
+
+        @Override
+        public boolean hasActiveToken(UUID familyId, Instant now) {
+            return store.values().stream()
+                    .anyMatch(t -> t.familyId().equals(familyId) && !t.isRevoked() && !t.isExpired(now));
         }
     }
 

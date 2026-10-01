@@ -51,6 +51,11 @@ public final class RefreshToken {
         return revokedAt != null;
     }
 
+    /** Revogado há no máximo {@code window} (inclusive). Falso se nunca foi revogado. */
+    public boolean wasRevokedWithin(Duration window, Instant now) {
+        return revokedAt != null && !now.isAfter(revokedAt.plus(window));
+    }
+
     public boolean isExpired(Instant now) {
         return !now.isBefore(expiresAt);
     }

@@ -50,10 +50,18 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
         String rotated = refreshed.getResponse().getCookie(COOKIE).getValue();
         assertThat(rotated).isNotEqualTo(refreshToken);
 
-        // ...e reapresentar o antigo revoga a família inteira, inclusive o token novo.
+        // ...e reapresentar o antigo logo em seguida (F5 que perdeu o cookie novo) não derruba a sessão.
+        // Fora da janela de tolerância, o reuso revoga a família inteira (ver RefreshSessionUseCaseTest).
+        MvcResult retried = mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, refreshToken)))
+                .andExpect(status().isOk())
+                .andReturn();
+        Cookie current = new Cookie(COOKIE, retried.getResponse().getCookie(COOKIE).getValue());
+        mvc.perform(post("/api/v1/auth/refresh").cookie(current)).andExpect(status().isOk());
+
+        // Depois do logout, nem o token recém-rotacionado é aceito.
+        mvc.perform(post("/api/v1/auth/logout").cookie(new Cookie(COOKIE, rotated)))
+                .andExpect(status().isNoContent());
         mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, refreshToken)))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/auth/refresh").cookie(new Cookie(COOKIE, rotated)))
                 .andExpect(status().isUnauthorized());
     }
 

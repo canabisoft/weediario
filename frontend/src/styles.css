@@ -16,6 +16,12 @@
   --color-ok: var(--wd-ok);
   --color-warn: var(--wd-warn);
   --color-danger: var(--wd-danger);
+  /* Gráficos: cor fixa por entidade (CBD, THC e até 3 sintomas), validada para daltonismo em cada tema. */
+  --color-chart-cbd: var(--wd-chart-cbd);
+  --color-chart-thc: var(--wd-chart-thc);
+  --color-chart-1: var(--wd-chart-1);
+  --color-chart-2: var(--wd-chart-2);
+  --color-chart-3: var(--wd-chart-3);
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -35,6 +41,11 @@
   --wd-ok: #059669;
   --wd-warn: #9a6a00;
   --wd-danger: #b3261e;
+  --wd-chart-cbd: #008300;
+  --wd-chart-thc: #4a3aa7;
+  --wd-chart-1: #2a78d6;
+  --wd-chart-2: #eb6834;
+  --wd-chart-3: #1baf7a;
 }
 
 /* Tema padrão da marca: grafite quase preto com destaque verde esmeralda. */
@@ -51,6 +62,11 @@
   --wd-ok: #10b981;
   --wd-warn: #f59e0b;
   --wd-danger: #f87171;
+  --wd-chart-cbd: #008300;
+  --wd-chart-thc: #9085e9;
+  --wd-chart-1: #3987e5;
+  --wd-chart-2: #d95926;
+  --wd-chart-3: #199e70;
 }
 
 /*
@@ -73,6 +89,12 @@
   --wd-ok: #2f7a38;
   --wd-warn: #3f7a2a;
   --wd-danger: #4a7a24;
+  /* Sem cores no escuro da tenda: os gráficos se distinguem por hachura, tracejado e marcadores. */
+  --wd-chart-cbd: #2f7a38;
+  --wd-chart-thc: #1f5226;
+  --wd-chart-1: #2f7a38;
+  --wd-chart-2: #2f7a38;
+  --wd-chart-3: #2f7a38;
 }
 
 html {

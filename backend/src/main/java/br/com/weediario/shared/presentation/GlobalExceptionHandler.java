@@ -7,6 +7,7 @@ import br.com.weediario.identity.application.exception.LoginThrottledException;
 import br.com.weediario.identity.application.exception.RegistrationRejectedException;
 import br.com.weediario.media.application.exception.InvalidImageException;
 import br.com.weediario.shared.application.ResourceNotFoundException;
+import br.com.weediario.treatment.application.ConsentRequiredException;
 import br.com.weediario.shared.domain.DomainException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +65,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(RegistrationRejectedException.class)
     ProblemDetail handleRegistrationRejected(RegistrationRejectedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /** O cliente reconhece o {@code code} e mostra o termo de consentimento. */
+    @ExceptionHandler(ConsentRequiredException.class)
+    ProblemDetail handleConsentRequired(ConsentRequiredException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setProperty("code", "TREATMENT_CONSENT_REQUIRED");
+        return problem;
     }
 
     @ExceptionHandler({GrowerNotAllowedException.class, AccessDeniedException.class, ModeratorOnlyException.class})

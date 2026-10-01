@@ -213,6 +213,8 @@ public class JdbcCatalogRepository implements CatalogRepository {
                 on conflict do nothing""", params);
         jdbc.update("delete from diary_products where product_id = :dup", params);
         jdbc.update("update grow_setup_products set product_id = :target where product_id = :dup", params);
+        // Receitas: o nome/marca congelados no ingrediente continuam; só a referência passa para a principal.
+        jdbc.update("update recipe_ingredients set product_id = :target where product_id = :dup", params);
         jdbc.update("""
                 insert into product_aliases (brand_id, alias_key, product_id)
                 select brand_id, name_key, :target from products where id = :dup
@@ -233,7 +235,8 @@ public class JdbcCatalogRepository implements CatalogRepository {
             ItemKind.BRAND, "exists (select 1 from products where brand_id = :id)",
             ItemKind.PRODUCT, """
                     exists (select 1 from diary_products where product_id = :id)
-                    or exists (select 1 from grow_setup_products where product_id = :id)""");
+                    or exists (select 1 from grow_setup_products where product_id = :id)
+                    or exists (select 1 from recipe_ingredients where product_id = :id)""");
 
     private static final Map<ItemKind, String> TABLE = Map.of(
             ItemKind.STRAIN, "strains", ItemKind.BREEDER, "breeders", ItemKind.BRAND, "brands",

@@ -49,6 +49,7 @@ export class MainLayout {
     { path: '/diarios', label: 'Diários', icon: 'diaries' },
     { path: '/strains', label: 'Catálogo', icon: 'leaf' },
     { path: '/mais-usados', label: 'Mais usados', icon: 'flame' },
+    { path: '/receitas', label: 'Receitas', icon: 'flask' },
     { path: '/growers', label: 'Ranking de growers', icon: 'trophy' },
     { path: '/equipamentos', label: 'Equipamentos', icon: 'bulb' },
   ];

@@ -146,13 +146,17 @@ public class JdbcCatalogQueries implements CatalogQueries {
                 params, Long.class);
         List<ProductListItem> items = jdbc.query("""
                 select p.id, p.name, br.id as brand_id, br.name as brand, p.category, p.status, p.source,
-                       (select count(*) from diary_products dp join %s on d.id = dp.diary_id where dp.product_id = p.id) as diaries
+                       (select count(*) from diary_products dp join %s on d.id = dp.diary_id where dp.product_id = p.id) as diaries,
+                       (select count(distinct ri.recipe_id) from recipe_ingredients ri
+                          join recipes rc on rc.id = ri.recipe_id and rc.visibility = 'PUBLIC'
+                          join users ru on ru.id = rc.owner_id and ru.status = 'ACTIVE'
+                         where ri.product_id = p.id) as recipes
                   from products p join brands br on br.id = p.brand_id
                 """.formatted(PUBLIC_DIARIES) + filter + " order by diaries desc, br.name, p.name limit :limit offset :offset",
                 params,
                 (rs, n) -> new ProductListItem(rs.getObject("id", UUID.class), rs.getString("name"),
                         rs.getObject("brand_id", UUID.class), rs.getString("brand"), rs.getString("category"),
-                        rs.getString("status"), rs.getString("source"), rs.getLong("diaries")));
+                        rs.getString("status"), rs.getString("source"), rs.getLong("diaries"), rs.getLong("recipes")));
         return PageResult.of(items, page, total == null ? 0 : total);
     }
 
@@ -181,6 +185,47 @@ public class JdbcCatalogQueries implements CatalogQueries {
     public Optional<BreederListItem> breeder(UUID id) {
         return jdbc.query(BREEDER_SELECT + " where b.id = :id", new MapSqlParameterSource("id", id), (rs, n) -> breederItem(rs))
                 .stream().findFirst();
+    }
+
+    @Override
+    public PageResult<BreederStrainCard> strainsOfBreeder(UUID breederId, PageQuery page) {
+        MapSqlParameterSource params = new MapSqlParameterSource("breederId", breederId)
+                .addValue("limit", page.size()).addValue("offset", page.offset());
+        Long total = jdbc.queryForObject("select count(*) from strains s where s.breeder_id = :breederId", params, Long.class);
+        // A capa só vem de diários públicos (PUBLIC_DIARIES), então foto de cultivo privado nunca vaza aqui.
+        List<BreederStrainCard> items = jdbc.query("""
+                select s.id, s.name, s.flowering_type, s.dominance, s.flowering_speed, s.genetics, s.status, s.source,
+                       r.review_count, r.overall,
+                       (select count(*) from %1$s where d.strain_id = s.id) as diaries,
+                       (select round(sum(d.harvest_dry_grams)::numeric / nullif(sum(d.harvest_plants), 0), 1)
+                          from %1$s where d.strain_id = s.id and d.harvest_dry_grams is not null) as avg_gpp,
+                       cover.diary_id as cover_diary_id, cover.image_id as cover_photo_id
+                  from strains s
+                """.formatted(PUBLIC_DIARIES) + STRAIN_REVIEWS + """
+                  left join lateral (
+                      select d.id as diary_id, p.image_id
+                        from %s
+                        join diary_updates upd on upd.diary_id = d.id
+                        join diary_update_photos p on p.update_id = upd.id
+                       where d.strain_id = s.id
+                       order by upd.recorded_on desc, upd.created_at desc, p.position
+                       limit 1) cover on true
+                 where s.breeder_id = :breederId
+                 order by diaries desc, r.review_count desc nulls last, s.name
+                 limit :limit offset :offset""".formatted(PUBLIC_DIARIES),
+                params,
+                (rs, n) -> new BreederStrainCard(rs.getObject("id", UUID.class), rs.getString("name"),
+                        rs.getString("flowering_type"), rs.getString("dominance"), rs.getString("flowering_speed"),
+                        rs.getString("genetics"), rs.getString("status"), rs.getString("source"), rs.getLong("diaries"),
+                        rs.getLong("review_count"), rs.getBigDecimal("overall"), rs.getBigDecimal("avg_gpp"),
+                        thumbnailUrl(rs.getObject("cover_diary_id", UUID.class), rs.getObject("cover_photo_id", UUID.class))));
+        return PageResult.of(items, page, total == null ? 0 : total);
+    }
+
+    /** Mesmo endpoint de foto do diário: é a visibilidade do diário que autoriza a imagem. */
+    private static String thumbnailUrl(UUID diaryId, UUID photoId) {
+        return diaryId == null || photoId == null ? null
+                : "/api/v1/diaries/" + diaryId + "/photos/" + photoId + "?size=THUMBNAIL";
     }
 
     // ---------------------------------------------------------------------------------------- rankings

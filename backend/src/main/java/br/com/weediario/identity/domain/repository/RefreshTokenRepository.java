@@ -13,4 +13,7 @@ public interface RefreshTokenRepository {
     Optional<RefreshToken> findByTokenHash(String tokenHash);
 
     void revokeFamily(UUID familyId, Instant now);
+
+    /** Se a sessão (família) ainda tem algum token não revogado e não expirado. */
+    boolean hasActiveToken(UUID familyId, Instant now);
 }

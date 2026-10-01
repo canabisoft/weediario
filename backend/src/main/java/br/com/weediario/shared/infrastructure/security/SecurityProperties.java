@@ -28,7 +28,11 @@ public record SecurityProperties(
         }
     }
 
-    public record RefreshToken(@NotNull Duration ttl, @NotBlank String cookieName, @NotBlank String cookiePath) {
+    /**
+     * @param reuseGrace janela em que reapresentar um token recém-rotacionado é tratado como corrida, não roubo.
+     */
+    public record RefreshToken(@NotNull Duration ttl, @NotNull Duration reuseGrace,
+                               @NotBlank String cookieName, @NotBlank String cookiePath) {
     }
 
     public record Cors(@NotEmpty List<String> allowedOrigins) {

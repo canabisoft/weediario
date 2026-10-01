@@ -8,6 +8,8 @@ import { problemMessage } from '../core/api/problem';
 import { SocialApi } from '../core/api/social.api';
 import { AuthService } from '../core/auth/auth.service';
 import { DiaryCardComponent } from '../diaries/diary-card';
+import { RecipeSummary, RecipesApi } from '../core/api/recipes.api';
+import { RecipeCard } from '../recipes/recipe-card';
 import { Avatar } from '../shared/avatar';
 import { formatCompact, formatInteger } from '../shared/decimal';
 import { Icon } from '../shared/icon';
@@ -34,7 +36,7 @@ function accumulate<T>(acc: Page<T>, next: Page<T>): Page<T> {
 @Component({
   selector: 'app-grower-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Avatar, Icon, DiaryCardComponent],
+  imports: [RouterLink, Avatar, Icon, DiaryCardComponent, RecipeCard],
   template: `
     @if (loaded(); as state) {
       @if (state.profile; as p) {
@@ -120,6 +122,15 @@ function accumulate<T>(acc: Page<T>, next: Page<T>): Page<T> {
           </ul>
         }
 
+        @if (recipes().length) {
+          <h2 class="mt-8 text-lg font-semibold">Receitas de nutrição</h2>
+          <ul class="mt-3 grid gap-3 sm:grid-cols-2">
+            @for (recipe of recipes(); track recipe.id) {
+              <li><app-recipe-card [recipe]="recipe" [showAuthor]="false" /></li>
+            }
+          </ul>
+        }
+
         <h2 class="mt-8 text-lg font-semibold">Reviews de strains</h2>
         @if (reviews(); as page) {
           <ul class="mt-3 grid gap-3">
@@ -165,6 +176,7 @@ function accumulate<T>(acc: Page<T>, next: Page<T>): Page<T> {
 export class GrowerProfilePage {
   private readonly social = inject(SocialApi);
   private readonly diariesApi = inject(DiariesApi);
+  private readonly recipesApi = inject(RecipesApi);
   protected readonly auth = inject(AuthService);
 
   /** Parâmetro de rota. */
@@ -206,6 +218,19 @@ export class GrowerProfilePage {
       ),
     ),
     { initialValue: emptyPage<DiaryCard>() },
+  );
+
+  /** Só as receitas que o grower deixou públicas. */
+  protected readonly recipes = toSignal(
+    toObservable(this.username).pipe(
+      switchMap((username) =>
+        this.recipesApi.ofGrower(username).pipe(
+          map((page) => page.items),
+          catchError(() => of<RecipeSummary[]>([])),
+        ),
+      ),
+    ),
+    { initialValue: [] },
   );
 
   protected readonly setups = toSignal(

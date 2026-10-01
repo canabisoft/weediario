@@ -13,7 +13,7 @@
 
     <groupId>br.com.weediario</groupId>
     <artifactId>weediario-backend</artifactId>
-    <version>0.18.0</version>
+    <version>0.21.0</version>
     <name>weediario-backend</name>
     <description>Diários de cultivo e reviews com foco em privacidade</description>
 
@@ -85,6 +85,12 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
             <version>1.14.1</version>
+        </dependency>
+        <!-- Relatório do tratamento em PDF, gerado no servidor. -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>2.2.2</version>
         </dependency>
 
         <dependency>

@@ -22,6 +22,9 @@ export interface FeedQuery {
   readonly status?: DiaryStatus;
   readonly strain?: string;
   readonly author?: string;
+  /** Por id do catálogo (independe da grafia digitada no diário). */
+  readonly strainId?: string;
+  readonly breederId?: string;
   readonly sort?: FeedSort;
   readonly following?: boolean;
   readonly page?: number;

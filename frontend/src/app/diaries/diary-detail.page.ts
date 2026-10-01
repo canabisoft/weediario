@@ -20,6 +20,7 @@ import {
 import { DiaryComments } from './detail/diary-comments';
 import { DiaryOwnerPanel } from './detail/diary-owner-panel';
 import { DiaryProducts } from './detail/diary-products';
+import { DiaryRecipes } from './detail/diary-recipes';
 import { DiaryReactions } from './detail/diary-reactions';
 import { DiaryTimeline } from './detail/diary-timeline';
 import { ReviewForm } from './detail/review-form';
@@ -29,7 +30,7 @@ type Loaded = { diary: DiaryCard; error: null } | { diary: null; error: string }
 @Component({
   selector: 'app-diary-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, DiaryComments, DiaryOwnerPanel, DiaryProducts, DiaryReactions, DiaryTimeline, ReviewForm],
+  imports: [RouterLink, Icon, DiaryComments, DiaryOwnerPanel, DiaryProducts, DiaryRecipes, DiaryReactions, DiaryTimeline, ReviewForm],
   template: `
     @if (loaded(); as state) {
       @if (state.diary; as d) {
@@ -97,6 +98,10 @@ type Loaded = { diary: DiaryCard; error: null } | { diary: null; error: string }
               <app-diary-products [diaryId]="d.id" [products]="d.setup?.products ?? []" [isOwner]="isOwner()" />
             </section>
           }
+
+          <section class="wd-card">
+            <app-diary-recipes [diaryId]="d.id" [medium]="d.medium" [isOwner]="isOwner()" />
+          </section>
 
           @if (isOwner()) {
             <app-diary-owner-panel [diary]="d" (changed)="reload()" />

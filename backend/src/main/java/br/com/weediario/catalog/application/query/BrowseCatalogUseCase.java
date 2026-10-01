@@ -1,6 +1,7 @@
 package br.com.weediario.catalog.application.query;
 
 import br.com.weediario.catalog.application.query.CatalogQueries.BreederListItem;
+import br.com.weediario.catalog.application.query.CatalogQueries.BreederStrainCard;
 import br.com.weediario.catalog.application.query.CatalogQueries.PendingItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.ProductListItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.RankingKind;
@@ -64,6 +65,11 @@ public final class BrowseCatalogUseCase {
 
     public BreederListItem breeder(UUID id) {
         return queries.breeder(id).orElseThrow(() -> new ResourceNotFoundException("Breeder"));
+    }
+
+    public PageResult<BreederStrainCard> strainsOfBreeder(UUID breederId, PageQuery page) {
+        breeder(breederId);
+        return queries.strainsOfBreeder(breederId, page);
     }
 
     public PageResult<RankingRow> ranking(RankingKind kind, String category, PageQuery page) {

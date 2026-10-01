@@ -4,6 +4,7 @@ import br.com.weediario.catalog.application.CatalogItem;
 import br.com.weediario.catalog.application.Resolution;
 import br.com.weediario.catalog.application.query.BrowseCatalogUseCase;
 import br.com.weediario.catalog.application.query.CatalogQueries.BreederListItem;
+import br.com.weediario.catalog.application.query.CatalogQueries.BreederStrainCard;
 import br.com.weediario.catalog.application.query.CatalogQueries.ProductListItem;
 import br.com.weediario.catalog.application.query.CatalogQueries.RankingKind;
 import br.com.weediario.catalog.application.query.CatalogQueries.RankingRow;
@@ -116,6 +117,13 @@ public class CatalogController {
     @GetMapping("/breeders/{id}")
     public BreederListItem breeder(@PathVariable UUID id) {
         return browse.breeder(id);
+    }
+
+    @GetMapping("/breeders/{id}/strains")
+    public PageResult<BreederStrainCard> breederStrains(@PathVariable UUID id,
+                                                        @RequestParam(defaultValue = "0") int page,
+                                                        @RequestParam(defaultValue = "24") int size) {
+        return browse.strainsOfBreeder(id, new PageQuery(page, size));
     }
 
     @GetMapping("/products")

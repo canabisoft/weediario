@@ -43,6 +43,8 @@ services:
       WEEDIARIO_DB_PASSWORD: ${WEEDIARIO_DB_PASSWORD}
       WEEDIARIO_JWT_SECRET: ${WEEDIARIO_JWT_SECRET:?rode scripts/setup-env para criar o .env}
       WEEDIARIO_PSEUDONYM_KEY: ${WEEDIARIO_PSEUDONYM_KEY:?rode scripts/setup-env para criar o .env}
+      # Cifra dos textos de saúde do acompanhamento de tratamento (AES-256).
+      WEEDIARIO_HEALTH_KEY: ${WEEDIARIO_HEALTH_KEY:?rode scripts/setup-env para acrescentar a chave ao .env}
       # Mesma origem via nginx; a lista só importa para quem acessar a API de outra origem.
       WEEDIARIO_CORS_ORIGINS: http://localhost:${WEEDIARIO_HTTP_PORT:-8080}
       WEEDIARIO_MEDIA_PATH: /app/data/images

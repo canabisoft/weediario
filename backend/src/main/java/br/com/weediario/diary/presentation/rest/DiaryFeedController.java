@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 public class DiaryFeedController {
@@ -42,10 +43,13 @@ public class DiaryFeedController {
                                       @RequestParam(required = false) FeedSort sort,
                                       @RequestParam(defaultValue = "false") boolean following,
                                       @RequestParam(required = false) @Size(max = 30) String author,
+                                      @RequestParam(required = false) UUID strainId,
+                                      @RequestParam(required = false) UUID breederId,
                                       @AuthenticationPrincipal Jwt principal,
                                       @RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "20") int size) {
-        return browseDiaries.feed(new FeedFilter(stage, medium, status, floweringType, strain, sort, following, author),
+        return browseDiaries.feed(new FeedFilter(stage, medium, status, floweringType, strain, sort, following, author,
+                        strainId, breederId),
                 Viewer.idOf(principal), new PageQuery(page, size));
     }
 

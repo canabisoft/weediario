@@ -11,12 +11,17 @@ import br.com.weediario.identity.domain.repository.UserRepository;
 import br.com.weediario.shared.application.UnitOfWork;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
 /**
  * Troca um refresh token válido por um novo par de tokens (rotação).
  * Reuso de token já rotacionado é tratado como roubo e revoga a sessão inteira.
+ * <p>
+ * Exceção: dentro de {@code reuseGrace} após a rotação, e com a sessão ainda ativa, o reuso é uma corrida benigna
+ * (F5 que aborta a página antes de o navegador gravar o cookie novo, várias abas renovando juntas) e recebe um
+ * token novo da mesma família. Sem essa tolerância, recarregar a página no momento errado derrubava a sessão.
  */
 public final class RefreshSessionUseCase {
 
@@ -26,16 +31,18 @@ public final class RefreshSessionUseCase {
     private final SessionIssuer sessionIssuer;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
+    private final Duration reuseGrace;
 
     public RefreshSessionUseCase(RefreshTokenRepository refreshTokens, UserRepository users,
                                  RefreshTokenCodec refreshTokenCodec, SessionIssuer sessionIssuer,
-                                 UnitOfWork unitOfWork, Clock clock) {
+                                 UnitOfWork unitOfWork, Clock clock, Duration reuseGrace) {
         this.refreshTokens = refreshTokens;
         this.users = users;
         this.refreshTokenCodec = refreshTokenCodec;
         this.sessionIssuer = sessionIssuer;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
+        this.reuseGrace = reuseGrace;
     }
 
     public AuthenticatedSession execute(String rawRefreshToken) {
@@ -51,7 +58,7 @@ public final class RefreshSessionUseCase {
 
     private Optional<AuthenticatedSession> rotate(RefreshToken current) {
         Instant now = clock.instant();
-        if (current.isRevoked()) {
+        if (current.isRevoked() && !isBenignRace(current, now)) {
             refreshTokens.revokeFamily(current.familyId(), now);
             return Optional.empty();
         }
@@ -61,5 +68,10 @@ public final class RefreshSessionUseCase {
         return users.findById(current.userId())
                 .filter(User::canAuthenticate)
                 .map(user -> sessionIssuer.rotateSession(user, current));
+    }
+
+    /** Logout e revogação por roubo não deixam token ativo na família, então nunca caem aqui. */
+    private boolean isBenignRace(RefreshToken revoked, Instant now) {
+        return revoked.wasRevokedWithin(reuseGrace, now) && refreshTokens.hasActiveToken(revoked.familyId(), now);
     }
 }

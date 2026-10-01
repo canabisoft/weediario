@@ -82,8 +82,9 @@ public class IdentityUseCaseConfig {
     @Bean
     RefreshSessionUseCase refreshSessionUseCase(RefreshTokenRepository refreshTokens, UserRepository users,
                                                 RefreshTokenCodec refreshTokenCodec, SessionIssuer sessionIssuer,
-                                                UnitOfWork unitOfWork, Clock clock) {
-        return new RefreshSessionUseCase(refreshTokens, users, refreshTokenCodec, sessionIssuer, unitOfWork, clock);
+                                                UnitOfWork unitOfWork, Clock clock, SecurityProperties properties) {
+        return new RefreshSessionUseCase(refreshTokens, users, refreshTokenCodec, sessionIssuer, unitOfWork, clock,
+                properties.refreshToken().reuseGrace());
     }
 
     @Bean

@@ -3,15 +3,22 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $envFile = Join-Path $root '.env'
 
-if (Test-Path $envFile) {
-    Write-Output '.env já existe; nada foi alterado.'
-    exit 0
-}
-
 function New-RandomBytes([int] $count) {
     $bytes = New-Object byte[] $count
     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
     return $bytes
+}
+
+if (Test-Path $envFile) {
+    # .env antigo: só acrescenta chaves que surgiram depois, sem mexer nas existentes.
+    if (-not (Select-String -Path $envFile -Pattern '^WEEDIARIO_HEALTH_KEY=' -Quiet)) {
+        $line = "WEEDIARIO_HEALTH_KEY=$([Convert]::ToBase64String((New-RandomBytes 32)))"
+        [System.IO.File]::AppendAllText($envFile, $line + "`n", (New-Object System.Text.UTF8Encoding $false))
+        Write-Output 'WEEDIARIO_HEALTH_KEY acrescentada ao .env (guarde uma cópia segura dela).'
+    } else {
+        Write-Output '.env já existe; nada foi alterado.'
+    }
+    exit 0
 }
 
 $lines = @(
@@ -19,6 +26,7 @@ $lines = @(
     "WEEDIARIO_DB_PASSWORD=$(([System.BitConverter]::ToString((New-RandomBytes 24))) -replace '-', '')"
     "WEEDIARIO_JWT_SECRET=$([Convert]::ToBase64String((New-RandomBytes 48)))"
     "WEEDIARIO_PSEUDONYM_KEY=$([Convert]::ToBase64String((New-RandomBytes 48)))"
+    "WEEDIARIO_HEALTH_KEY=$([Convert]::ToBase64String((New-RandomBytes 32)))"
     'WEEDIARIO_HTTP_PORT=8080'
 )
 # UTF-8 sem BOM: o docker compose lê o arquivo literalmente.

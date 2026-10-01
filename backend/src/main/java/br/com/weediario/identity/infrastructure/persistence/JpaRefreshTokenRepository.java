@@ -31,4 +31,9 @@ public class JpaRefreshTokenRepository implements RefreshTokenRepository {
     public void revokeFamily(UUID familyId, Instant now) {
         jpa.revokeFamily(familyId, now);
     }
+
+    @Override
+    public boolean hasActiveToken(UUID familyId, Instant now) {
+        return jpa.existsByFamilyIdAndRevokedAtIsNullAndExpiresAtAfter(familyId, now);
+    }
 }

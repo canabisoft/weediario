@@ -35,6 +35,9 @@ public interface CatalogQueries {
 
     Optional<BreederListItem> breeder(UUID id);
 
+    /** Todas as strains do banco no catálogo, as mais cultivadas primeiro. */
+    PageResult<BreederStrainCard> strainsOfBreeder(UUID breederId, PageQuery page);
+
     PageResult<RankingRow> ranking(RankingKind kind, String category, PageQuery page);
 
     /**
@@ -61,12 +64,22 @@ public interface CatalogQueries {
                           String status, String source, long diaries, long reviewCount, BigDecimal overall) {
     }
 
+    /**
+     * Card de uma strain na página do banco. {@code coverThumbnailUrl}: miniatura da foto mais recente de um
+     * diário público com a strain (nulo se nenhum tiver foto).
+     */
+    record BreederStrainCard(UUID id, String name, String floweringType, String dominance, String floweringSpeed,
+                             String genetics, String status, String source, long diaries, long reviewCount,
+                             BigDecimal overall, BigDecimal avgGramsPerPlant, String coverThumbnailUrl) {
+    }
+
     record BreederListItem(UUID id, String name, String status, String source, long strains, long diaries,
                            long reviewCount, BigDecimal overall) {
     }
 
+    /** {@code recipes}: receitas públicas de nutrição que usam o produto. */
     record ProductListItem(UUID id, String name, UUID brandId, String brand, String category, String status,
-                           String source, long diaries) {
+                           String source, long diaries, long recipes) {
     }
 
     record StrainDetail(UUID id, String name, UUID breederId, String breeder, String floweringType, String dominance,

@@ -11,6 +11,7 @@ import { CatalogPicker } from '../shared/catalog-picker';
 import { formatCompact, formatDecimal } from '../shared/decimal';
 import { Icon } from '../shared/icon';
 import { RatingBar } from '../shared/rating';
+import { SeedbankShowcase } from './seedbank-showcase';
 import { DOMINANCE_LABEL, SEED_KIND_LABEL, SOURCE_LABEL, SPEED_LABEL, options } from '../shared/labels';
 
 export type CatalogKind = 'strain' | 'seedbank';
@@ -51,7 +52,7 @@ const EMPTY_PAGE = { items: [], page: 0, size: 0, totalItems: 0, totalPages: 0 }
 @Component({
   selector: 'app-catalog-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker],
+  imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker, SeedbankShowcase],
   template: `
     <a routerLink="/strains" [queryParams]="kind() === 'seedbank' ? { aba: 'bancos' } : {}" class="text-sm text-fg-muted">
       ← {{ kind() === 'strain' ? 'Strains' : 'Bancos de sementes' }}
@@ -104,6 +105,10 @@ const EMPTY_PAGE = { items: [], page: 0, size: 0, totalItems: 0, totalPages: 0 }
               </div>
             }
           </section>
+        }
+
+        @if (kind() === 'seedbank') {
+          <app-seedbank-showcase [breederId]="d.id" />
         }
 
         @if (kind() === 'strain' && auth.isLoggedIn()) {

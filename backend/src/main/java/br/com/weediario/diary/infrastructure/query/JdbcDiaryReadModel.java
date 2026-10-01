@@ -95,6 +95,15 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
             conditions.add("lower(u.username) = lower(:author)");
             params.addValue("author", filter.author());
         }
+        // Por id do catálogo: pega o cultivo mesmo que o nome tenha sido digitado com outra grafia.
+        if (filter.strainId() != null) {
+            conditions.add("d.strain_id = :strainId");
+            params.addValue("strainId", filter.strainId());
+        }
+        if (filter.breederId() != null) {
+            conditions.add("d.breeder_id = :breederId");
+            params.addValue("breederId", filter.breederId());
+        }
         if (filter.strain() != null) {
             conditions.add("d.strain_name ilike :strain escape '\\'");
             params.addValue("strain", "%" + escapeLike(filter.strain()) + "%");

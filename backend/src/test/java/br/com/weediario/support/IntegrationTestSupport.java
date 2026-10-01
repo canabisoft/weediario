@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "weediario.security.jwt.secret=dGVzdC1zZWNyZXQtd2l0aC1hdC1sZWFzdC0yNTYtYml0cy1vZi1lbnRyb3B5IQ==",
         "weediario.media.storage-path=target/test-media",
         "weediario.social.pseudonym-key=cHNldWRvbnltLWtleS1mb3ItdGVzdHMtb25seS0yNTYtYml0cyE=",
+        "weediario.treatment.encryption-key=dGVzdC1rZXktZm9yLWhlYWx0aC1kYXRhLTMyYnl0ZXM=",
         "spring.datasource.username=",
         "spring.datasource.password="
 })

@@ -57,6 +57,24 @@ export interface BreederListItem {
   readonly overall?: number;
 }
 
+/** Card de uma strain na página do banco de sementes. */
+export interface BreederStrainCard {
+  readonly id: string;
+  readonly name: string;
+  readonly floweringType?: 'PHOTOPERIOD' | 'AUTOFLOWER';
+  readonly dominance?: Dominance;
+  readonly floweringSpeed?: FloweringSpeed;
+  readonly genetics?: string;
+  readonly status: CatalogStatus;
+  readonly source: CatalogSource;
+  readonly diaries: number;
+  readonly reviewCount: number;
+  readonly overall?: number;
+  readonly avgGramsPerPlant?: number;
+  /** Miniatura da foto mais recente de um diário público com a strain. */
+  readonly coverThumbnailUrl?: string;
+}
+
 export interface ProductListItem {
   readonly id: string;
   readonly name: string;
@@ -66,6 +84,8 @@ export interface ProductListItem {
   readonly status: CatalogStatus;
   readonly source: CatalogSource;
   readonly diaries: number;
+  /** Receitas públicas de nutrição que usam o produto. */
+  readonly recipes: number;
 }
 
 export interface StrainTraits {
@@ -137,6 +157,10 @@ export class CatalogDbApi {
 
   breeder(id: string): Observable<BreederListItem> {
     return this.http.get<BreederListItem>(`/api/v1/catalog/breeders/${id}`);
+  }
+
+  breederStrains(id: string, page = 0, size = 24): Observable<Page<BreederStrainCard>> {
+    return this.http.get<Page<BreederStrainCard>>(`/api/v1/catalog/breeders/${id}/strains`, { params: { page, size } });
   }
 
   ranking(kind: RankingKind, category?: ProductCategory, page = 0): Observable<Page<RankingRow>> {
