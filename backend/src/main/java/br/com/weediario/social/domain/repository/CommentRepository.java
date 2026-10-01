@@ -12,6 +12,9 @@ public interface CommentRepository {
 
     Optional<Comment> findById(UUID id);
 
+    /** Se quem escreveu o comentário tem conta ativa (comentário de conta suspensa ou banida sai do ar). */
+    boolean authorActive(UUID commentId);
+
     void delete(UUID id);
 
     long countByAuthorSince(UUID authorId, Instant since);

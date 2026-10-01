@@ -30,6 +30,12 @@ Este projeto foi arquitetado sob premissas rígidas de segurança digital:
 
 - nginx e Caddy sem log de acesso e sem repassar o IP do visitante ao backend.
 - Limite de tentativas de login e de recuperação por conta (chave HMAC do apelido), sem usar IP.
+- **Proteção contra sobrecarga sem IP:** cadastro, recuperação de conta, último login de conta antiga e troca da
+  frase usam Argon2id, que é pesado de propósito. Um teto global de cálculos Argon2 simultâneos (padrão
+  `max(2, núcleos / 2)`) impede que alguém derrube o servidor variando apelidos: com o teto cheio, a requisição
+  espera até 2 s e, sem vaga, recebe `429` com `Retry-After`. O teto é só um contador (sem IP nem apelido) e não
+  conta como tentativa errada. O login com chave de acesso (SHA-256) não passa por ele. Ajuste com
+  `WEEDIARIO_HASH_MAX_CONCURRENT` (0 = automático) e `WEEDIARIO_HASH_MAX_WAIT` (ex.: `2s`).
 - Containers somente leitura e sem capabilities; app, API e nginx rodam sem root (o Caddy só tem a permissão de
   abrir as portas 80/443).
 - Segredos só no `.env` (fora do git), gerados aleatoriamente pelo script.
@@ -132,9 +138,13 @@ Regras em `/termos` (Termos de Uso, versão atual 1.0). O cadastro exige o aceit
 data/hora. Ao mudar o texto, suba `TermsOfUse.CURRENT_VERSION` (backend) e `TERMS_VERSION` (frontend): quem aceitou uma
 versão antiga continua lendo, baixando e apagando dados, mas não publica até aceitar a nova.
 
-- **Filtro anti-comércio** (`CommerceFilter`): bloqueia telefone, CPF/CNPJ, chave PIX e links de WhatsApp/Telegram;
-  segura para revisão textos com cara de anúncio ("vendo 5g", "chama no zap", "faço entrega"). Vale para comentários,
-  diários e updates públicos, reviews, receitas, comentários de receita e bio. Nomes do catálogo são só bloqueados.
+- **Filtro anti-comércio** (`CommerceFilter`): bloqueia telefone (inclusive disfarçado: espaçado, com letras no
+  lugar de dígitos, +55/0), CPF/CNPJ, chave PIX (e-mail, e-mail por extenso, chave aleatória ou telefone perto de
+  "pix", mesmo escrito "p.i.x"/"piks") e links de WhatsApp/Telegram/Signal/Discord (inclusive "wa . me" e
+  "wa ponto me"). Segura para revisão anúncios, "chama no privado/pv/dm", @perfil com contexto de negócio, links
+  encurtados, pedido de PIX e telefone ambíguo. Medidas de cultivo, datas, modelos de LED e strains com número
+  passam (mais de 80 frases reais de grower nos testes). Vale para comentários e respostas, diários e updates
+  públicos, reviews, receitas e bio. Nomes do catálogo são só bloqueados.
 - **Denúncias** em qualquer conteúdo público, com motivo e de forma anônima (pseudônimo HMAC por conteúdo). Com 3
   denúncias distintas o conteúdo sai do ar até a moderação decidir.
 - **Painel `/moderacao`** (papel `MODERATOR` ou `ADMIN`): fila unificada, manter/remover, suspender ou banir, reativar
@@ -146,6 +156,15 @@ versão antiga continua lendo, baixando e apagando dados, mas não publica até 
   da equipe.
 - **Corte imediato:** a cada requisição autenticada o backend confere status e papel da conta. Suspensa ou banida
   recebe 401 na hora (sem esperar o token de 10 min expirar); quem mudou de papel renova a sessão automaticamente.
+
+### Conversas nos comentários
+
+Comentários de diários e de receitas aceitam respostas (um nível só: responder uma resposta mantém a conversa no
+mesmo comentário) e reações anônimas 🔥 🌿 👏. Como nas reações de diário, só existem contagens: o banco guarda um
+pseudônimo HMAC diferente para cada comentário, nunca quem reagiu nem quando. Respostas passam pelo mesmo filtro
+anti-comércio, limite de frequência e denúncia dos comentários; quem teve o comentário respondido recebe uma
+notificação. Apagar um comentário apaga as respostas dele, e não dá para responder ou reagir a comentário de conta
+suspensa ou banida.
 
 ### Painel do admin
 

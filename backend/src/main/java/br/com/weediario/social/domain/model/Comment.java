@@ -13,6 +13,10 @@ import java.util.UUID;
  * <p>
  * Denúncias e decisões ficam no contexto de moderação; aqui o comentário só sabe se está oculto (retido pelo
  * filtro anti-comércio ou por denúncias, aguardando a moderação).
+ * <p>
+ * Respostas têm um nível só: {@code parentId} aponta sempre para um comentário raiz do mesmo diário. Responder uma
+ * resposta anexa a nova resposta ao mesmo comentário raiz (a conversa continua legível no celular e ninguém recebe
+ * erro por clicar em "Responder"). Apagar o comentário raiz apaga as respostas junto.
  */
 public final class Comment {
 
@@ -20,14 +24,20 @@ public final class Comment {
 
     private final UUID id;
     private final UUID diaryId;
+    private final UUID parentId;
     private final UUID authorId;
     private final String body;
     private boolean hidden;
     private final Instant createdAt;
 
-    private Comment(UUID id, UUID diaryId, UUID authorId, String body, boolean hidden, Instant createdAt) {
+    private Comment(UUID id, UUID diaryId, UUID parentId, UUID authorId, String body, boolean hidden,
+                    Instant createdAt) {
         this.id = Guard.notNull(id, "Id");
         this.diaryId = Guard.notNull(diaryId, "Diário");
+        if (id.equals(parentId)) {
+            throw new DomainException("Um comentário não responde a si mesmo");
+        }
+        this.parentId = parentId;
         this.authorId = Guard.notNull(authorId, "Autor");
         this.body = validBody(body);
         this.hidden = hidden;
@@ -38,11 +48,37 @@ public final class Comment {
         if (!diary.isVisibleTo(Optional.of(authorId))) {
             throw new DomainException("Diário não encontrado");
         }
-        return new Comment(UUID.randomUUID(), diary.diaryId(), authorId, body, false, clock.instant());
+        return new Comment(UUID.randomUUID(), diary.diaryId(), null, authorId, body, false, clock.instant());
     }
 
-    public static Comment restore(UUID id, UUID diaryId, UUID authorId, String body, boolean hidden, Instant createdAt) {
-        return new Comment(id, diaryId, authorId, body, hidden, createdAt);
+    /**
+     * Resposta a {@code answered}. Se ele já for uma resposta, a nova fica no mesmo comentário raiz (um nível só).
+     */
+    public static Comment reply(CommentableDiary diary, Comment answered, UUID authorId, String body, Clock clock) {
+        if (!diary.isVisibleTo(Optional.of(authorId)) || !answered.diaryId.equals(diary.diaryId())) {
+            throw new DomainException("Comentário não encontrado");
+        }
+        return new Comment(UUID.randomUUID(), diary.diaryId(), answered.rootId(), authorId, body, false,
+                clock.instant());
+    }
+
+    public static Comment restore(UUID id, UUID diaryId, UUID parentId, UUID authorId, String body, boolean hidden,
+                                  Instant createdAt) {
+        return new Comment(id, diaryId, parentId, authorId, body, hidden, createdAt);
+    }
+
+    /** Comentário raiz da conversa: ele mesmo ou aquele a que responde. */
+    public UUID rootId() {
+        return parentId == null ? id : parentId;
+    }
+
+    public boolean isReply() {
+        return parentId != null;
+    }
+
+    /** Oculto (retido ou denunciado) só aparece para quem escreveu. */
+    public boolean isVisibleTo(UUID viewerId) {
+        return !hidden || authorId.equals(viewerId);
     }
 
     /** O autor apaga o próprio comentário; o dono do diário e moderadores apagam qualquer um no diário. */
@@ -67,6 +103,11 @@ public final class Comment {
 
     public UUID diaryId() {
         return diaryId;
+    }
+
+    /** Comentário raiz respondido; vazio no próprio comentário raiz. */
+    public Optional<UUID> parentId() {
+        return Optional.ofNullable(parentId);
     }
 
     public UUID authorId() {

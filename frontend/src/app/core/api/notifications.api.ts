@@ -3,17 +3,20 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Page } from './api.models';
 
-export type NotificationType = 'COMMENT' | 'REACTION' | 'NEW_FOLLOWER' | 'FOLLOWED_UPDATE';
+export type NotificationType = 'COMMENT' | 'REACTION' | 'NEW_FOLLOWER' | 'FOLLOWED_UPDATE' | 'REPLY';
 
 /**
  * Notificação da caixa de entrada. Reações e novos seguidores são anônimos: nunca trazem {@code actor}.
- * {@code occurrences} soma as vezes que aconteceu enquanto a notificação não foi lida.
+ * {@code occurrences} soma as vezes que aconteceu enquanto a notificação não foi lida. Respostas a comentários de
+ * receita trazem {@code recipeId}/{@code recipeName} no lugar do diário.
  */
 export interface NotificationItem {
   readonly id: string;
   readonly type: NotificationType;
   readonly diaryId?: string;
   readonly diaryTitle?: string;
+  readonly recipeId?: string;
+  readonly recipeName?: string;
   readonly actor?: string;
   readonly occurrences: number;
   readonly createdAt: string;

@@ -12,10 +12,11 @@ import java.util.UUID;
  * Aviso para um grower sobre uma interação com algo dele. Só referencia ids (diário, autor de uma ação pública);
  * o texto é montado na leitura, respeitando a visibilidade atual do diário.
  *
- * @param diaryId diário envolvido (vazio para novos seguidores)
- * @param actorId quem fez a ação; sempre vazio nos tipos anônimos
+ * @param diaryId  diário envolvido (vazio para novos seguidores e respostas em receitas)
+ * @param recipeId receita envolvida (só nas respostas a comentários de receita)
+ * @param actorId  quem fez a ação; sempre vazio nos tipos anônimos
  */
-public record Notification(UUID id, UUID recipientId, NotificationType type, UUID diaryId, UUID actorId,
+public record Notification(UUID id, UUID recipientId, NotificationType type, UUID diaryId, UUID recipeId, UUID actorId,
                            Instant createdAt) {
 
     public Notification {
@@ -40,12 +41,26 @@ public record Notification(UUID id, UUID recipientId, NotificationType type, UUI
                 : Optional.of(create(diaryOwnerId, NotificationType.REACTION, diaryId, null, clock));
     }
 
+    /**
+     * Resposta a um comentário: avisa o autor do comentário respondido (em diário ou em receita). Quem respondeu
+     * aparece pelo apelido, que já é público na própria resposta.
+     */
+    public static Optional<Notification> reply(UUID commentAuthorId, UUID diaryId, UUID recipeId, UUID replierId,
+                                               Clock clock) {
+        if ((diaryId == null) == (recipeId == null)) {
+            throw new DomainException("A resposta é de um diário ou de uma receita");
+        }
+        return commentAuthorId.equals(replierId) ? Optional.empty()
+                : Optional.of(new Notification(UUID.randomUUID(), commentAuthorId, NotificationType.REPLY, diaryId,
+                        recipeId, replierId, clock.instant()));
+    }
+
     public static Optional<Notification> newFollower(UUID followeeId, UUID followerId, Clock clock) {
         return followeeId.equals(followerId) ? Optional.empty()
                 : Optional.of(create(followeeId, NotificationType.NEW_FOLLOWER, null, null, clock));
     }
 
     private static Notification create(UUID recipientId, NotificationType type, UUID diaryId, UUID actorId, Clock clock) {
-        return new Notification(UUID.randomUUID(), recipientId, type, diaryId, actorId, clock.instant());
+        return new Notification(UUID.randomUUID(), recipientId, type, diaryId, null, actorId, clock.instant());
     }
 }

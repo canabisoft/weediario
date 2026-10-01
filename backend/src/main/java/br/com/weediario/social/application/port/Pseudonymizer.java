@@ -11,4 +11,10 @@ import java.util.UUID;
 public interface Pseudonymizer {
 
     ReactorPseudonym pseudonymOf(UUID userId, UUID target);
+
+    /**
+     * Mesma derivação com um propósito a mais: o pseudônimo de quem reagiu a um comentário não coincide com o de
+     * quem denunciou o mesmo comentário, então nem com acesso ao banco dá para cruzar as duas coisas.
+     */
+    ReactorPseudonym pseudonymOf(UUID userId, UUID target, String purpose);
 }

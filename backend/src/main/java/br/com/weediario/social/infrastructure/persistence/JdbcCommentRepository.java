@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,12 +25,13 @@ public class JdbcCommentRepository implements CommentRepository {
     @Override
     public Comment save(Comment comment) {
         jdbc.update("""
-                insert into diary_comments (id, diary_id, author_id, body, hidden, created_at)
-                values (:id, :diaryId, :authorId, :body, :hidden, :createdAt)
+                insert into diary_comments (id, diary_id, parent_id, author_id, body, hidden, created_at)
+                values (:id, :diaryId, :parentId, :authorId, :body, :hidden, :createdAt)
                 on conflict (id) do update set hidden = excluded.hidden""",
                 new MapSqlParameterSource()
                         .addValue("id", comment.id())
                         .addValue("diaryId", comment.diaryId())
+                        .addValue("parentId", comment.parentId().orElse(null), Types.OTHER)
                         .addValue("authorId", comment.authorId())
                         .addValue("body", comment.body())
                         .addValue("hidden", comment.hidden())
@@ -41,6 +43,14 @@ public class JdbcCommentRepository implements CommentRepository {
     public Optional<Comment> findById(UUID id) {
         return jdbc.query("select * from diary_comments where id = :id", new MapSqlParameterSource("id", id), MAPPER)
                 .stream().findFirst();
+    }
+
+    @Override
+    public boolean authorActive(UUID commentId) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("""
+                select exists (select 1 from diary_comments c join users u on u.id = c.author_id
+                                where c.id = :id and u.status = 'ACTIVE')""",
+                new MapSqlParameterSource("id", commentId), Boolean.class));
     }
 
     @Override
@@ -59,6 +69,7 @@ public class JdbcCommentRepository implements CommentRepository {
     private static final RowMapper<Comment> MAPPER = (rs, rowNum) -> Comment.restore(
             rs.getObject("id", UUID.class),
             rs.getObject("diary_id", UUID.class),
+            rs.getObject("parent_id", UUID.class),
             rs.getObject("author_id", UUID.class),
             rs.getString("body"),
             rs.getBoolean("hidden"),

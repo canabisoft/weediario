@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -150,30 +152,80 @@ public class JdbcRecipeReadModel implements RecipeReadModel {
                 .toList();
     }
 
+    private static final String COMMENT_COLUMNS =
+            "select c.id, c.author_id, u.username, c.body, c.hidden, c.created_at, c.parent_id";
+    private static final String COMMENT_FROM = " from recipe_comments c join users u on u.id = c.author_id";
+
+    /** Autor ativo; oculto só para a moderação ou para quem escreveu. */
+    private static String visibleComment(String alias, boolean includeHidden) {
+        String visibility = includeHidden ? "" : " and (not %1$s.hidden or %1$s.author_id = :viewerId)".formatted(alias);
+        return " exists (select 1 from users au where au.id = %1$s.author_id and au.status = 'ACTIVE')".formatted(alias)
+                + visibility;
+    }
+
     @Override
     public PageResult<CommentRow> comments(UUID recipeId, boolean includeHidden, Optional<UUID> viewerId, PageQuery page) {
-        String where = " where c.recipe_id = :recipeId" + (includeHidden ? "" : " and (not c.hidden or c.author_id = :viewerId)");
+        String where = " where c.recipe_id = :recipeId and c.parent_id is null and" + visibleComment("c", includeHidden);
         MapSqlParameterSource params = new MapSqlParameterSource("recipeId", recipeId)
                 .addValue("viewerId", viewerId.orElse(null), Types.OTHER)
                 .addValue("limit", page.size()).addValue("offset", page.offset());
-        String from = " from recipe_comments c join users u on u.id = c.author_id and u.status = 'ACTIVE'";
-        Long total = jdbc.queryForObject("select count(*)" + from + where, params, Long.class);
-        List<CommentRow> items = jdbc.query("select c.*, u.username" + from + where
-                        + " order by c.created_at, c.id limit :limit offset :offset", params,
-                (rs, n) -> new CommentRow(rs.getObject("id", UUID.class), rs.getObject("author_id", UUID.class),
-                        rs.getString("username"), rs.getString("body"), rs.getBoolean("hidden"),
-                        rs.getTimestamp("created_at").toInstant()));
+        Long total = jdbc.queryForObject("select count(*)" + COMMENT_FROM + where, params, Long.class);
+        List<CommentRow> items = jdbc.query(COMMENT_COLUMNS + COMMENT_FROM + where
+                + " order by c.created_at, c.id limit :limit offset :offset", params, (rs, n) -> commentRow(rs));
+        return PageResult.of(items, page, total == null ? 0 : total);
+    }
+
+    @Override
+    public Map<UUID, CommentReplies> replyPreviews(Collection<UUID> rootIds, boolean includeHidden,
+                                                   Optional<UUID> viewerId, int perRoot) {
+        if (rootIds.isEmpty()) {
+            return Map.of();
+        }
+        MapSqlParameterSource params = new MapSqlParameterSource("rootIds", List.copyOf(rootIds))
+                .addValue("viewerId", viewerId.orElse(null), Types.OTHER)
+                .addValue("perRoot", perRoot);
+        Map<UUID, Long> totals = new HashMap<>();
+        Map<UUID, List<CommentRow>> items = new LinkedHashMap<>();
+        jdbc.query("select * from (" + COMMENT_COLUMNS
+                        + ", row_number() over (partition by c.parent_id order by c.created_at, c.id) as position"
+                        + ", count(*) over (partition by c.parent_id) as total"
+                        + COMMENT_FROM + " where c.parent_id in (:rootIds) and" + visibleComment("c", includeHidden)
+                        + ") x where x.position <= :perRoot order by x.created_at, x.id",
+                params,
+                rs -> {
+                    UUID rootId = rs.getObject("parent_id", UUID.class);
+                    totals.put(rootId, rs.getLong("total"));
+                    items.computeIfAbsent(rootId, id -> new ArrayList<>()).add(commentRow(rs));
+                });
+        Map<UUID, CommentReplies> previews = new HashMap<>();
+        items.forEach((rootId, replies) -> previews.put(rootId, new CommentReplies(List.copyOf(replies), totals.get(rootId))));
+        return previews;
+    }
+
+    @Override
+    public PageResult<CommentRow> replies(UUID rootId, boolean includeHidden, Optional<UUID> viewerId, PageQuery page) {
+        String where = " where c.parent_id = :rootId and" + visibleComment("c", includeHidden)
+                + " and exists (select 1 from recipe_comments p where p.id = c.parent_id and p.parent_id is null and"
+                + visibleComment("p", includeHidden) + ")";
+        MapSqlParameterSource params = new MapSqlParameterSource("rootId", rootId)
+                .addValue("viewerId", viewerId.orElse(null), Types.OTHER)
+                .addValue("limit", page.size()).addValue("offset", page.offset());
+        Long total = jdbc.queryForObject("select count(*)" + COMMENT_FROM + where, params, Long.class);
+        List<CommentRow> items = jdbc.query(COMMENT_COLUMNS + COMMENT_FROM + where
+                + " order by c.created_at, c.id limit :limit offset :offset", params, (rs, n) -> commentRow(rs));
         return PageResult.of(items, page, total == null ? 0 : total);
     }
 
     @Override
     public Optional<CommentRow> comment(UUID commentId) {
-        return jdbc.query("""
-                select c.*, u.username from recipe_comments c join users u on u.id = c.author_id
-                 where c.id = :id""", new MapSqlParameterSource("id", commentId),
-                (rs, n) -> new CommentRow(rs.getObject("id", UUID.class), rs.getObject("author_id", UUID.class),
-                        rs.getString("username"), rs.getString("body"), rs.getBoolean("hidden"),
-                        rs.getTimestamp("created_at").toInstant())).stream().findFirst();
+        return jdbc.query(COMMENT_COLUMNS + COMMENT_FROM + " where c.id = :id", new MapSqlParameterSource("id", commentId),
+                (rs, n) -> commentRow(rs)).stream().findFirst();
+    }
+
+    private static CommentRow commentRow(ResultSet rs) throws SQLException {
+        return new CommentRow(rs.getObject("id", UUID.class), rs.getObject("author_id", UUID.class),
+                rs.getString("username"), rs.getString("body"), rs.getBoolean("hidden"),
+                rs.getTimestamp("created_at").toInstant(), rs.getObject("parent_id", UUID.class));
     }
 
     @Override

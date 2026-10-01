@@ -54,6 +54,13 @@ weediario:
   treatment:
     # AES-256 (32 bytes em Base64) dos textos de saúde. Gerada por scripts/setup-env; perdê-la torna esses textos ilegíveis.
     encryption-key: ${WEEDIARIO_HEALTH_KEY}
+  identity:
+    # Teto global de Argon2 simultâneos (cadastro, recuperação, login de conta antiga, troca de frase). Sem IP:
+    # quem passa do teto espera até max-wait na fila e, se não houver vaga, recebe 429 com Retry-After.
+    password-hashing:
+      # 0 = automático: max(2, núcleos / 2). Cada cálculo usa ~19 MiB de memória.
+      max-concurrent: ${WEEDIARIO_HASH_MAX_CONCURRENT:0}
+      max-wait: ${WEEDIARIO_HASH_MAX_WAIT:2s}
   security:
     jwt:
       issuer: ${WEEDIARIO_JWT_ISSUER:weediario}

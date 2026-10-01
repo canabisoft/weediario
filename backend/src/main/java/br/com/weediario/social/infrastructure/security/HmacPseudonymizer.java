@@ -34,10 +34,19 @@ public class HmacPseudonymizer implements Pseudonymizer {
 
     @Override
     public ReactorPseudonym pseudonymOf(UUID userId, UUID target) {
+        return hmac(userId + ":" + target);
+    }
+
+    @Override
+    public ReactorPseudonym pseudonymOf(UUID userId, UUID target, String purpose) {
+        return hmac(userId + ":" + target + ":" + purpose);
+    }
+
+    private ReactorPseudonym hmac(String input) {
         try {
             Mac mac = Mac.getInstance(ALGORITHM);
             mac.init(key);
-            byte[] digest = mac.doFinal((userId + ":" + target).getBytes(StandardCharsets.UTF_8));
+            byte[] digest = mac.doFinal(input.getBytes(StandardCharsets.UTF_8));
             return new ReactorPseudonym(HexFormat.of().formatHex(digest));
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException("HMAC indisponível na JVM", e);

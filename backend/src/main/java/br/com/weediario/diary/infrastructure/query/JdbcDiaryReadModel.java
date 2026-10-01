@@ -41,7 +41,13 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
                    d.status, d.visibility, d.current_stage, d.started_on, d.ended_on, d.last_update_on,
                    d.harvest_dry_grams, d.harvest_plants, d.moderation_hold,
                    (select count(*) from diary_updates du where du.diary_id = d.id) as updates_count,
-                   (select count(*) from diary_comments dc where dc.diary_id = d.id and not dc.hidden) as comments_count,
+                   (select count(*)
+                      from diary_comments dc
+                      join users cu on cu.id = dc.author_id and cu.status = 'ACTIVE'
+                      left join diary_comments pc on pc.id = dc.parent_id
+                      left join users pu on pu.id = pc.author_id
+                     where dc.diary_id = d.id and not dc.hidden
+                       and (dc.parent_id is null or (not pc.hidden and pu.status = 'ACTIVE'))) as comments_count,
                    (select count(*) from diary_reactions dr where dr.diary_id = d.id) as reactions_count,
                    %s as setup_snapshot,
                    (select p.image_id

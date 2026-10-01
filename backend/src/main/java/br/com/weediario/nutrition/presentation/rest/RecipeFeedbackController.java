@@ -2,9 +2,11 @@ package br.com.weediario.nutrition.presentation.rest;
 
 import br.com.weediario.nutrition.application.query.RecipeReadModel.Recommendation;
 import br.com.weediario.nutrition.application.usecase.RecipeFeedbackUseCase;
+import br.com.weediario.nutrition.application.usecase.RecipeFeedbackUseCase.CommentReactions;
 import br.com.weediario.nutrition.application.usecase.RecipeFeedbackUseCase.CommentView;
 import br.com.weediario.nutrition.application.usecase.RecipeFeedbackUseCase.Rating;
 import br.com.weediario.nutrition.application.usecase.RecommendRecipesUseCase;
+import br.com.weediario.nutrition.domain.model.CommentReaction;
 import br.com.weediario.nutrition.domain.model.RecipeComment;
 import br.com.weediario.nutrition.domain.model.RecipeKind;
 import br.com.weediario.shared.application.PageQuery;
@@ -84,7 +86,31 @@ public class RecipeFeedbackController {
     @ResponseStatus(HttpStatus.CREATED)
     public CommentView comment(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id,
                                @Valid @RequestBody CommentRequest request) {
-        return feedback.postComment(id, Viewer.requireId(principal), request.body());
+        return feedback.postComment(id, Viewer.requireId(principal), request.body(),
+                Optional.ofNullable(request.parentId()));
+    }
+
+    /** "Ver mais": todas as respostas visíveis de um comentário raiz. */
+    @GetMapping("/api/v1/recipes/{id}/comments/{commentId}/replies")
+    public PageResult<CommentView> replies(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id,
+                                           @PathVariable UUID commentId,
+                                           @RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "50") int size) {
+        return feedback.replies(id, commentId, Viewer.idOf(principal), Viewer.isModerator(principal),
+                new PageQuery(page, size));
+    }
+
+    /** Reação anônima num comentário: só contagens e as reações de quem está logado. */
+    @PutMapping("/api/v1/recipes/{id}/comments/{commentId}/reactions/{type}")
+    public CommentReactions reactToComment(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id,
+                                           @PathVariable UUID commentId, @PathVariable CommentReaction type) {
+        return feedback.react(id, commentId, Viewer.requireId(principal), type);
+    }
+
+    @DeleteMapping("/api/v1/recipes/{id}/comments/{commentId}/reactions/{type}")
+    public CommentReactions unreactToComment(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id,
+                                             @PathVariable UUID commentId, @PathVariable CommentReaction type) {
+        return feedback.unreact(id, commentId, Viewer.requireId(principal), type);
     }
 
     @DeleteMapping("/api/v1/recipes/{id}/comments/{commentId}")
@@ -96,6 +122,7 @@ public class RecipeFeedbackController {
     public record RatingRequest(@NotNull @Min(1) @Max(5) Integer stars) {
     }
 
-    public record CommentRequest(@NotBlank @Size(max = RecipeComment.BODY_MAX_LENGTH) String body) {
+    /** @param parentId comentário respondido (opcional) */
+    public record CommentRequest(@NotBlank @Size(max = RecipeComment.BODY_MAX_LENGTH) String body, UUID parentId) {
     }
 }

@@ -1,14 +1,19 @@
 package br.com.weediario.nutrition.domain.model;
 
+import br.com.weediario.shared.domain.DomainException;
 import br.com.weediario.shared.domain.Guard;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
  * Comentário numa receita pública (dúvidas, ajustes, resultados). O autor aparece só pelo apelido; nenhum dado de
  * origem é guardado. Denúncias e decisões ficam no contexto de moderação (ocultado depois de 3 denúncias).
+ * <p>
+ * Respostas têm um nível só: {@code parentId} aponta sempre para um comentário raiz da mesma receita. Responder uma
+ * resposta anexa a nova ao mesmo comentário raiz. Apagar o comentário raiz apaga as respostas junto.
  */
 public final class RecipeComment {
 
@@ -16,14 +21,20 @@ public final class RecipeComment {
 
     private final UUID id;
     private final RecipeId recipeId;
+    private final UUID parentId;
     private final UUID authorId;
     private final String body;
     private boolean hidden;
     private final Instant createdAt;
 
-    private RecipeComment(UUID id, RecipeId recipeId, UUID authorId, String body, boolean hidden, Instant createdAt) {
+    private RecipeComment(UUID id, RecipeId recipeId, UUID parentId, UUID authorId, String body, boolean hidden,
+                          Instant createdAt) {
         this.id = Guard.notNull(id, "Id");
         this.recipeId = Guard.notNull(recipeId, "Receita");
+        if (id.equals(parentId)) {
+            throw new DomainException("Um comentário não responde a si mesmo");
+        }
+        this.parentId = parentId;
         this.authorId = Guard.notNull(authorId, "Autor");
         this.body = validBody(body);
         this.hidden = hidden;
@@ -32,12 +43,32 @@ public final class RecipeComment {
 
     public static RecipeComment post(Recipe recipe, UUID authorId, String body, Clock clock) {
         recipe.checkAcceptsComments();
-        return new RecipeComment(UUID.randomUUID(), recipe.id(), authorId, body, false, clock.instant());
+        return new RecipeComment(UUID.randomUUID(), recipe.id(), null, authorId, body, false, clock.instant());
     }
 
-    public static RecipeComment restore(UUID id, RecipeId recipeId, UUID authorId, String body, boolean hidden,
-                                        Instant createdAt) {
-        return new RecipeComment(id, recipeId, authorId, body, hidden, createdAt);
+    /** Resposta a {@code answered}; se ele já for uma resposta, a nova fica no mesmo comentário raiz. */
+    public static RecipeComment reply(Recipe recipe, RecipeComment answered, UUID authorId, String body, Clock clock) {
+        recipe.checkAcceptsComments();
+        if (!answered.recipeId.equals(recipe.id())) {
+            throw new DomainException("Comentário não encontrado");
+        }
+        return new RecipeComment(UUID.randomUUID(), recipe.id(), answered.rootId(), authorId, body, false,
+                clock.instant());
+    }
+
+    public static RecipeComment restore(UUID id, RecipeId recipeId, UUID parentId, UUID authorId, String body,
+                                        boolean hidden, Instant createdAt) {
+        return new RecipeComment(id, recipeId, parentId, authorId, body, hidden, createdAt);
+    }
+
+    /** Comentário raiz da conversa: ele mesmo ou aquele a que responde. */
+    public UUID rootId() {
+        return parentId == null ? id : parentId;
+    }
+
+    /** Oculto (retido ou denunciado) só aparece para quem escreveu. */
+    public boolean isVisibleTo(UUID viewerId) {
+        return !hidden || authorId.equals(viewerId);
     }
 
     /** O autor apaga o próprio comentário; o dono da receita e moderadores apagam qualquer um nela. */
@@ -62,6 +93,11 @@ public final class RecipeComment {
 
     public RecipeId recipeId() {
         return recipeId;
+    }
+
+    /** Comentário raiz respondido; vazio no próprio comentário raiz. */
+    public Optional<UUID> parentId() {
+        return Optional.ofNullable(parentId);
     }
 
     public UUID authorId() {

@@ -11,6 +11,7 @@ import br.com.weediario.social.application.query.GrowerDirectory;
 import br.com.weediario.social.application.usecase.DiaryCommentsUseCase;
 import br.com.weediario.social.application.usecase.DiaryReactionsUseCase;
 import br.com.weediario.social.application.usecase.GrowersUseCase;
+import br.com.weediario.social.domain.repository.CommentReactionRepository;
 import br.com.weediario.social.domain.repository.CommentRepository;
 import br.com.weediario.social.domain.repository.FollowRepository;
 import br.com.weediario.social.domain.repository.ReactionRepository;
@@ -24,9 +25,11 @@ public class SocialConfig {
 
     @Bean
     DiaryCommentsUseCase diaryCommentsUseCase(DiaryAudience diaries, CommentRepository comments,
-                                              CommentReadModel readModel, CommentModeration moderation,
-                                              InteractionNotifier notifier, UnitOfWork unitOfWork, Clock clock) {
-        return new DiaryCommentsUseCase(diaries, comments, readModel, moderation, notifier, unitOfWork, clock);
+                                              CommentReactionRepository reactions, CommentReadModel readModel,
+                                              CommentModeration moderation, InteractionNotifier notifier,
+                                              Pseudonymizer pseudonymizer, UnitOfWork unitOfWork, Clock clock) {
+        return new DiaryCommentsUseCase(diaries, comments, reactions, readModel, moderation, notifier, pseudonymizer,
+                unitOfWork, clock);
     }
 
     @Bean

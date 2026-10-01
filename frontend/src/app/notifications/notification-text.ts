@@ -19,6 +19,12 @@ export function notificationText(item: NotificationItem): TextPart[] {
       return [title, { text: n === 1 ? ' recebeu uma reação nova' : ` recebeu ${n} reações novas` }];
     case 'NEW_FOLLOWER':
       return [{ text: n === 1 ? 'Você ganhou um seguidor novo' : `Você ganhou ${n} seguidores novos` }];
+    case 'REPLY':
+      return [
+        { text: item.actor ?? 'Alguém', strong: true },
+        { text: ' respondeu seu comentário em ' },
+        item.recipeId ? { text: item.recipeName ?? 'uma receita', strong: !!item.recipeName } : title,
+      ];
     case 'FOLLOWED_UPDATE':
       return [
         { text: item.actor ?? 'Um grower que você segue', strong: true },
@@ -32,6 +38,9 @@ export function notificationText(item: NotificationItem): TextPart[] {
 export function notificationLink(item: NotificationItem, myUsername: string | undefined): string[] | null {
   if (item.diaryId) {
     return ['/diarios', item.diaryId];
+  }
+  if (item.recipeId) {
+    return ['/receitas', item.recipeId];
   }
   return item.type === 'NEW_FOLLOWER' && myUsername ? ['/growers', myUsername] : null;
 }

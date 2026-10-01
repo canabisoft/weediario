@@ -23,8 +23,22 @@ export class SocialApi {
     return this.http.get<Page<Comment>>(`/api/v1/diaries/${diaryId}/comments`, { params: { page, size: 30 } });
   }
 
-  comment(diaryId: string, body: string): Observable<{ id: string }> {
-    return this.http.post<{ id: string }>(`/api/v1/diaries/${diaryId}/comments`, { body });
+  /** Com {@code parentId}, responde a um comentário (a resposta fica sempre no comentário raiz). */
+  comment(diaryId: string, body: string, parentId?: string): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`/api/v1/diaries/${diaryId}/comments`, parentId ? { body, parentId } : { body });
+  }
+
+  /** "Ver mais": todas as respostas de um comentário raiz. */
+  replies(diaryId: string, commentId: string): Observable<Page<Comment>> {
+    return this.http.get<Page<Comment>>(`/api/v1/diaries/${diaryId}/comments/${commentId}/replies`, { params: { size: 50 } });
+  }
+
+  reactToComment(diaryId: string, commentId: string, type: ReactionType): Observable<ReactionSummary> {
+    return this.http.put<ReactionSummary>(`/api/v1/diaries/${diaryId}/comments/${commentId}/reactions/${type}`, {});
+  }
+
+  unreactToComment(diaryId: string, commentId: string, type: ReactionType): Observable<ReactionSummary> {
+    return this.http.delete<ReactionSummary>(`/api/v1/diaries/${diaryId}/comments/${commentId}/reactions/${type}`);
   }
 
   deleteComment(diaryId: string, commentId: string): Observable<void> {

@@ -16,6 +16,16 @@ describe('notificationText', () => {
     );
   });
 
+  it('names who replied to my comment, in a diary or in a recipe', () => {
+    expect(sentence({ ...base, type: 'REPLY', actor: 'ana', diaryId: 'd1', diaryTitle: 'Tenda 80' })).toBe(
+      'ana respondeu seu comentário em Tenda 80',
+    );
+    expect(sentence({ ...base, type: 'REPLY', actor: 'ana', recipeId: 'r1', recipeName: 'Base de flora' })).toBe(
+      'ana respondeu seu comentário em Base de flora',
+    );
+    expect(notificationLink({ ...base, type: 'REPLY', recipeId: 'r1' }, 'eu')).toEqual(['/receitas', 'r1']);
+  });
+
   it('links to the diary, or to my public profile for new followers', () => {
     expect(notificationLink({ ...base, diaryId: 'd1' }, 'eu')).toEqual(['/diarios', 'd1']);
     expect(notificationLink({ ...base, type: 'NEW_FOLLOWER' }, 'eu')).toEqual(['/growers', 'eu']);

@@ -40,6 +40,16 @@ public final class NotifyUseCase {
         deliver(Notification.reaction(diaryOwnerId, diaryId, reactorId, clock));
     }
 
+    /** Resposta a um comentário num diário; quem respondeu ao próprio comentário não é avisado. */
+    public void diaryCommentReplied(UUID diaryId, UUID commentAuthorId, UUID replierId) {
+        deliver(Notification.reply(commentAuthorId, diaryId, null, replierId, clock));
+    }
+
+    /** Resposta a um comentário numa receita. */
+    public void recipeCommentReplied(UUID recipeId, UUID commentAuthorId, UUID replierId) {
+        deliver(Notification.reply(commentAuthorId, null, recipeId, replierId, clock));
+    }
+
     public void followed(UUID followeeId, UUID followerId) {
         deliver(Notification.newFollower(followeeId, followerId, clock));
     }

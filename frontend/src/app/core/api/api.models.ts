@@ -136,6 +136,14 @@ export interface Comment {
   readonly deletable: boolean;
   /** Oculto do público aguardando a moderação (só o autor vê). */
   readonly underReview?: boolean;
+  /** Comentário raiz respondido (só nas respostas; um nível só). */
+  readonly parentId?: string;
+  /** Contagens anônimas e as reações de quem está vendo. */
+  readonly reactions?: ReactionSummary;
+  /** Total de respostas visíveis (só nos comentários raiz). */
+  readonly replyCount?: number;
+  /** As primeiras respostas, em ordem cronológica; o resto vem pelo "ver mais". */
+  readonly replies?: Comment[];
 }
 
 export interface ReactionSummary {

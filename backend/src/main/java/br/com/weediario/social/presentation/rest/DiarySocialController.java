@@ -3,6 +3,7 @@ package br.com.weediario.social.presentation.rest;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
 import br.com.weediario.shared.presentation.Viewer;
+import br.com.weediario.social.application.query.CommentReadModel.CommentReactions;
 import br.com.weediario.social.application.query.CommentReadModel.CommentView;
 import br.com.weediario.social.application.usecase.DiaryCommentsUseCase;
 import br.com.weediario.social.application.usecase.DiaryReactionsUseCase;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -52,7 +54,31 @@ public class DiarySocialController {
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, UUID> comment(@AuthenticationPrincipal Jwt principal, @PathVariable UUID diaryId,
                                      @Valid @RequestBody CommentRequest request) {
-        return Map.of("id", comments.post(diaryId, Viewer.requireId(principal), request.body()));
+        return Map.of("id", comments.post(diaryId, Viewer.requireId(principal), request.body(),
+                Optional.ofNullable(request.parentId())));
+    }
+
+    /** "Ver mais": todas as respostas visíveis de um comentário raiz. */
+    @GetMapping("/comments/{commentId}/replies")
+    public PageResult<CommentView> replies(@AuthenticationPrincipal Jwt principal, @PathVariable UUID diaryId,
+                                           @PathVariable UUID commentId,
+                                           @RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "50") int size) {
+        return comments.replies(diaryId, commentId, Viewer.idOf(principal), Viewer.isModerator(principal),
+                new PageQuery(page, size));
+    }
+
+    /** Reação anônima num comentário: só contagens e as reações de quem está logado. */
+    @PutMapping("/comments/{commentId}/reactions/{type}")
+    public CommentReactions reactToComment(@AuthenticationPrincipal Jwt principal, @PathVariable UUID diaryId,
+                                           @PathVariable UUID commentId, @PathVariable ReactionType type) {
+        return comments.react(diaryId, commentId, Viewer.requireId(principal), type);
+    }
+
+    @DeleteMapping("/comments/{commentId}/reactions/{type}")
+    public CommentReactions unreactToComment(@AuthenticationPrincipal Jwt principal, @PathVariable UUID diaryId,
+                                             @PathVariable UUID commentId, @PathVariable ReactionType type) {
+        return comments.unreact(diaryId, commentId, Viewer.requireId(principal), type);
     }
 
     @DeleteMapping("/comments/{commentId}")
@@ -80,6 +106,7 @@ public class DiarySocialController {
         return reactions.unreact(diaryId, Viewer.requireId(principal), type);
     }
 
-    public record CommentRequest(@NotBlank @Size(max = Comment.BODY_MAX_LENGTH) String body) {
+    /** @param parentId comentário respondido (opcional) */
+    public record CommentRequest(@NotBlank @Size(max = Comment.BODY_MAX_LENGTH) String body, UUID parentId) {
     }
 }

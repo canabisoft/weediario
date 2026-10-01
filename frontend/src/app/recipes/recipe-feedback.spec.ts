@@ -78,6 +78,77 @@ describe('RecipeFeedback', () => {
 
     expect(fixture.nativeElement.querySelectorAll('li').length).toBe(2);
   });
+
+  it('shows replies under their comment, replies inline and reacts anonymously', () => {
+    TestBed.configureTestingModule({ providers: providers(true) });
+    const fixture = TestBed.createComponent(RecipeFeedback);
+    fixture.componentRef.setInput('recipeId', 'r1');
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/v1/recipes/r1/rating').flush({ count: 0, canRate: false });
+    http.expectOne((req) => req.url === '/api/v1/recipes/r1/comments').flush({
+      items: [
+        {
+          id: 'c1', author: 'ana', body: 'Usei em coco', createdAt: '2026-09-29T10:00:00Z', hidden: false, canDelete: false, canReport: true,
+          reactions: { counts: { FIRE: 2, HERB: 0, CLAP: 0 }, mine: [] },
+          replyCount: 3,
+          replies: [
+            { id: 'c2', parentId: 'c1', author: 'bia', body: 'Eu também', createdAt: '2026-09-29T11:00:00Z', hidden: false, canDelete: false, canReport: true },
+          ],
+        },
+      ],
+      page: 0, size: 20, totalItems: 1, totalPages: 1,
+    });
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('[aria-label="Respostas ao comentário de ana"]')?.textContent).toContain('Eu também');
+    expect(element.textContent).toContain('Ver mais 2 respostas');
+
+    // Responder uma resposta: o campo abre debaixo do comentário raiz e o pedido leva o id respondido.
+    (element.querySelector('[aria-label="Responder bia"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(element.textContent).toContain('Respondendo a bia');
+    (fixture.componentInstance as unknown as { replyDraft: string }).replyDraft = 'Qual EC?';
+    (element.querySelector('textarea#recipe-reply-c1')!.closest('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    const post = http.expectOne({ method: 'POST', url: '/api/v1/recipes/r1/comments' });
+    expect(post.request.body).toEqual({ body: 'Qual EC?', parentId: 'c2' });
+    post.flush({ id: 'c3', parentId: 'c1', author: 'eu', body: 'Qual EC?', createdAt: '2026-09-30T10:00:00Z', hidden: false, canDelete: true, canReport: false });
+    fixture.detectChanges();
+    expect(element.querySelector('[aria-label="Respostas ao comentário de ana"]')?.textContent).toContain('Qual EC?');
+    expect(element.textContent).not.toContain('Respondendo a');
+
+    // Reação anônima: só contagens; a própria fica marcada.
+    const fire = element.querySelector('[aria-label="Fogo: 2"]') as HTMLButtonElement;
+    expect(fire.getAttribute('aria-pressed')).toBe('false');
+    fire.click();
+    const put = http.expectOne({ method: 'PUT', url: '/api/v1/recipes/r1/comments/c1/reactions/FIRE' });
+    put.flush({ counts: { FIRE: 3, HERB: 0, CLAP: 0 }, mine: ['FIRE'] });
+    fixture.detectChanges();
+    expect(element.querySelector('[aria-label="Fogo: 3"]')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('shows reaction counts without buttons to visitors', () => {
+    TestBed.configureTestingModule({ providers: providers(false) });
+    const fixture = TestBed.createComponent(RecipeFeedback);
+    fixture.componentRef.setInput('recipeId', 'r1');
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/v1/recipes/r1/rating').flush({ count: 0, canRate: false });
+    http.expectOne((req) => req.url === '/api/v1/recipes/r1/comments').flush({
+      items: [
+        {
+          id: 'c1', author: 'ana', body: 'Usei em coco', createdAt: '2026-09-29T10:00:00Z', hidden: false, canDelete: false, canReport: false,
+          reactions: { counts: { FIRE: 0, HERB: 4, CLAP: 0 }, mine: [] },
+        },
+      ],
+      page: 0, size: 20, totalItems: 1, totalPages: 1,
+    });
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('[aria-label="Erva: 4"]')?.tagName).toBe('SPAN');
+    expect(element.querySelector('[aria-label="Fogo: 0"]')).toBeNull();
+    expect(element.textContent).not.toContain('Responder');
+  });
 });
 
 describe('RecommendedRecipes', () => {

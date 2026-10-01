@@ -13,6 +13,7 @@ const ICONS: Record<NotificationItem['type'], IconName> = {
   REACTION: 'flame',
   NEW_FOLLOWER: 'userPlus',
   FOLLOWED_UPDATE: 'diaries',
+  REPLY: 'reply',
 };
 
 /**
@@ -25,7 +26,7 @@ const ICONS: Record<NotificationItem['type'], IconName> = {
   template: `
     <h1 class="text-2xl font-bold">Notificações</h1>
     <p class="text-fg-muted">
-      Comentários, reações e novidades de quem você segue. Reações e seguidores chegam anônimos, do jeito que o resto do app mostra.
+      Comentários, respostas, reações e novidades de quem você segue. Reações e seguidores chegam anônimos, do jeito que o resto do app mostra.
     </p>
 
     @if (items(); as list) {

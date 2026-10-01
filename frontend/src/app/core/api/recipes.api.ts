@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Page } from './api.models';
+import { Page, ReactionSummary, ReactionType } from './api.models';
 
 export type RecipeKind = 'MINERAL' | 'ORGANIC';
 export type RecipeApplication = 'FERTIGATION' | 'SOIL_MIX' | 'TEA' | 'FOLIAR' | 'TOP_DRESS';
@@ -80,6 +80,14 @@ export interface RecipeComment {
   readonly hidden: boolean;
   readonly canDelete: boolean;
   readonly canReport: boolean;
+  /** Comentário raiz respondido (só nas respostas; um nível só). */
+  readonly parentId?: string;
+  /** Contagens anônimas e as reações de quem está vendo. */
+  readonly reactions?: ReactionSummary;
+  /** Total de respostas visíveis (só nos comentários raiz). */
+  readonly replyCount?: number;
+  /** As primeiras respostas, em ordem cronológica; o resto vem pelo "ver mais". */
+  readonly replies?: RecipeComment[];
 }
 
 /** {@code sharedProducts}: produtos de marca da receita que o grower já usa. */
@@ -189,8 +197,22 @@ export class RecipesApi {
     return this.http.get<Page<RecipeComment>>(`/api/v1/recipes/${id}/comments`, { params: { page } });
   }
 
-  comment(id: string, body: string): Observable<RecipeComment> {
-    return this.http.post<RecipeComment>(`/api/v1/recipes/${id}/comments`, { body });
+  /** Com {@code parentId}, responde a um comentário (a resposta fica sempre no comentário raiz). */
+  comment(id: string, body: string, parentId?: string): Observable<RecipeComment> {
+    return this.http.post<RecipeComment>(`/api/v1/recipes/${id}/comments`, parentId ? { body, parentId } : { body });
+  }
+
+  /** "Ver mais": todas as respostas de um comentário raiz. */
+  replies(id: string, commentId: string): Observable<Page<RecipeComment>> {
+    return this.http.get<Page<RecipeComment>>(`/api/v1/recipes/${id}/comments/${commentId}/replies`, { params: { size: 50 } });
+  }
+
+  reactToComment(id: string, commentId: string, type: ReactionType): Observable<ReactionSummary> {
+    return this.http.put<ReactionSummary>(`/api/v1/recipes/${id}/comments/${commentId}/reactions/${type}`, {});
+  }
+
+  unreactToComment(id: string, commentId: string, type: ReactionType): Observable<ReactionSummary> {
+    return this.http.delete<ReactionSummary>(`/api/v1/recipes/${id}/comments/${commentId}/reactions/${type}`);
   }
 
   deleteComment(id: string, commentId: string): Observable<void> {

@@ -23,6 +23,11 @@ public class NotificationInteractionNotifier implements InteractionNotifier {
     }
 
     @Override
+    public void replied(CommentableDiary diary, UUID answeredAuthorId, UUID replierId) {
+        notify.diaryCommentReplied(diary.diaryId(), answeredAuthorId, replierId);
+    }
+
+    @Override
     public void reactionAdded(CommentableDiary diary, UUID reactorId) {
         notify.reactionAdded(diary.diaryId(), diary.ownerId(), reactorId);
     }

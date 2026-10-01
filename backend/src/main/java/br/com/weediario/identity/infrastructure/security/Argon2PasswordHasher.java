@@ -3,13 +3,13 @@ package br.com.weediario.identity.infrastructure.security;
 import br.com.weediario.identity.domain.model.PasswordHash;
 import br.com.weediario.identity.domain.service.PasswordHasher;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
-import org.springframework.stereotype.Component;
 
 /**
  * Argon2id com os parâmetros mínimos recomendados pelo OWASP Password Storage Cheat Sheet
  * (m=19 MiB, t=2, p=1). Aumente memória/iterações conforme a capacidade do servidor.
+ * <p>
+ * Não é bean direto: entra na aplicação atrás do {@link LimitedPasswordHasher} (ver {@link PasswordHashingConfig}).
  */
-@Component
 public class Argon2PasswordHasher implements PasswordHasher {
 
     private static final int SALT_LENGTH = 16;

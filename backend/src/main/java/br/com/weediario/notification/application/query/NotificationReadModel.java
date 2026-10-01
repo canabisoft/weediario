@@ -17,10 +17,11 @@ public interface NotificationReadModel {
     long unreadCount(UUID recipientId);
 
     /**
+     * @param recipeId    receita envolvida (respostas a comentários de receita)
      * @param actor       apelido de quem fez a ação (nulo nos tipos anônimos)
      * @param occurrences quantas vezes aconteceu enquanto não lida (reações, seguidores, updates)
      */
-    record NotificationView(UUID id, String type, UUID diaryId, String diaryTitle, String actor, int occurrences,
-                            Instant createdAt, boolean read) {
+    record NotificationView(UUID id, String type, UUID diaryId, String diaryTitle, UUID recipeId, String recipeName,
+                            String actor, int occurrences, Instant createdAt, boolean read) {
     }
 }

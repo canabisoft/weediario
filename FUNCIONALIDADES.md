@@ -1,6 +1,6 @@
 # Funcionalidades do weediário
 
-Inventário do que o app faz hoje (backend 0.26.0, frontend 0.20.0). Para instalar e rodar, veja o [README](README.md);
+Inventário do que o app faz hoje (backend 0.27.0, frontend 0.21.0). Para instalar e rodar, veja o [README](README.md);
 para contribuir, o [CONTRIBUTING](CONTRIBUTING.md).
 
 O weediário é um diário de cultivo de cannabis com comunidade, catálogo aberto de genéticas e acompanhamento de
@@ -72,8 +72,13 @@ Os setups aparecem no perfil público do grower.
 | Perfil público: bio, foto, diários, setups, receitas e avaliações | `/growers/:apelido` |
 | Notificações | `/notificacoes` |
 
-- **Comentários** nos diários. O autor pode apagar os próprios, e o dono do diário pode apagar os do diário.
-- **Reações** 🔥 🌿 👏, anônimas: cada reação é gravada com um pseudônimo que não liga a pessoa ao conteúdo.
+- **Comentários** nos diários e nas receitas. O autor pode apagar os próprios, e o dono do diário ou da receita pode
+  apagar os dele.
+- **Respostas em comentários:** botão "Responder" em cada comentário; a resposta aparece recuada sob o original (um
+  nível só: responder uma resposta continua na mesma conversa). Mostra as 5 primeiras respostas e um "Ver mais".
+  Apagar um comentário apaga as respostas dele. Quem teve o comentário respondido recebe uma notificação.
+- **Reações** 🔥 🌿 👏 nos diários e em qualquer comentário ou resposta, anônimas: cada reação é gravada com um
+  pseudônimo que não liga a pessoa ao conteúdo (nos comentários, nem a data).
 - **Seguir growers.** O número de seguidores aparece, mas quem segue quem não fica público.
 - **Notificações em tempo real** de comentário, reação, novo seguidor e update de quem você segue. Reações e
   seguidores chegam sem dizer quem foi. Ficam guardadas por 90 dias.
@@ -168,8 +173,11 @@ das avaliações e g/planta), sem nenhum apelido ou id de diário.
 | Métricas da plataforma e gestão da equipe (só admin) | `/moderacao?aba=metricas`, `/moderacao?aba=equipe` |
 
 - **Filtro anti-comércio:**
-  - **Bloqueia na hora** telefone, CPF/CNPJ, chave PIX e links de WhatsApp/Telegram.
-  - **Segura para análise** textos com cara de anúncio, que ficam visíveis só para o autor, com o selo "em análise".
+  - **Bloqueia na hora** telefone, CPF/CNPJ, chave PIX e links de WhatsApp, Telegram, Signal e Discord, inclusive
+    disfarçados ("p.i.x", "piks", número espaçado ou com letras no lugar de dígitos, "wa ponto me").
+  - **Segura para análise** anúncios, "chama no privado", @perfil com contexto de negócio, links encurtados e
+    telefone ambíguo. O conteúdo fica visível só para o autor, com o selo "em análise".
+  - **Não atrapalha o cultivo:** medidas (EC, pH, PPFD, VPD), datas, modelos de LED e strains com número passam.
   - **Vale para** comentários, diários, updates, avaliações, receitas, bio e nomes do catálogo.
 - **Denúncias** em qualquer conteúdo público ou perfil, com motivo e anônimas. Com 3 denúncias o conteúdo sai do
   ar até a moderação decidir.
@@ -207,8 +215,9 @@ das avaliações e g/planta), sem nenhum apelido ou id de diário.
 - **Fotos:** sem EXIF.
 - **Reações e denúncias:** usam pseudônimos HMAC.
 - **Dados de saúde:** cifrados.
-- **Infraestrutura:** containers sem root e somente leitura; CSP estrita, sem estilos inline.
-- **Projeto open-source:** qualquer pessoa pode auditar e contribuir.
+- **Infraestrutura:** containers sem root e somente leitura; CSP estrita, sem estilos inline; teto de cálculos
+  pesados (Argon2) para o servidor não cair sob ataque, sem usar IP.
+- **Projeto open-source** (código AGPL-3.0, dados abertos ODbL 1.0): qualquer pessoa pode auditar e contribuir.
 
 ## Limitações conhecidas
 

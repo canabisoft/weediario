@@ -3,6 +3,7 @@ package br.com.weediario.shared.presentation;
 import br.com.weediario.shared.application.ForbiddenActionException;
 import br.com.weediario.shared.application.ModeratorOnlyException;
 import br.com.weediario.diary.application.exception.GrowerNotAllowedException;
+import br.com.weediario.identity.application.exception.HashingBusyException;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
 import br.com.weediario.identity.application.exception.LoginThrottledException;
 import br.com.weediario.media.application.exception.InvalidImageException;
@@ -52,6 +53,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(LoginThrottledException.class)
     ResponseEntity<ProblemDetail> handleThrottled(LoginThrottledException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.retryAfter().toSeconds())))
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
+    }
+
+    /** Teto global de Argon2 simultâneos atingido: falha rápida, sem contar como tentativa errada. */
+    @ExceptionHandler(HashingBusyException.class)
+    ResponseEntity<ProblemDetail> handleHashingBusy(HashingBusyException ex) {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.retryAfter().toSeconds())))
                 .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));

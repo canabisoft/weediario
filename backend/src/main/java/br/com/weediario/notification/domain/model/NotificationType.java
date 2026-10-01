@@ -13,7 +13,9 @@ public enum NotificationType {
     /** Você ganhou seguidores (a lista de seguidores nunca é exposta, nem para o dono do perfil). */
     NEW_FOLLOWER(true, true),
     /** Um grower que você segue publicou um update num diário público. */
-    FOLLOWED_UPDATE(false, true);
+    FOLLOWED_UPDATE(false, true),
+    /** Alguém respondeu um comentário seu (em diário ou receita); o apelido de quem respondeu já é público. */
+    REPLY(false, false);
 
     private final boolean anonymous;
     private final boolean aggregated;

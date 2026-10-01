@@ -12,6 +12,9 @@ public interface InteractionNotifier {
 
     void commentPosted(CommentableDiary diary, UUID commentAuthorId);
 
+    /** Avisa o autor do comentário respondido (ninguém é avisado da resposta ao próprio comentário). */
+    void replied(CommentableDiary diary, UUID answeredAuthorId, UUID replierId);
+
     void reactionAdded(CommentableDiary diary, UUID reactorId);
 
     void followed(UUID followeeId, UUID followerId);

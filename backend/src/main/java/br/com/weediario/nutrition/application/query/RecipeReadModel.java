@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,9 +33,21 @@ public interface RecipeReadModel {
     /** Na ordem pedida, ignorando ids inexistentes. */
     List<RecipeSummary> summaries(Collection<UUID> recipeIds);
 
-    /** Comentários em ordem cronológica. Ocultos (por denúncias) só entram para moderadores. */
-    /** Ocultados pela moderação aparecem para a moderação e para o próprio autor ("em análise"). */
+    /**
+     * Comentários raiz em ordem cronológica (as respostas vêm por {@link #replyPreviews} e {@link #replies}).
+     * Ocultados pela moderação aparecem para a moderação e para o próprio autor ("em análise").
+     */
     PageResult<CommentRow> comments(UUID recipeId, boolean includeHidden, Optional<UUID> viewerId, PageQuery page);
+
+    /**
+     * As primeiras {@code perRoot} respostas de cada comentário raiz (mesmo filtro de visibilidade), em ordem
+     * cronológica, e o total de cada um. Comentários raiz sem respostas ficam de fora do mapa.
+     */
+    Map<UUID, CommentReplies> replyPreviews(Collection<UUID> rootIds, boolean includeHidden, Optional<UUID> viewerId,
+                                            int perRoot);
+
+    /** Respostas de um comentário raiz ("ver mais"); vazio se o comentário raiz não é visível para quem vê. */
+    PageResult<CommentRow> replies(UUID rootId, boolean includeHidden, Optional<UUID> viewerId, PageQuery page);
 
     Optional<CommentRow> comment(UUID commentId);
 
@@ -69,8 +82,12 @@ public interface RecipeReadModel {
                          Instant updatedAt, long ratingCount, BigDecimal rating) {
     }
 
-    /** {@code authorId} é interno: a API expõe só o apelido. */
-    record CommentRow(UUID id, UUID authorId, String author, String body, boolean hidden, Instant createdAt) {
+    /** {@code authorId} é interno: a API expõe só o apelido. {@code parentId}: comentário raiz respondido. */
+    record CommentRow(UUID id, UUID authorId, String author, String body, boolean hidden, Instant createdAt,
+                      UUID parentId) {
+    }
+
+    record CommentReplies(List<CommentRow> items, long total) {
     }
 
     /** {@code sharedProducts}: quantos produtos de marca da receita o grower já usa. */
