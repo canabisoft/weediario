@@ -6,6 +6,9 @@ import { AuthService } from './auth.service';
 /**
  * Anexa o access token às chamadas da API e, se ele tiver expirado (401), renova a sessão uma vez
  * e repete a requisição. Endpoints de autenticação usam só o cookie e nunca levam o Bearer.
+ * <p>
+ * Conta suspensa ou banida (401 {@code ACCOUNT_DISABLED}): a renovação falha, porque as sessões já foram revogadas,
+ * e o app sai da conta.
  */
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   if (!isApi(request) || isAuthEndpoint(request)) {
@@ -19,8 +22,18 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
       if (!(error instanceof HttpErrorResponse) || error.status !== 401 || !token) {
         return throwError(() => error);
       }
+      // SESSION_OUTDATED: o papel da conta mudou (entrou ou saiu da equipe). Renova e recarrega o perfil.
+      const outdated = (error.error as { code?: string } | null)?.code === 'SESSION_OUTDATED';
       return auth.refresh().pipe(
-        switchMap((renewed) => (renewed ? next(withToken(request, renewed)) : throwError(() => error))),
+        switchMap((renewed) => {
+          if (!renewed) {
+            return throwError(() => error);
+          }
+          if (outdated) {
+            auth.loadMe().subscribe({ error: () => undefined });
+          }
+          return next(withToken(request, renewed));
+        }),
       );
     }),
   );

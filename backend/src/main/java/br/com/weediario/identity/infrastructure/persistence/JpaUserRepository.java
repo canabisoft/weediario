@@ -1,11 +1,13 @@
 package br.com.weediario.identity.infrastructure.persistence;
 
+import br.com.weediario.identity.domain.model.Role;
 import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.identity.domain.model.UserId;
 import br.com.weediario.identity.domain.model.Username;
 import br.com.weediario.identity.domain.repository.UserRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -35,5 +37,11 @@ public class JpaUserRepository implements UserRepository {
     @Override
     public boolean existsByUsername(Username username) {
         return jpa.existsByUsernameIgnoreCase(username.value());
+    }
+
+    @Override
+    public List<User> findStaff() {
+        return jpa.findByRoleInOrderByUsernameAsc(List.of(Role.MODERATOR, Role.ADMIN)).stream()
+                .map(UserJpaEntity::toDomain).toList();
     }
 }

@@ -7,13 +7,16 @@ import { ModerationApi } from '../core/api/moderation.api';
 import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
 import { saveFile } from '../treatment/treatment-text';
+import { AdminMetrics } from './admin-metrics';
 import { CatalogQueue } from './catalog-queue';
 import { ContentQueue } from './content-queue';
 import { RepresentativeQueue } from './representative-queue';
+import { TeamPanel } from './team-panel';
 
-type Tab = 'denuncias' | CatalogKind | 'representantes' | 'contas';
+type Tab = 'denuncias' | CatalogKind | 'representantes' | 'contas' | 'metricas' | 'equipe';
 
-const TABS: readonly { id: Tab; label: string; count?: RankingKind | 'REPORTS' | 'REPRESENTATIVES' }[] = [
+/** {@code adminOnly}: abas que só aparecem para admin (o backend também recusa os outros papéis). */
+const TABS: readonly { id: Tab; label: string; count?: RankingKind | 'REPORTS' | 'REPRESENTATIVES'; adminOnly?: boolean }[] = [
   { id: 'denuncias', label: 'Denúncias e retidos', count: 'REPORTS' },
   { id: 'strains', label: 'Strains', count: 'STRAINS' },
   { id: 'breeders', label: 'Breeders', count: 'BREEDERS' },
@@ -21,6 +24,8 @@ const TABS: readonly { id: Tab; label: string; count?: RankingKind | 'REPORTS' |
   { id: 'products', label: 'Produtos', count: 'PRODUCTS' },
   { id: 'representantes', label: 'Representantes', count: 'REPRESENTATIVES' },
   { id: 'contas', label: 'Contas e log' },
+  { id: 'metricas', label: 'Métricas', adminOnly: true },
+  { id: 'equipe', label: 'Equipe', adminOnly: true },
 ];
 
 /**
@@ -31,7 +36,7 @@ const TABS: readonly { id: Tab; label: string; count?: RankingKind | 'REPORTS' |
 @Component({
   selector: 'app-moderation-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ContentQueue, CatalogQueue, RepresentativeQueue],
+  imports: [ContentQueue, CatalogQueue, RepresentativeQueue, AdminMetrics, TeamPanel],
   template: `
     <h1 class="text-2xl font-bold">Moderação</h1>
     <p class="text-fg-muted">
@@ -39,7 +44,7 @@ const TABS: readonly { id: Tab; label: string; count?: RankingKind | 'REPORTS' |
     </p>
 
     <div class="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Filas da moderação">
-      @for (option of tabs; track option.id) {
+      @for (option of tabs(); track option.id) {
         <button
           type="button"
           role="tab"
@@ -60,6 +65,12 @@ const TABS: readonly { id: Tab; label: string; count?: RankingKind | 'REPORTS' |
       @switch (tab()) {
         @case ('denuncias') {
           <app-content-queue (changed)="refreshCounts()" />
+        }
+        @case ('metricas') {
+          <app-admin-metrics />
+        }
+        @case ('equipe') {
+          <app-team-panel />
         }
         @case ('representantes') {
           <app-representative-queue (changed)="refreshCounts()" />
@@ -114,8 +125,8 @@ export class ModerationPage {
   /** Parâmetro de consulta {@code ?aba=}. */
   readonly aba = input<string | undefined>();
 
-  protected readonly tabs = TABS;
-  protected readonly tab = computed<Tab>(() => TABS.find((t) => t.id === this.aba())?.id ?? 'denuncias');
+  protected readonly tabs = computed(() => TABS.filter((t) => !t.adminOnly || this.auth.isAdmin()));
+  protected readonly tab = computed<Tab>(() => this.tabs().find((t) => t.id === this.aba())?.id ?? 'denuncias');
   private readonly countsReload = signal(0);
   protected readonly busy = signal(false);
   protected readonly message = signal<string | null>(null);

@@ -32,7 +32,9 @@ public final class ModerationVocabulary {
         INAPPROPRIATE,
         SPAM,
         OTHER,
-        UNFOUNDED
+        UNFOUNDED,
+        /** Mudança na equipe (promoção a moderador ou saída da equipe), feita por um admin. */
+        STAFF_CHANGE
     }
 
     public enum HoldCause {
@@ -47,7 +49,9 @@ public final class ModerationVocabulary {
         CONTENT_RESTORED,
         USER_SUSPENDED,
         USER_BANNED,
-        USER_REINSTATED
+        USER_REINSTATED,
+        ROLE_GRANTED,
+        ROLE_REVOKED
     }
 
     /** Decisão sobre o conteúdo. */

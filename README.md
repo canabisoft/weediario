@@ -141,11 +141,26 @@ versão antiga continua lendo, baixando e apagando dados, mas não publica até 
   conta. Cada decisão vai para `moderation_log` (só inserção, 5 anos), sem IP, sem quem denunciou e sem o conteúdo, só
   o SHA-256 do texto removido. `ADMIN` exporta o log em CSV para atender ordem judicial.
 
-Ainda não há tela para promover moderadores; use o banco e peça para a pessoa entrar de novo (o papel vai no token de
-acesso):
+- **Hierarquia da equipe:** moderadores nunca suspendem, banem ou removem conteúdo de outra conta da equipe (403);
+  só um admin remove conteúdo de alguém da equipe, e nem ele suspende ou bane uma conta da equipe sem antes tirá-la
+  da equipe.
+- **Corte imediato:** a cada requisição autenticada o backend confere status e papel da conta. Suspensa ou banida
+  recebe 401 na hora (sem esperar o token de 10 min expirar); quem mudou de papel renova a sessão automaticamente.
+
+### Painel do admin
+
+Abas "Métricas" e "Equipe" em `/moderacao`, só para `ADMIN` (rota `/api/v1/admin/**` e checagem no caso de uso):
+
+- **Métricas** (`GET /api/v1/admin/metrics`): contagens feitas no banco na hora (contas por status e papel, conteúdo
+  publicado, atividade dos últimos 7 e 30 dias, fila da moderação). Nada por pessoa, nenhuma ferramenta externa e
+  nenhum dado de tratamento.
+- **Equipe** (`GET /api/v1/admin/team`, `POST /api/v1/admin/team/{apelido}/promote` e `/remove`): promover um grower
+  ativo a moderador e tirar um moderador da equipe. Cada mudança vai para o log de moderação (`ROLE_GRANTED` /
+  `ROLE_REVOKED`). Ninguém muda o próprio papel, e admins não são criados nem removidos pela API: o primeiro admin é
+  definido no banco, e a pessoa entra de novo para o papel valer:
 
 ```sh
-docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "update users set role = '"'"'MODERATOR'"'"' where username = '"'"'apelido'"'"'"'
+docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "update users set role = '"'"'ADMIN'"'"' where username = '"'"'apelido'"'"'"'
 ```
 
 O canal de notificações guarda as conexões abertas em memória: com mais de uma instância do backend, cada uma só

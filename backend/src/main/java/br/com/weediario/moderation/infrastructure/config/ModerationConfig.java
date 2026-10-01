@@ -4,8 +4,11 @@ import br.com.weediario.moderation.application.port.ModeratedAccounts;
 import br.com.weediario.moderation.application.port.ModeratedContent;
 import br.com.weediario.moderation.application.port.ReporterPseudonyms;
 import br.com.weediario.moderation.application.query.ModerationQueries;
+import br.com.weediario.moderation.application.query.PlatformMetrics;
+import br.com.weediario.moderation.application.usecase.AdminMetricsUseCase;
 import br.com.weediario.moderation.application.usecase.ContentHoldUseCase;
 import br.com.weediario.moderation.application.usecase.ModerateContentUseCase;
+import br.com.weediario.moderation.application.usecase.ManageTeamUseCase;
 import br.com.weediario.moderation.application.usecase.ModerationQueueUseCase;
 import br.com.weediario.moderation.application.usecase.ReportContentUseCase;
 import br.com.weediario.moderation.domain.model.ModerationLogEntry;
@@ -44,6 +47,17 @@ public class ModerationConfig {
     ModerationQueueUseCase moderationQueueUseCase(ModerationQueries queries, ModeratedContent content,
                                                   ModeratedAccounts accounts, Clock clock) {
         return new ModerationQueueUseCase(queries, content, accounts, clock);
+    }
+
+    @Bean
+    ManageTeamUseCase manageTeamUseCase(ModeratedAccounts accounts, ModerationRepository repository,
+                                        UnitOfWork unitOfWork, Clock clock) {
+        return new ManageTeamUseCase(accounts, repository, unitOfWork, clock);
+    }
+
+    @Bean
+    AdminMetricsUseCase adminMetricsUseCase(PlatformMetrics metrics, ModerationQueries queries, Clock clock) {
+        return new AdminMetricsUseCase(metrics, queries, clock);
     }
 
     @Bean

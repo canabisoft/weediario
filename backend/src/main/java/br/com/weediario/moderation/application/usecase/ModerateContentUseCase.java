@@ -12,6 +12,7 @@ import br.com.weediario.moderation.domain.model.ModerationVocabulary.ModerationR
 import br.com.weediario.moderation.domain.model.ModerationVocabulary.TargetType;
 import br.com.weediario.moderation.domain.model.ModerationVocabulary.Verdict;
 import br.com.weediario.moderation.domain.repository.ModerationRepository;
+import br.com.weediario.shared.application.ForbiddenActionException;
 import br.com.weediario.shared.application.ModeratorOnlyException;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.application.UnitOfWork;
@@ -23,11 +24,15 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HexFormat;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
  * Decisões da moderação, todas registradas no log de moderação: manter (denúncia improcedente) ou remover o
  * conteúdo e, junto com a remoção, suspender ou banir quem publicou.
+ * <p>
+ * Hierarquia: contas da equipe (moderador ou admin) nunca são suspensas ou banidas por aqui, e só um admin remove
+ * conteúdo publicado por alguém da equipe. Tentativas fora disso dão 403.
  */
 public final class ModerateContentUseCase {
 
@@ -46,12 +51,19 @@ public final class ModerateContentUseCase {
         this.clock = clock;
     }
 
-    public void decide(UUID moderatorId, boolean moderator, Decision decision) {
+    /** @param admin quem decide é admin (pode remover conteúdo de alguém da equipe) */
+    public void decide(UUID moderatorId, boolean moderator, boolean admin, Decision decision) {
         requireModerator(moderator);
+        if (decision.reason() == ModerationReason.STAFF_CHANGE) {
+            throw new DomainException("Motivo inválido para uma decisão de conteúdo");
+        }
         ContentRef ref = new ContentRef(decision.type(), decision.targetId());
         unitOfWork.run(() -> {
             ContentInfo info = content.find(ref).orElseThrow(() -> new ResourceNotFoundException("Conteúdo"));
             Instant now = clock.instant();
+            if (decision.verdict() == Verdict.REMOVE) {
+                requireAllowedOver(info.authorId(), admin, decision.account());
+            }
             if (decision.verdict() == Verdict.KEEP) {
                 if (decision.account() != AccountAction.NONE) {
                     throw new DomainException("Para suspender ou banir, remova o conteúdo");
@@ -92,11 +104,23 @@ public final class ModerateContentUseCase {
         });
     }
 
+    /** Checado antes de mexer em qualquer coisa: a equipe não é moderada por quem está abaixo (ou ao lado) dela. */
+    private void requireAllowedOver(UUID authorId, boolean admin, AccountAction accountAction) {
+        Optional<Account> author = authorId == null ? Optional.empty() : accounts.find(authorId);
+        if (author.isEmpty() || !author.get().staff()) {
+            return;
+        }
+        if (accountAction != AccountAction.NONE) {
+            throw new ForbiddenActionException(
+                    "Contas da equipe não são suspensas nem banidas. Um admin precisa tirar a conta da equipe antes.");
+        }
+        if (!admin) {
+            throw new ForbiddenActionException("Só um admin remove conteúdo publicado por alguém da equipe");
+        }
+    }
+
     private void actOnAccount(UUID moderatorId, ContentInfo info, Decision decision, Instant now) {
         Account author = accounts.find(info.authorId()).orElseThrow(() -> new ResourceNotFoundException("Grower"));
-        if (author.staff()) {
-            throw new DomainException("Contas da equipe não são suspensas por aqui");
-        }
         ModerationAction action;
         if (decision.account() == AccountAction.BAN) {
             accounts.ban(author.id());

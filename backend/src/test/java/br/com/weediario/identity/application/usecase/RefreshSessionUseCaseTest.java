@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -216,6 +217,11 @@ class RefreshSessionUseCaseTest {
         @Override
         public boolean existsByUsername(Username username) {
             return store.values().stream().anyMatch(u -> u.username().value().equalsIgnoreCase(username.value()));
+        }
+
+        @Override
+        public List<User> findStaff() {
+            return store.values().stream().filter(User::isStaff).toList();
         }
     }
 }

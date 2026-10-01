@@ -76,6 +76,7 @@ public class SecurityConfig {
                                 "/api/v1/open-data/**")
                         .permitAll()
                         // Dupla checagem: os casos de uso de moderação também exigem o papel.
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/moderation/**").hasAnyRole("MODERATOR", "ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

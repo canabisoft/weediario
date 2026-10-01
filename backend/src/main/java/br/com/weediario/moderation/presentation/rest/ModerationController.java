@@ -70,8 +70,9 @@ public class ModerationController {
     @PostMapping("/decisions")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void decide(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody DecisionRequest request) {
-        moderate.decide(Viewer.requireId(principal), Viewer.isModerator(principal), new Decision(request.targetType(),
-                request.targetId(), request.verdict(), request.account(), request.reason(), request.note()));
+        moderate.decide(Viewer.requireId(principal), Viewer.isModerator(principal), Viewer.isAdmin(principal),
+                new Decision(request.targetType(), request.targetId(), request.verdict(), request.account(),
+                        request.reason(), request.note()));
     }
 
     @PostMapping("/users/{username}/reinstate")

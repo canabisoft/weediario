@@ -1,6 +1,5 @@
 package br.com.weediario.moderation.infrastructure.identity;
 
-import br.com.weediario.identity.domain.model.Role;
 import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.identity.domain.model.UserId;
 import br.com.weediario.identity.domain.repository.RefreshTokenRepository;
@@ -9,11 +8,12 @@ import br.com.weediario.moderation.application.port.ModeratedAccounts;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
-/** Tradução para o contexto de identidade: muda o status da conta e encerra as sessões abertas. */
+/** Tradução para o contexto de identidade: muda status (encerrando as sessões abertas) e papel das contas. */
 @Component
 public class IdentityModeratedAccounts implements ModeratedAccounts {
 
@@ -54,6 +54,25 @@ public class IdentityModeratedAccounts implements ModeratedAccounts {
         change(userId, User::reinstate);
     }
 
+    @Override
+    public List<Account> staff() {
+        return users.findStaff().stream().map(IdentityModeratedAccounts::account).toList();
+    }
+
+    /**
+     * Sem encerrar sessões: o papel vai no access token, e o filtro de status recusa o token antigo na próxima
+     * requisição; o cliente renova a sessão e recebe o papel novo.
+     */
+    @Override
+    public void promoteToModerator(UUID userId) {
+        change(userId, User::promoteToModerator);
+    }
+
+    @Override
+    public void removeFromTeam(UUID userId) {
+        change(userId, User::removeFromTeam);
+    }
+
     private void change(UUID userId, BiConsumer<User, Clock> action) {
         users.findById(new UserId(userId)).ifPresent(user -> {
             action.accept(user, clock);
@@ -62,6 +81,6 @@ public class IdentityModeratedAccounts implements ModeratedAccounts {
     }
 
     private static Account account(User user) {
-        return new Account(user.id().value(), user.username().value(), user.status().name(), user.role() != Role.GROWER);
+        return new Account(user.id().value(), user.username().value(), user.status().name(), user.role().name());
     }
 }

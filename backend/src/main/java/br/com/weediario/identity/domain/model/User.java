@@ -30,7 +30,7 @@ public final class User {
     private PasswordHash legacyPasswordHash;
     /** Argon2 do derivado da frase de recuperação; nulo em contas anteriores à frase (geram no próximo login). */
     private PasswordHash recoveryHash;
-    private final Role role;
+    private Role role;
     private AccountStatus status;
     private String bio;
     private UUID avatarImageId;
@@ -158,6 +158,36 @@ public final class User {
         }
         this.status = newStatus;
         this.updatedAt = clock.instant();
+    }
+
+    /**
+     * Gestão da equipe (só admin, conferido no caso de uso): um grower ativo vira moderador. Admins são definidos
+     * fora do app (no banco), para nenhuma falha na API conseguir criar um admin.
+     */
+    public void promoteToModerator(Clock clock) {
+        if (role != Role.GROWER) {
+            throw new DomainException("A conta já faz parte da equipe");
+        }
+        if (status != AccountStatus.ACTIVE) {
+            throw new DomainException("Só contas ativas podem entrar na equipe");
+        }
+        this.role = Role.MODERATOR;
+        this.updatedAt = clock.instant();
+    }
+
+    /** Moderador volta a ser grower. Admins não saem da equipe pela API (evita ficar sem nenhum admin). */
+    public void removeFromTeam(Clock clock) {
+        if (role != Role.MODERATOR) {
+            throw new DomainException(role == Role.ADMIN
+                    ? "Admins não são removidos pelo app"
+                    : "A conta não faz parte da equipe");
+        }
+        this.role = Role.GROWER;
+        this.updatedAt = clock.instant();
+    }
+
+    public boolean isStaff() {
+        return role != Role.GROWER;
     }
 
     /** Moderação: oculta (ou volta a mostrar) bio e foto para o público. */

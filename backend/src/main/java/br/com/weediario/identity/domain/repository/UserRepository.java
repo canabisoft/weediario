@@ -4,6 +4,7 @@ import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.identity.domain.model.UserId;
 import br.com.weediario.identity.domain.model.Username;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository {
@@ -15,4 +16,7 @@ public interface UserRepository {
     Optional<User> findByUsername(String username);
 
     boolean existsByUsername(Username username);
+
+    /** Moderadores e admins, em ordem de apelido. */
+    List<User> findStaff();
 }

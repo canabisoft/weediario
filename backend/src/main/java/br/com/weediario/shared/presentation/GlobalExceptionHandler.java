@@ -1,5 +1,6 @@
 package br.com.weediario.shared.presentation;
 
+import br.com.weediario.shared.application.ForbiddenActionException;
 import br.com.weediario.shared.application.ModeratorOnlyException;
 import br.com.weediario.diary.application.exception.GrowerNotAllowedException;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
@@ -59,6 +60,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidCredentialsException.class)
     ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    /** 403 com o motivo (ex.: moderador agindo sobre outra conta da equipe). */
+    @ExceptionHandler(ForbiddenActionException.class)
+    ProblemDetail handleForbiddenAction(ForbiddenActionException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
     /** O cliente reconhece o {@code code} e mostra o termo de consentimento. */

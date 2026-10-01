@@ -1,6 +1,6 @@
 # Funcionalidades do weediário
 
-Inventário do que o app faz hoje (backend 0.25.0, frontend 0.19.0). Para instalar e rodar, veja o [README](README.md);
+Inventário do que o app faz hoje (backend 0.26.0, frontend 0.20.0). Para instalar e rodar, veja o [README](README.md);
 para contribuir, o [CONTRIBUTING](CONTRIBUTING.md).
 
 O weediário é um diário de cultivo de cannabis com comunidade, catálogo aberto de genéticas e acompanhamento de
@@ -165,6 +165,7 @@ das avaliações e g/planta), sem nenhum apelido ou id de diário.
 | Termos de Uso, com aceite registrado (versão e data/hora) | `/termos` |
 | Manifesto: o que o projeto acredita e garante | `/manifesto` |
 | Painel de moderação (moderador e admin) | `/moderacao` |
+| Métricas da plataforma e gestão da equipe (só admin) | `/moderacao?aba=metricas`, `/moderacao?aba=equipe` |
 
 - **Filtro anti-comércio:**
   - **Bloqueia na hora** telefone, CPF/CNPJ, chave PIX e links de WhatsApp/Telegram.
@@ -179,7 +180,15 @@ das avaliações e g/planta), sem nenhum apelido ou id de diário.
   - Contas e log.
 - **Log de moderação:** só aceita inclusões e é guardado por 5 anos. Guarda o hash do conteúdo removido, nunca o
   texto nem quem denunciou. O admin exporta em CSV para atender ordem judicial.
-- Contas suspensas ou banidas perdem todas as sessões e podem ser reativadas.
+- **Hierarquia:** moderador nunca suspende, bane ou remove conteúdo de outra conta da equipe (403). Só admin remove
+  conteúdo de alguém da equipe, e ninguém suspende uma conta da equipe sem antes tirá-la da equipe.
+- **Contas suspensas ou banidas perdem o acesso na hora** (o backend confere a conta a cada requisição) e podem ser
+  reativadas.
+- **Painel do admin:**
+  - Métricas só por contagem no banco: contas por status, conteúdo publicado, atividade de 7 e 30 dias e fila da
+    moderação. Nada por pessoa, nada de tratamento, nenhuma ferramenta externa.
+  - Equipe: promover grower a moderador e tirar moderador da equipe, com registro no log. Admins são definidos só no
+    banco.
 - Quem não aceitou a versão atual dos Termos continua lendo, baixando e apagando dados, mas não publica.
 
 ## App e interface
@@ -203,7 +212,7 @@ das avaliações e g/planta), sem nenhum apelido ou id de diário.
 
 ## Limitações conhecidas
 
-- Não há tela para promover moderadores (é feito no banco; veja o README).
+- O primeiro admin é definido no banco (veja o README); depois disso, moderadores são geridos pelo painel.
 - O app não avisa quando um pedido de representante é aprovado nem quando uma semente em teste vira oficial.
 - A avaliação feita pelo próprio representante de um banco entra na média pública da strain, embora não conte para
   a promoção.
