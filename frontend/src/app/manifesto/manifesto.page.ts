@@ -25,6 +25,9 @@ const PRINCIPLES: readonly Principle[] = [
       'Perdeu a chave? Você anota 12 palavras na hora do cadastro (no padrão BIP-39, o mesmo das carteiras de cripto). ' +
         'Elas são geradas no seu navegador e nunca chegam ao servidor: a gente guarda só um hash de um código derivado delas. ' +
         'Com elas, você gera uma chave nova. O outro lado disso: se você perder a chave e as palavras, ninguém consegue devolver a conta.',
+      'Um limite honesto: como em todo site, o código que gera a frase no seu navegador é entregue pelo nosso servidor. ' +
+        'Por isso o código é aberto, cada arquivo vai com uma assinatura de integridade (SRI) e o build é reproduzível: ' +
+        'qualquer pessoa pode compilar o repositório e conferir se os arquivos servidos são os mesmos.',
     ],
   },
   {

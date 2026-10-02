@@ -31,8 +31,9 @@ import java.util.UUID;
  * Decisões da moderação, todas registradas no log de moderação: manter (denúncia improcedente) ou remover o
  * conteúdo e, junto com a remoção, suspender ou banir quem publicou.
  * <p>
- * Hierarquia: contas da equipe (moderador ou admin) nunca são suspensas ou banidas por aqui, e só um admin remove
- * conteúdo publicado por alguém da equipe. Tentativas fora disso dão 403.
+ * Hierarquia: contas da equipe (moderador ou admin) nunca são suspensas ou banidas por aqui, só um admin remove
+ * conteúdo publicado por alguém da equipe, ninguém decide sobre o próprio conteúdo e só admin desfaz banimento.
+ * Tentativas fora disso dão 403.
  */
 public final class ModerateContentUseCase {
 
@@ -60,6 +61,10 @@ public final class ModerateContentUseCase {
         ContentRef ref = new ContentRef(decision.type(), decision.targetId());
         unitOfWork.run(() -> {
             ContentInfo info = content.find(ref).orElseThrow(() -> new ResourceNotFoundException("Conteúdo"));
+            if (moderatorId.equals(info.authorId())) {
+                // Conflito de interesse: liberar o próprio conteúdo retido seria burlar o filtro.
+                throw new ForbiddenActionException("Você não decide sobre o próprio conteúdo; outra pessoa da equipe decide");
+            }
             Instant now = clock.instant();
             if (decision.verdict() == Verdict.REMOVE) {
                 requireAllowedOver(info.authorId(), admin, decision.account());
@@ -88,14 +93,23 @@ public final class ModerateContentUseCase {
         });
     }
 
-    /** Reativa uma conta suspensa ou banida (erro de moderação, recurso aceito). */
-    public void reinstate(UUID moderatorId, boolean moderator, String username, String note) {
+    /**
+     * Reativa uma conta suspensa ou banida (erro de moderação, recurso aceito). Banimento só é desfeito por admin:
+     * uma conta de moderação comprometida não consegue devolver o acesso a quem foi banido.
+     */
+    public void reinstate(UUID moderatorId, boolean moderator, boolean admin, String username, String note) {
         requireModerator(moderator);
         unitOfWork.run(() -> {
             Account account = accounts.findByUsername(username)
                     .orElseThrow(() -> new ResourceNotFoundException("Grower"));
             if ("ACTIVE".equals(account.status())) {
                 throw new DomainException("A conta já está ativa");
+            }
+            if ("BANNED".equals(account.status()) && !admin) {
+                throw new ForbiddenActionException("Só um admin desfaz banimento");
+            }
+            if (account.id().equals(moderatorId)) {
+                throw new ForbiddenActionException("Você não reativa a própria conta");
             }
             accounts.reinstate(account.id());
             repository.log(ModerationLogEntry.of(new ContentRef(TargetType.PROFILE, account.id()), account.id(),

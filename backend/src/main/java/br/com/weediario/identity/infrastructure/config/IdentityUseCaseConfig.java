@@ -22,6 +22,8 @@ import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.infrastructure.security.SecurityProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,14 +65,14 @@ public class IdentityUseCaseConfig {
     @Bean
     RecoverAccountUseCase recoverAccountUseCase(UserRepository users, PasswordHasher hasher,
                                                 SessionIssuer sessionIssuer, RefreshTokenRepository refreshTokens,
-                                                LoginThrottle throttle, UnitOfWork unitOfWork, Clock clock) {
-        return new RecoverAccountUseCase(users, hasher, sessionIssuer, refreshTokens, throttle, unitOfWork, clock);
+                                                UnitOfWork unitOfWork, Clock clock) {
+        return new RecoverAccountUseCase(users, hasher, sessionIssuer, refreshTokens, unitOfWork, clock);
     }
 
     @Bean
     ChangeRecoveryPhraseUseCase changeRecoveryPhraseUseCase(UserRepository users, PasswordHasher hasher,
-                                                            LoginThrottle throttle, UnitOfWork unitOfWork, Clock clock) {
-        return new ChangeRecoveryPhraseUseCase(users, hasher, throttle, unitOfWork, clock);
+                                                            UnitOfWork unitOfWork, Clock clock) {
+        return new ChangeRecoveryPhraseUseCase(users, hasher, unitOfWork, clock);
     }
 
     @Bean
@@ -82,6 +84,40 @@ public class IdentityUseCaseConfig {
     @Bean
     StaleLoginAttemptsJanitor staleLoginAttemptsJanitor(LoginAttemptsRepository attempts, Clock clock) {
         return new StaleLoginAttemptsJanitor(attempts, clock);
+    }
+
+    @Bean
+    LegacyPasswordJanitor legacyPasswordJanitor(NamedParameterJdbcTemplate jdbc, Clock clock) {
+        return new LegacyPasswordJanitor(jdbc, clock);
+    }
+
+    /**
+     * Minimização: senha de conta antiga (de antes da chave de acesso) é apagada depois de
+     * {@value LegacyPasswordJanitor#UNUSED_DAYS} dias sem a conta mudar, se a conta já tem frase de recuperação. A
+     * pessoa entra recuperando pela frase. Sem frase, a senha fica: seria o único jeito de voltar.
+     */
+    public static class LegacyPasswordJanitor {
+
+        static final int UNUSED_DAYS = 180;
+
+        private final NamedParameterJdbcTemplate jdbc;
+        private final Clock clock;
+
+        LegacyPasswordJanitor(NamedParameterJdbcTemplate jdbc, Clock clock) {
+            this.jdbc = jdbc;
+            this.clock = clock;
+        }
+
+        @Scheduled(fixedDelayString = "PT24H", initialDelayString = "PT15M")
+        @Transactional
+        public int purge() {
+            return jdbc.update("""
+                    update users set legacy_password_hash = null
+                     where legacy_password_hash is not null and access_key_hash is null and recovery_hash is not null
+                       and updated_at < :before""",
+                    new MapSqlParameterSource("before",
+                            java.sql.Timestamp.from(clock.instant().minus(Duration.ofDays(UNUSED_DAYS)))));
+        }
     }
 
     /** Minimização de dados: registros de tentativas sem atividade há um dia são apagados. */

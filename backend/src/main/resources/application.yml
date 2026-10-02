@@ -53,7 +53,11 @@ weediario:
     pseudonym-key: ${WEEDIARIO_PSEUDONYM_KEY}
   treatment:
     # AES-256 (32 bytes em Base64) dos textos de saúde. Gerada por scripts/setup-env; perdê-la torna esses textos ilegíveis.
-    encryption-key: ${WEEDIARIO_HEALTH_KEY}
+    encryption-key: ${WEEDIARIO_HEALTH_KEY:}
+    # Alternativa à variável: arquivo com a chave (docker secret), que não aparece em `docker inspect`.
+    encryption-key-file: ${WEEDIARIO_HEALTH_KEY_FILE:}
+    # Troca de chave: as antigas (separadas por vírgula) só decifram; o recifrador regrava tudo com a atual.
+    previous-keys: ${WEEDIARIO_HEALTH_PREVIOUS_KEYS:}
   identity:
     # Teto global de Argon2 simultâneos (cadastro, recuperação, login de conta antiga, troca de frase). Sem IP:
     # quem passa do teto espera até max-wait na fila e, se não houver vaga, recebe 429 com Retry-After.

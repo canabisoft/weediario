@@ -116,7 +116,7 @@ public class RecipeFeedbackController {
     @DeleteMapping("/api/v1/recipes/{id}/comments/{commentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteComment(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id, @PathVariable UUID commentId) {
-        feedback.deleteComment(id, commentId, Viewer.requireId(principal), Viewer.isModerator(principal));
+        feedback.deleteComment(id, commentId, Viewer.requireId(principal));
     }
 
     public record RatingRequest(@NotNull @Min(1) @Max(5) Integer stars) {

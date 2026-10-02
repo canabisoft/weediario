@@ -87,7 +87,7 @@ class AccountRecoveryIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void wrongPhraseAndUnknownUserGetTheSameAnswerAndAreThrottled() throws Exception {
+    void wrongPhraseAndUnknownUserGetTheSameAnswerAndNoOneCanLockTheOwnerOut() throws Exception {
         Session grower = newGrower();
 
         String wrongPhrase = mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
@@ -98,18 +98,19 @@ class AccountRecoveryIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
         assertThat(json.readTree(wrongPhrase).get("detail")).isEqualTo(json.readTree(unknownUser).get("detail"));
 
-        for (int i = 1; i < 5; i++) {
+        // Um atacante errando de propósito não tranca a conta: a frase tem 128 bits e o dono continua entrando.
+        for (int i = 0; i < 8; i++) {
             mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
                             .content(recoverJson(grower.username(), OTHER_VERIFIER)))
                     .andExpect(status().isUnauthorized());
+            mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson(grower.username(), "wd_sec_" + "A".repeat(43))))
+                    .andExpect(status().isUnauthorized());
         }
-        // Bloqueado: nem a frase certa passa até o bloqueio acabar.
+        login(grower.username(), grower.accessKey());
         mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
                         .content(recoverJson(grower.username(), VERIFIER)))
-                .andExpect(status().isTooManyRequests())
-                .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
-        // O limite da recuperação é separado do login.
-        login(grower.username(), grower.accessKey());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -146,6 +147,32 @@ class AccountRecoveryIntegrationTest extends IntegrationTestSupport {
 
         mvc.perform(authed(put("/api/v1/me/recovery"), legacy).contentType(MediaType.APPLICATION_JSON).content("""
                         {"recoveryVerifier":"%s","currentAccessKey":"%s"}""".formatted(OTHER_VERIFIER, grower.accessKey())))
+                .andExpect(status().isOk());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private br.com.weediario.identity.infrastructure.config.IdentityUseCaseConfig.LegacyPasswordJanitor legacyPasswords;
+
+    @Test
+    void oldUnusedPasswordsAreErasedOnlyWhenThePhraseCanStillRecoverTheAccount() throws Exception {
+        Session withPhrase = newGrower();
+        Session withoutPhrase = newGrower();
+        jdbc.update("""
+                update users set legacy_password_hash = '$argon2id$antiga', access_key_hash = null,
+                                 updated_at = now() - interval '200 days'
+                 where username in (?, ?)""", withPhrase.username(), withoutPhrase.username());
+        jdbc.update("update users set recovery_hash = null where username = ?", withoutPhrase.username());
+
+        legacyPasswords.purge();
+
+        assertThat(jdbc.queryForObject("select legacy_password_hash from users where username = ?", String.class,
+                withPhrase.username())).isNull();
+        // Sem frase, a senha é o único jeito de voltar: fica.
+        assertThat(jdbc.queryForObject("select legacy_password_hash from users where username = ?", String.class,
+                withoutPhrase.username())).isNotNull();
+        // Quem ficou só com a frase recupera a conta e ganha uma chave.
+        mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
+                        .content(recoverJson(withPhrase.username(), VERIFIER)))
                 .andExpect(status().isOk());
     }
 

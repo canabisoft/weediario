@@ -28,8 +28,18 @@ Este projeto foi arquitetado sob premissas rígidas de segurança digital:
 
 ### Privacidade na infraestrutura
 
-- nginx e Caddy sem log de acesso e sem repassar o IP do visitante ao backend.
-- Limite de tentativas de login e de recuperação por conta (chave HMAC do apelido), sem usar IP.
+- nginx e Caddy sem log de acesso e sem repassar o IP do visitante ao backend; o nginx só registra falhas que o
+  derrubam, e o Postgres registra erros sem o comando SQL nem os valores (`log_error_verbosity=terse`).
+- Logs do docker com rotação (`max-size: 10m`, 3 arquivos): nada acumula para sempre no disco. Erro inesperado vai
+  para o log só com a classe, onde aconteceu no nosso código e um código de referência (que também volta na
+  resposta), nunca com a mensagem, que pode trazer dado de usuário.
+- Limite de tentativas por apelido (chave HMAC do apelido, sem IP) só no login com senha de conta antiga. Chave de
+  acesso (256 bits) e frase (128 bits) não têm bloqueio: adivinhar é inviável, e bloquear por apelido só deixaria
+  alguém trancar a conta dos outros.
+- Senha de conta antiga é apagada depois de 6 meses sem uso, se a conta já tem frase de recuperação.
+- **Integridade do frontend:** cada script sai com SRI (`integrity="sha384-…"`) e o build é reproduzível.
+  `scripts/verify-frontend.sh https://site` compila o repositório e confere, arquivo por arquivo, se o site serve o
+  mesmo código.
 - **Proteção contra sobrecarga sem IP:** cadastro, recuperação de conta, último login de conta antiga e troca da
   frase usam Argon2id, que é pesado de propósito. Um teto global de cálculos Argon2 simultâneos (padrão
   `max(2, núcleos / 2)`) impede que alguém derrube o servidor variando apelidos: com o teto cheio, a requisição
@@ -164,7 +174,11 @@ versão antiga continua lendo, baixando e apagando dados, mas não publica até 
 
 - **Hierarquia da equipe:** moderadores nunca suspendem, banem ou removem conteúdo de outra conta da equipe (403);
   só um admin remove conteúdo de alguém da equipe, e nem ele suspende ou bane uma conta da equipe sem antes tirá-la
-  da equipe.
+  da equipe. Ninguém decide sobre o próprio conteúdo nem aprova o próprio pedido no programa de breeders, e só admin
+  desfaz banimento. Comentários só são apagados diretamente pelo autor ou pelo dono do diário/receita; a moderação
+  remove pela decisão, que fica no log.
+- **Log do catálogo:** corrigir, verificar, juntar, recusar e aprovar/revogar representantes ficam em `catalog_audit`
+  (quem, o quê, quando; 5 anos).
 - **Corte imediato:** a cada requisição autenticada o backend confere status e papel da conta. Suspensa ou banida
   recebe 401 na hora (sem esperar o token de 10 min expirar); quem mudou de papel renova a sessão automaticamente.
 
@@ -210,7 +224,14 @@ levar à consulta. Cada conta pode acompanhar perfis próprios ou de dependentes
   perfil ou notificações, pode ser exportado em JSON e apagado por completo a qualquer momento.
 - **Textos cifrados.** Nomes e observações vão para o banco cifrados com AES-256-GCM. A chave é
   `WEEDIARIO_HEALTH_KEY` no `.env`: `scripts/setup-env` cria e acrescenta a chave a um `.env` antigo. **Guarde uma
-  cópia segura dela**: sem a chave, esses textos ficam ilegíveis (inclusive em backups).
+  cópia segura dela, separada dos backups do banco**: sem a chave, esses textos ficam ilegíveis.
+  - Cada valor é amarrado à sua linha e coluna (dado autenticado do GCM): copiar o texto cifrado de um paciente para
+    outro faz a leitura falhar.
+  - A chave pode vir de arquivo (`WEEDIARIO_HEALTH_KEY_FILE`, ex. um docker secret), que não aparece em
+    `docker inspect`.
+  - **Trocar a chave sem parar:** ponha a nova em `WEEDIARIO_HEALTH_KEY`, a antiga em
+    `WEEDIARIO_HEALTH_PREVIOUS_KEYS` e suba o backend: ele regrava tudo com a nova ao iniciar. Depois remova a
+    antiga.
 
 ---
 

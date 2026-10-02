@@ -94,14 +94,14 @@ public class BreederProgramController {
     @PostMapping("/api/v1/moderation/breeder-representatives/{breederId}/{userId}/approve")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void approve(@AuthenticationPrincipal Jwt principal, @PathVariable UUID breederId, @PathVariable UUID userId) {
-        program.approve(breederId, userId, Viewer.isModerator(principal));
+        program.approve(breederId, userId, Viewer.requireId(principal), Viewer.isModerator(principal));
     }
 
     /** Recusa o pedido ou revoga o representante. */
     @DeleteMapping("/api/v1/moderation/breeder-representatives/{breederId}/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void reject(@AuthenticationPrincipal Jwt principal, @PathVariable UUID breederId, @PathVariable UUID userId) {
-        program.reject(breederId, userId, Viewer.isModerator(principal));
+        program.reject(breederId, userId, Viewer.requireId(principal), Viewer.isModerator(principal));
     }
 
     /**

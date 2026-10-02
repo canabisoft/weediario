@@ -85,7 +85,7 @@ public class DiarySocialController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteComment(@AuthenticationPrincipal Jwt principal, @PathVariable UUID diaryId,
                               @PathVariable UUID commentId) {
-        comments.delete(diaryId, commentId, Viewer.requireId(principal), Viewer.isModerator(principal));
+        comments.delete(diaryId, commentId, Viewer.requireId(principal));
     }
 
     /** Só contagens; {@code mine} traz apenas as reações de quem está logado. */

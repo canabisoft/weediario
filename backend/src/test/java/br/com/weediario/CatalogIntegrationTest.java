@@ -69,6 +69,33 @@ class CatalogIntegrationTest extends IntegrationTestSupport {
                 String.class, "Runtz " + suffix)).isEqualTo("Quintal " + suffix + " Seeds");
     }
 
+    @Test
+    void moderationActionsOnTheCatalogAreAudited() throws Exception {
+        Session grower = newGrower();
+        Session moderator = moderator();
+        String suffix = UUID.randomUUID().toString().substring(0, 6);
+        String toVerify = body(mvc.perform(authed(post("/api/v1/catalog/breeders/resolve"), grower)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Auditado %s Seeds\",\"confirmNew\":true}".formatted(suffix)))
+                .andReturn()).get("item").get("id").asText();
+        String toReject = body(mvc.perform(authed(post("/api/v1/catalog/breeders/resolve"), grower)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Errado %s Genetics\",\"confirmNew\":true}".formatted(suffix)))
+                .andReturn()).get("item").get("id").asText();
+
+        mvc.perform(authed(post("/api/v1/catalog/breeders/{id}/verify", toVerify), moderator))
+                .andExpect(status().isNoContent());
+        mvc.perform(authed(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/v1/catalog/breeders/{id}", toReject), moderator))
+                .andExpect(status().isNoContent());
+
+        assertThat(jdbc.queryForList("""
+                select a.action || ':' || a.item_name || ':' || u.username from catalog_audit a join users u on u.id = a.moderator_id
+                 where a.item_id in (?::uuid, ?::uuid) order by a.action""", String.class, toVerify, toReject))
+                .containsExactly("REJECTED:Errado " + suffix + " Genetics:" + moderator.username(),
+                        "VERIFIED:Auditado " + suffix + " Seeds:" + moderator.username());
+    }
+
     private static DatasetStrain row(String name, String breeder) {
         return new DatasetStrain(name, breeder, StrainTraits.EMPTY);
     }

@@ -25,7 +25,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void registrationRequiresTheCurrentTermsAndStoresOnlyVersionAndTime() throws Exception {
-        String username = "t_" + UUID.randomUUID().toString().substring(0, 8);
+        String username = "t_" + randomLetters(8);
         String base = """
                 {"username":"%s","recoveryVerifier":"%s"%s}""";
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
@@ -178,8 +178,11 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
                  where reported_username = ? order by created_at, action""", String.class, seller.username()))
                 .containsExactlyInAnyOrder("CONTENT_REMOVED:ILLEGAL_COMMERCE:" + hash, "USER_BANNED:ILLEGAL_COMMERCE:-");
 
-        // Recurso aceito: a conta volta.
+        // Recurso aceito: só admin desfaz banimento (moderação comprometida não devolve o acesso).
         mvc.perform(authed(post("/api/v1/moderation/users/{u}/reinstate", seller.username()), moderator)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"note\":\"recurso aceito\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(authed(post("/api/v1/moderation/users/{u}/reinstate", seller.username()), admin())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"note\":\"recurso aceito\"}"))
                 .andExpect(status().isNoContent());
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)

@@ -10,6 +10,7 @@ import br.com.weediario.identity.domain.model.Username;
 import br.com.weediario.identity.domain.repository.UserRepository;
 import br.com.weediario.identity.domain.service.PasswordHasher;
 import br.com.weediario.shared.application.UnitOfWork;
+import br.com.weediario.shared.domain.CommerceFilter;
 import br.com.weediario.shared.domain.DomainException;
 
 import java.time.Clock;
@@ -38,6 +39,8 @@ public final class RegisterUserUseCase {
 
     public KeyedSession execute(Command command) {
         Username username = new Username(command.username());
+        // O apelido aparece em todo comentário e diário: nada de telefone, PIX ou "zap" escondido nele.
+        CommerceFilter.requireAllowed(username.value());
         RecoveryVerifier verifier = new RecoveryVerifier(command.recoveryVerifier());
         TermsOfUse.requireCurrent(command.acceptedTermsVersion());
 

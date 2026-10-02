@@ -75,8 +75,9 @@ public class JdbcTreatmentRepository implements TreatmentRepository {
                 values (:id, :owner, :name, :notes, :at)
                 on conflict (id) do update set name_enc = excluded.name_enc, notes_enc = excluded.notes_enc""",
                 params("id", patient.id()).addValue("owner", patient.ownerId())
-                        .addValue("name", cipher.encrypt(patient.name()))
-                        .addValue("notes", cipher.encrypt(patient.notes()), Types.BINARY)
+                        .addValue("name", cipher.encrypt(patient.name(), ctx("treatment_patients", "name_enc", patient.id())))
+                        .addValue("notes", cipher.encrypt(patient.notes(), ctx("treatment_patients", "notes_enc", patient.id())),
+                                Types.BINARY)
                         .addValue("at", ts(patient.createdAt())));
         return patient;
     }
@@ -85,7 +86,7 @@ public class JdbcTreatmentRepository implements TreatmentRepository {
     public Optional<Patient> findPatient(UUID id) {
         return first(jdbc.query("select * from treatment_patients where id = :id", params("id", id),
                 (rs, n) -> new Patient(rs.getObject("id", UUID.class), rs.getObject("owner_id", UUID.class),
-                        cipher.decrypt(rs.getBytes("name_enc")), cipher.decrypt(rs.getBytes("notes_enc")),
+                        dec(rs, "treatment_patients", "name_enc", "id"), dec(rs, "treatment_patients", "notes_enc", "id"),
                         rs.getTimestamp("created_at").toInstant())));
     }
 
@@ -159,7 +160,8 @@ public class JdbcTreatmentRepository implements TreatmentRepository {
                 values (:id, :patient, :name, :kind, :archived, :at)
                 on conflict (id) do update set archived = excluded.archived""",
                 params("id", symptom.id()).addValue("patient", symptom.patientId())
-                        .addValue("name", cipher.encrypt(symptom.name())).addValue("kind", symptom.kind().name())
+                        .addValue("name", cipher.encrypt(symptom.name(), ctx("treatment_symptoms", "name_enc", symptom.id())))
+                        .addValue("kind", symptom.kind().name())
                         .addValue("archived", symptom.archived()).addValue("at", ts(symptom.createdAt())));
         return symptom;
     }
@@ -168,7 +170,7 @@ public class JdbcTreatmentRepository implements TreatmentRepository {
     public Optional<Symptom> findSymptom(UUID id) {
         return first(jdbc.query("select * from treatment_symptoms where id = :id", params("id", id),
                 (rs, n) -> new Symptom(rs.getObject("id", UUID.class), rs.getObject("patient_id", UUID.class),
-                        cipher.decrypt(rs.getBytes("name_enc")), SymptomKind.valueOf(rs.getString("kind")),
+                        dec(rs, "treatment_symptoms", "name_enc", "id"), SymptomKind.valueOf(rs.getString("kind")),
                         rs.getBoolean("archived"), rs.getTimestamp("created_at").toInstant())));
     }
 
@@ -191,13 +193,14 @@ public class JdbcTreatmentRepository implements TreatmentRepository {
                     drops_per_ml = excluded.drops_per_ml, manufactured_on = excluded.manufactured_on,
                     expires_on = excluded.expires_on, notes_enc = excluded.notes_enc, archived = excluded.archived""",
                 params("id", batch.id()).addValue("patient", batch.patientId())
-                        .addValue("name", cipher.encrypt(batch.name()))
+                        .addValue("name", cipher.encrypt(batch.name(), ctx("treatment_batches", "name_enc", batch.id())))
                         .addValue("form", batch.form().name()).addValue("origin", batch.origin().name())
                         .addValue("thc", batch.thc()).addValue("cbd", batch.cbd())
                         .addValue("drops", batch.dropsPerMl()).addValue("initial", batch.initialQuantity())
                         .addValue("manufactured", date(batch.manufacturedOn()), Types.DATE)
                         .addValue("expires", date(batch.expiresOn()), Types.DATE)
-                        .addValue("notes", cipher.encrypt(batch.notes()), Types.BINARY)
+                        .addValue("notes", cipher.encrypt(batch.notes(), ctx("treatment_batches", "notes_enc", batch.id())),
+                                Types.BINARY)
                         .addValue("archived", batch.archived()).addValue("at", ts(batch.createdAt())));
         return batch;
     }
@@ -206,11 +209,11 @@ public class JdbcTreatmentRepository implements TreatmentRepository {
     public Optional<MedicineBatch> findBatch(UUID id) {
         return first(jdbc.query("select * from treatment_batches where id = :id", params("id", id),
                 (rs, n) -> new MedicineBatch(rs.getObject("id", UUID.class), rs.getObject("patient_id", UUID.class),
-                        cipher.decrypt(rs.getBytes("name_enc")), MedicineForm.valueOf(rs.getString("form")),
+                        dec(rs, "treatment_batches", "name_enc", "id"), MedicineForm.valueOf(rs.getString("form")),
                         Origin.valueOf(rs.getString("origin")), rs.getBigDecimal("thc"), rs.getBigDecimal("cbd"),
                         rs.getBigDecimal("drops_per_ml"), rs.getBigDecimal("initial_quantity"),
                         localDate(rs.getDate("manufactured_on")), localDate(rs.getDate("expires_on")),
-                        cipher.decrypt(rs.getBytes("notes_enc")), rs.getBoolean("archived"),
+                        dec(rs, "treatment_batches", "notes_enc", "id"), rs.getBoolean("archived"),
                         rs.getTimestamp("created_at").toInstant())));
     }
 
@@ -238,7 +241,8 @@ public class JdbcTreatmentRepository implements TreatmentRepository {
                         .addValue("stock", dose.measure().stockQuantity(), Types.NUMERIC)
                         .addValue("thc", dose.measure().thcMg(), Types.NUMERIC)
                         .addValue("cbd", dose.measure().cbdMg(), Types.NUMERIC)
-                        .addValue("notes", cipher.encrypt(dose.notes()), Types.BINARY)
+                        .addValue("notes", cipher.encrypt(dose.notes(), ctx("treatment_doses", "notes_enc", dose.id())),
+                                Types.BINARY)
                         .addValue("by", dose.recordedBy(), Types.OTHER).addValue("at", ts(dose.createdAt())));
         return dose;
     }
@@ -252,7 +256,7 @@ public class JdbcTreatmentRepository implements TreatmentRepository {
                         rs.getTimestamp("taken_at").toInstant(),
                         new DoseMeasure(rs.getBigDecimal("stock_quantity"), rs.getBigDecimal("thc_mg"),
                                 rs.getBigDecimal("cbd_mg")),
-                        cipher.decrypt(rs.getBytes("notes_enc")), rs.getObject("recorded_by", UUID.class),
+                        dec(rs, "treatment_doses", "notes_enc", "id"), rs.getObject("recorded_by", UUID.class),
                         rs.getTimestamp("created_at").toInstant())));
     }
 
@@ -334,5 +338,14 @@ public class JdbcTreatmentRepository implements TreatmentRepository {
 
     private static <T> Optional<T> first(List<T> list) {
         return list.stream().findFirst();
+    }
+
+    private static String ctx(String table, String column, UUID id) {
+        return FieldCipher.context(table, column, id);
+    }
+
+    /** Decifra a coluna amarrada à linha (id na coluna {@code idColumn}). */
+    private String dec(java.sql.ResultSet rs, String table, String column, String idColumn) throws java.sql.SQLException {
+        return cipher.decrypt(rs.getBytes(column), ctx(table, column, rs.getObject(idColumn, UUID.class)));
     }
 }

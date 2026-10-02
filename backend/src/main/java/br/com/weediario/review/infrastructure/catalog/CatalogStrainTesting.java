@@ -28,7 +28,7 @@ public class CatalogStrainTesting implements StrainTesting {
             promote.promoteIfReady(strainId);
         } catch (RuntimeException e) {
             // A review já foi publicada; o job periódico do catálogo tenta de novo.
-            log.warn("Não foi possível conferir o teste da strain {}: {}", strainId, e.getMessage());
+            log.warn("Não foi possível conferir o teste da strain {}: {}", strainId, e.getClass().getName());
         }
     }
 }

@@ -198,27 +198,28 @@ public class CatalogController {
     @PatchMapping("/strains/{id}")
     public Map<String, Boolean> contribute(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id,
                                            @Valid @RequestBody TraitsRequest request) {
-        return Map.of("changed", curate.contribute(id, request.traits(), Viewer.isModerator(principal)));
+        return Map.of("changed", curate.contribute(id, request.traits(), Viewer.requireId(principal), Viewer.isModerator(principal)));
     }
 
     @PostMapping("/{kind}/{id}/verify")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void verify(@AuthenticationPrincipal Jwt principal, @PathVariable String kind, @PathVariable UUID id) {
-        curate.verify(kindOf(kind), id, Viewer.isModerator(principal));
+        curate.verify(kindOf(kind), id, Viewer.requireId(principal), Viewer.isModerator(principal));
     }
 
     /** Junta o item {@code id} (duplicado) no {@code targetId} (principal). */
     @PostMapping("/{kind}/{id}/merge")
     public CatalogItem merge(@AuthenticationPrincipal Jwt principal, @PathVariable String kind, @PathVariable UUID id,
                              @Valid @RequestBody MergeRequest request) {
-        return curate.merge(kindOf(kind), id, request.targetId(), Viewer.isModerator(principal));
+        return curate.merge(kindOf(kind), id, request.targetId(), Viewer.requireId(principal),
+                Viewer.isModerator(principal));
     }
 
     /** Recusa um cadastro que ninguém usa (erro de digitação, spam). */
     @DeleteMapping("/{kind}/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void reject(@AuthenticationPrincipal Jwt principal, @PathVariable String kind, @PathVariable UUID id) {
-        curate.reject(kindOf(kind), id, Viewer.isModerator(principal));
+        curate.reject(kindOf(kind), id, Viewer.requireId(principal), Viewer.isModerator(principal));
     }
 
     static Kind kindOf(String path) {

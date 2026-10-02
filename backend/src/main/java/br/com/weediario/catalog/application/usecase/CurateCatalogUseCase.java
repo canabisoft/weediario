@@ -7,6 +7,9 @@ import br.com.weediario.catalog.domain.model.Breeder;
 import br.com.weediario.catalog.domain.model.CatalogStrain;
 import br.com.weediario.catalog.domain.model.Product;
 import br.com.weediario.catalog.domain.model.StrainTraits;
+import br.com.weediario.catalog.domain.repository.CatalogAuditLog;
+import br.com.weediario.catalog.domain.repository.CatalogAuditLog.Action;
+import br.com.weediario.catalog.domain.repository.CatalogAuditLog.Entry;
 import br.com.weediario.catalog.domain.repository.CatalogRepository;
 import br.com.weediario.catalog.domain.repository.CatalogRepository.ItemKind;
 import br.com.weediario.shared.application.ModeratorOnlyException;
@@ -18,7 +21,7 @@ import java.time.Clock;
 import java.util.UUID;
 
 /**
- * Curadoria do catálogo.
+ * Curadoria do catálogo. Toda ação da moderação (corrigir, verificar, juntar, recusar) fica no {@link CatalogAuditLog}.
  * <ul>
  *   <li>Qualquer grower logado pode <strong>completar</strong> informações que ainda faltam (nunca sobrescreve).</li>
  *   <li>Moderadores podem corrigir qualquer campo, marcar como verificado e juntar duplicatas.</li>
@@ -34,11 +37,13 @@ public final class CurateCatalogUseCase {
     }
 
     private final CatalogRepository catalog;
+    private final CatalogAuditLog audit;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
-    public CurateCatalogUseCase(CatalogRepository catalog, UnitOfWork unitOfWork, Clock clock) {
+    public CurateCatalogUseCase(CatalogRepository catalog, CatalogAuditLog audit, UnitOfWork unitOfWork, Clock clock) {
         this.catalog = catalog;
+        this.audit = audit;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -46,7 +51,7 @@ public final class CurateCatalogUseCase {
     /**
      * @return {@code true} se algo foi acrescentado
      */
-    public boolean contribute(UUID strainId, StrainTraits contribution, boolean moderator) {
+    public boolean contribute(UUID strainId, StrainTraits contribution, UUID requesterId, boolean moderator) {
         // Texto livre que vai a público: sem contato, PIX ou anúncio (aqui não há fila, então retenção também bloqueia).
         CommerceFilter.requireAllowed(contribution.genetics(), String.join(" ", contribution.flavors()),
                 String.join(" ", contribution.effects()));
@@ -56,6 +61,7 @@ public final class CurateCatalogUseCase {
             if (moderator) {
                 strain.correct(contribution, clock);
                 changed = true;
+                log(Action.CORRECTED, ItemKind.STRAIN, strain.id(), strain.name(), null, requesterId);
             } else {
                 changed = strain.enrich(contribution, clock);
             }
@@ -66,22 +72,21 @@ public final class CurateCatalogUseCase {
         });
     }
 
-    public void verify(Kind kind, UUID id, boolean moderator) {
+    public void verify(Kind kind, UUID id, UUID moderatorId, boolean moderator) {
         requireModerator(moderator);
         unitOfWork.run(() -> {
-            switch (kind) {
+            String name = switch (kind) {
                 case STRAIN -> {
                     CatalogStrain strain = strain(id);
                     strain.verify(clock);
                     catalog.saveStrain(strain);
+                    yield strain.name();
                 }
-                case BREEDER -> catalog.saveBreeder(catalog.findBreeder(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Breeder")).verified());
-                case BRAND -> catalog.saveBrand(catalog.findBrand(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Marca")).verified());
-                case PRODUCT -> catalog.saveProduct(catalog.findProduct(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Produto")).verified());
-            }
+                case BREEDER -> catalog.saveBreeder(breeder(id).verified()).name();
+                case BRAND -> catalog.saveBrand(brand(id).verified()).name();
+                case PRODUCT -> catalog.saveProduct(product(id).verified()).name();
+            };
+            log(Action.VERIFIED, ItemKind.valueOf(kind.name()), id, name, null, moderatorId);
         });
     }
 
@@ -90,12 +95,20 @@ public final class CurateCatalogUseCase {
      * aquele nome no futuro cai direto no principal. Ao juntar breeders (ou marcas), strains (ou produtos)
      * com o mesmo nome nos dois também são juntadas.
      */
-    public CatalogItem merge(Kind kind, UUID duplicateId, UUID targetId, boolean moderator) {
+    public CatalogItem merge(Kind kind, UUID duplicateId, UUID targetId, UUID moderatorId, boolean moderator) {
         requireModerator(moderator);
         if (duplicateId.equals(targetId)) {
             throw new DomainException("Escolha dois itens diferentes");
         }
-        return unitOfWork.execute(() -> switch (kind) {
+        return unitOfWork.execute(() -> {
+            log(Action.MERGED, ItemKind.valueOf(kind.name()), duplicateId, nameOf(kind, duplicateId), targetId,
+                    moderatorId);
+            return mergeItems(kind, duplicateId, targetId);
+        });
+    }
+
+    private CatalogItem mergeItems(Kind kind, UUID duplicateId, UUID targetId) {
+        return switch (kind) {
             case STRAIN -> CatalogItem.of(mergeStrains(duplicateId, targetId));
             case BREEDER -> {
                 breeder(duplicateId);
@@ -119,23 +132,32 @@ public final class CurateCatalogUseCase {
                 catalog.mergeProduct(duplicateId, targetId);
                 yield CatalogItem.of(target, brand(target.brandId()));
             }
-        });
+        };
     }
 
     /** Recusa um cadastro errado ou spam. Só dá para apagar o que ninguém usa; o resto precisa ser juntado. */
-    public void reject(Kind kind, UUID id, boolean moderator) {
+    public void reject(Kind kind, UUID id, UUID moderatorId, boolean moderator) {
         requireModerator(moderator);
         unitOfWork.run(() -> {
-            switch (kind) {
-                case STRAIN -> strain(id);
-                case BREEDER -> breeder(id);
-                case BRAND -> brand(id);
-                case PRODUCT -> product(id);
-            }
+            String name = nameOf(kind, id);
             if (!catalog.deleteIfUnused(ItemKind.valueOf(kind.name()), id)) {
                 throw new DomainException("Este item já está em uso. Junte-o com o item certo em vez de apagar.");
             }
+            log(Action.REJECTED, ItemKind.valueOf(kind.name()), id, name, null, moderatorId);
         });
+    }
+
+    private String nameOf(Kind kind, UUID id) {
+        return switch (kind) {
+            case STRAIN -> strain(id).name();
+            case BREEDER -> breeder(id).name();
+            case BRAND -> brand(id).name();
+            case PRODUCT -> product(id).name();
+        };
+    }
+
+    private void log(Action action, ItemKind kind, UUID id, String name, UUID related, UUID moderatorId) {
+        audit.record(new Entry(action, kind, id, name, related, moderatorId, clock.instant()));
     }
 
     private CatalogStrain mergeStrains(UUID duplicateId, UUID targetId) {

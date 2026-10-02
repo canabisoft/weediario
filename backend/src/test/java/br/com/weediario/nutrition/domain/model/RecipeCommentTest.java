@@ -43,8 +43,8 @@ class RecipeCommentTest {
                 .isInstanceOf(DomainException.class);
 
         RecipeComment reply = RecipeComment.reply(recipe, root, AUTHOR, "Funciona", CLOCK);
-        assertThat(reply.canBeDeletedBy(AUTHOR, recipe, false)).isTrue();
-        assertThat(reply.canBeDeletedBy(ASKER, recipe, false)).as("dono da receita é o AUTHOR, não o ASKER").isFalse();
+        assertThat(reply.canBeDeletedBy(AUTHOR, recipe)).isTrue();
+        assertThat(reply.canBeDeletedBy(ASKER, recipe)).as("dono da receita é o AUTHOR, não o ASKER").isFalse();
         reply.holdForModeration();
         assertThat(reply.isVisibleTo(AUTHOR)).isTrue();
         assertThat(reply.isVisibleTo(ASKER)).isFalse();

@@ -10,6 +10,7 @@ import br.com.weediario.diary.domain.model.SetupSpec;
 import br.com.weediario.diary.domain.repository.GrowSetupRepository;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.application.UnitOfWork;
+import br.com.weediario.shared.domain.CommerceFilter;
 import br.com.weediario.shared.domain.DomainException;
 
 import java.time.Clock;
@@ -43,6 +44,7 @@ public final class ManageGrowSetupsUseCase {
     }
 
     public GrowSetupView create(UUID ownerId, Details details) {
+        requirePublicTextAllowed(details);
         GrowerId owner = new GrowerId(ownerId);
         return unitOfWork.execute(() -> {
             if (setups.countByOwner(owner) >= MAX_SETUPS_PER_GROWER) {
@@ -57,12 +59,26 @@ public final class ManageGrowSetupsUseCase {
     }
 
     public GrowSetupView revise(UUID ownerId, UUID setupId, Details details) {
+        requirePublicTextAllowed(details);
         return unitOfWork.execute(() -> {
             GrowSetup setup = owned(ownerId, setupId);
             catalog.products(details.productIds());
             setup.revise(details.name(), details.environment(), details.spec(), details.productIds(), clock);
             return view(setups.save(setup));
         });
+    }
+
+    /**
+     * Setups aparecem no perfil público: nome e textos livres passam pelo filtro anti-comércio. Sem fila de
+     * moderação para setups, então o que seria retido também é recusado.
+     */
+    private static void requirePublicTextAllowed(Details details) {
+        SetupSpec spec = details.spec();
+        CommerceFilter.requireAllowed(details.name(),
+                spec == null ? null : spec.lighting(),
+                spec == null ? null : spec.nutrients(),
+                spec == null ? null : spec.ventilation(),
+                spec == null ? null : spec.notes());
     }
 
     /** Diários criados com o setup mantêm a cópia deles; só a predefinição some. */

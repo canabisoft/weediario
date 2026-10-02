@@ -13,10 +13,21 @@ x-hardening: &hardening
   cap_drop:
     - ALL
 
+# Logs do docker com tamanho máximo: nada acumula para sempre no disco do servidor.
+x-logging: &logging
+  logging:
+    driver: local
+    options:
+      max-size: 10m
+      max-file: "3"
+
 services:
   postgres:
+    <<: *logging
     image: postgres:17-alpine
     restart: unless-stopped
+    # Erros do banco sem DETAIL nem o comando SQL: nada de valor de usuário (apelido, chave duplicada) nos logs.
+    command: ["postgres", "-c", "log_error_verbosity=terse", "-c", "log_min_error_statement=panic"]
     environment:
       POSTGRES_DB: weediario
       POSTGRES_USER: ${WEEDIARIO_DB_USER:?rode scripts/setup-env para criar o .env}
@@ -30,7 +41,7 @@ services:
       retries: 10
 
   backend:
-    <<: *hardening
+    <<: [*logging, *hardening]
     build: ./backend
     image: weediario-backend:local
     restart: unless-stopped
@@ -45,6 +56,7 @@ services:
       WEEDIARIO_PSEUDONYM_KEY: ${WEEDIARIO_PSEUDONYM_KEY:?rode scripts/setup-env para criar o .env}
       # Cifra dos textos de saúde do acompanhamento de tratamento (AES-256).
       WEEDIARIO_HEALTH_KEY: ${WEEDIARIO_HEALTH_KEY:?rode scripts/setup-env para acrescentar a chave ao .env}
+      WEEDIARIO_HEALTH_PREVIOUS_KEYS: ${WEEDIARIO_HEALTH_PREVIOUS_KEYS:-}
       # Mesma origem via nginx; a lista só importa para quem acessar a API de outra origem.
       WEEDIARIO_CORS_ORIGINS: http://localhost:${WEEDIARIO_HTTP_PORT:-8080}
       WEEDIARIO_MEDIA_PATH: /app/data/images
@@ -56,7 +68,7 @@ services:
       - /app/native:exec,mode=0700,uid=100,gid=101,size=8m
 
   frontend:
-    <<: *hardening
+    <<: [*logging, *hardening]
     build: ./frontend
     image: weediario-frontend:local
     restart: unless-stopped
@@ -73,6 +85,7 @@ services:
   #   WEEDIARIO_DOMAIN=seu.dominio.com docker compose --profile https up -d
   # Com WEEDIARIO_DOMAIN=localhost, usa uma CA local do Caddy para testar na máquina.
   caddy:
+    <<: *logging
     image: caddy:2.10-alpine
     profiles: ["https"]
     restart: unless-stopped

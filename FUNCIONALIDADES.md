@@ -1,6 +1,6 @@
 # Funcionalidades do weediário
 
-Inventário do que o app faz hoje (backend 0.29.0, frontend 0.22.0). Para instalar e rodar, veja o [README](README.md);
+Inventário do que o app faz hoje (backend 0.30.0, frontend 0.23.0). Para instalar e rodar, veja o [README](README.md);
 para contribuir, o [CONTRIBUTING](CONTRIBUTING.md).
 
 O weediário é um diário de cultivo de cannabis com comunidade, catálogo aberto de genéticas e acompanhamento de
@@ -28,8 +28,9 @@ rastreamento.
 - **Recuperar a conta** gera uma chave nova, invalida a antiga e encerra todas as sessões abertas.
 - **Contas antigas** (de quando havia senha) entram uma última vez com a senha, recebem a chave e a senha é apagada.
   Quem ainda não tem frase é levado a gerar uma, e um aviso fica no topo até isso acontecer.
-- **Limite de tentativas por apelido**, sem IP: bloqueio progressivo de 15 min até 6 h. Login e recuperação têm
-  limites separados. Apelido inexistente e credencial errada recebem a mesma resposta.
+- **Ninguém tranca a conta de ninguém:** chave e frase não têm bloqueio por tentativas (são impossíveis de
+  adivinhar). Só o login com senha de conta antiga tem limite por apelido (15 min até 6 h, sem IP). Apelido
+  inexistente e credencial errada recebem a mesma resposta.
 - **Sessão:** token de acesso de 10 min só em memória e refresh token em cookie `HttpOnly`/`Secure`/`SameSite=Strict`,
   com rotação e tolerância a recarregar a página no meio de uma renovação.
 
@@ -197,7 +198,8 @@ das avaliações e g/planta), sem nenhum apelido ou id de diário.
 - **Log de moderação:** só aceita inclusões e é guardado por 5 anos. Guarda o hash do conteúdo removido, nunca o
   texto nem quem denunciou. O admin exporta em CSV para atender ordem judicial.
 - **Hierarquia:** moderador nunca suspende, bane ou remove conteúdo de outra conta da equipe (403). Só admin remove
-  conteúdo de alguém da equipe, e ninguém suspende uma conta da equipe sem antes tirá-la da equipe.
+  conteúdo de alguém da equipe, e ninguém suspende uma conta da equipe sem antes tirá-la da equipe. Ninguém decide
+  sobre o próprio conteúdo, só admin desfaz banimento, e toda remoção ou ação no catálogo fica registrada.
 - **Contas suspensas ou banidas perdem o acesso na hora** (o backend confere a conta a cada requisição) e podem ser
   reativadas.
 - **Painel do admin:**
@@ -222,7 +224,7 @@ das avaliações e g/planta), sem nenhum apelido ou id de diário.
 - **Não guardamos:** e-mail, senha, nome, CPF, telefone, IP, localização, user-agent nem logs de acesso.
 - **Fotos:** sem EXIF.
 - **Reações e denúncias:** usam pseudônimos HMAC.
-- **Dados de saúde:** cifrados.
+- **Dados de saúde:** cifrados e amarrados à própria linha, com troca de chave sem parar o app.
 - **Infraestrutura:** containers sem root e somente leitura; CSP estrita, sem estilos inline; teto de cálculos
   pesados (Argon2) para o servidor não cair sob ataque, sem usar IP.
 - **Projeto open-source** (código AGPL-3.0, dados abertos ODbL 1.0): qualquer pessoa pode auditar e contribuir.

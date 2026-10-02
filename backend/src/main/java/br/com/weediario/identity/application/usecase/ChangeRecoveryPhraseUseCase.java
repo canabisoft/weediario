@@ -1,6 +1,5 @@
 package br.com.weediario.identity.application.usecase;
 
-import br.com.weediario.identity.application.LoginThrottle;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
 import br.com.weediario.identity.domain.model.AccessKey;
 import br.com.weediario.identity.domain.model.PasswordHash;
@@ -19,21 +18,19 @@ import java.util.UUID;
  * Gera a primeira frase de recuperação (contas anteriores à frase) ou troca por uma nova (a antiga deixa de valer).
  * <p>
  * Exige a chave de acesso atual mesmo com a sessão aberta: com só um token roubado, dava para trocar a frase e depois
- * tomar a conta pela recuperação. Erros aqui contam no mesmo limite de tentativas do login.
+ * tomar a conta pela recuperação. Sem limite de tentativas: a chave tem 256 bits.
  */
 public final class ChangeRecoveryPhraseUseCase {
 
     private final UserRepository users;
     private final PasswordHasher hasher;
-    private final LoginThrottle throttle;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
-    public ChangeRecoveryPhraseUseCase(UserRepository users, PasswordHasher hasher, LoginThrottle throttle,
-                                       UnitOfWork unitOfWork, Clock clock) {
+    public ChangeRecoveryPhraseUseCase(UserRepository users, PasswordHasher hasher, UnitOfWork unitOfWork,
+                                       Clock clock) {
         this.users = users;
         this.hasher = hasher;
-        this.throttle = throttle;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -42,11 +39,9 @@ public final class ChangeRecoveryPhraseUseCase {
         RecoveryVerifier verifier = new RecoveryVerifier(recoveryVerifier);
         User user = load(new UserId(userId));
 
-        LoginThrottle.Attempt attempt = throttle.begin(LoginThrottle.LOGIN, user.username().value());
         boolean matches = AccessKey.isWellFormed(currentAccessKey)
                 && user.accessKeyMatches(new AccessKey(currentAccessKey).hash());
         if (!matches) {
-            throttle.failed(attempt);
             throw new InvalidCredentialsException("Chave de acesso atual incorreta");
         }
 

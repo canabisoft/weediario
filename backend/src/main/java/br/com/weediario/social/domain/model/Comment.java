@@ -81,9 +81,12 @@ public final class Comment {
         return !hidden || authorId.equals(viewerId);
     }
 
-    /** O autor apaga o próprio comentário; o dono do diário e moderadores apagam qualquer um no diário. */
-    public boolean canBeDeletedBy(UUID requesterId, CommentableDiary diary, boolean moderator) {
-        return moderator || authorId.equals(requesterId) || diary.isOwnedBy(requesterId);
+    /**
+     * O autor apaga o próprio comentário e o dono do diário apaga os do diário. A moderação não apaga por aqui: remove
+     * pela decisão de moderação, que fica no log e respeita a hierarquia da equipe.
+     */
+    public boolean canBeDeletedBy(UUID requesterId, CommentableDiary diary) {
+        return authorId.equals(requesterId) || diary.isOwnedBy(requesterId);
     }
 
     /** Retido pelo filtro anti-comércio: salvo, mas fora do público até a moderação decidir. */

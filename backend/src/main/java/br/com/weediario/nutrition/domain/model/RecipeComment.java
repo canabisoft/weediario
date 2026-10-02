@@ -71,9 +71,12 @@ public final class RecipeComment {
         return !hidden || authorId.equals(viewerId);
     }
 
-    /** O autor apaga o próprio comentário; o dono da receita e moderadores apagam qualquer um nela. */
-    public boolean canBeDeletedBy(UUID requesterId, Recipe recipe, boolean moderator) {
-        return moderator || authorId.equals(requesterId) || recipe.isOwnedBy(requesterId);
+    /**
+     * O autor apaga o próprio comentário e o dono da receita apaga os da receita. A moderação remove pela decisão de
+     * moderação (registrada no log e sujeita à hierarquia da equipe), não por aqui.
+     */
+    public boolean canBeDeletedBy(UUID requesterId, Recipe recipe) {
+        return authorId.equals(requesterId) || recipe.isOwnedBy(requesterId);
     }
 
     /** Retido pelo filtro anti-comércio: salvo, mas fora do público até a moderação decidir. */

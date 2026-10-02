@@ -60,7 +60,7 @@ public abstract class IntegrationTestSupport {
 
     /** Cadastro já devolve sessão aberta e a chave de acesso. */
     protected Session newGrower() throws Exception {
-        String username = "g_" + UUID.randomUUID().toString().substring(0, 12).replace("-", "");
+        String username = "g_" + randomLetters(12);
         MvcResult registered = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(registerJson(username)))
                 .andExpect(status().isCreated())
@@ -131,5 +131,18 @@ public abstract class IntegrationTestSupport {
 
     protected JsonNode body(MvcResult result) throws Exception {
         return json.readTree(result.getResponse().getContentAsByteArray());
+    }
+
+    /**
+     * Apelido aleatório só com letras: um apelido com 10 ou 11 dígitos seguidos tem cara de telefone/CPF e é
+     * recusado pelo filtro anti-comércio (de propósito).
+     */
+    protected static String randomLetters(int length) {
+        java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+        StringBuilder letters = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            letters.append((char) ('a' + random.nextInt(26)));
+        }
+        return letters.toString();
     }
 }

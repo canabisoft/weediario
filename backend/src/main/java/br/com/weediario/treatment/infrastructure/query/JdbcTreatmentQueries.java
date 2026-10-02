@@ -59,8 +59,8 @@ public class JdbcTreatmentQueries implements TreatmentQueries {
                                 where c.patient_id = p.id and c.user_id = :user and c.accepted)
                  order by (p.owner_id = :user) desc, p.created_at""",
                 new MapSqlParameterSource("user", userId),
-                (rs, n) -> new PatientSummary(rs.getObject("id", UUID.class), cipher.decrypt(rs.getBytes("name_enc")),
-                        cipher.decrypt(rs.getBytes("notes_enc")), AccessRole.valueOf(rs.getString("role")),
+                (rs, n) -> new PatientSummary(rs.getObject("id", UUID.class), dec(rs, "treatment_patients", "name_enc", "id"),
+                        dec(rs, "treatment_patients", "notes_enc", "id"), AccessRole.valueOf(rs.getString("role")),
                         rs.getString("owner"), rs.getLong("caregivers")));
     }
 
@@ -74,7 +74,7 @@ public class JdbcTreatmentQueries implements TreatmentQueries {
                  where c.user_id = :user and not c.accepted
                  order by c.invited_at desc""",
                 new MapSqlParameterSource("user", userId),
-                (rs, n) -> new InviteView(rs.getObject("id", UUID.class), cipher.decrypt(rs.getBytes("name_enc")),
+                (rs, n) -> new InviteView(rs.getObject("id", UUID.class), dec(rs, "treatment_patients", "name_enc", "id"),
                         rs.getString("owner"), instant(rs.getTimestamp("invited_at"))));
     }
 
@@ -95,7 +95,7 @@ public class JdbcTreatmentQueries implements TreatmentQueries {
         return jdbc.query("select * from treatment_symptoms where patient_id = :patient"
                         + (includeArchived ? "" : " and not archived") + " order by archived, created_at",
                 new MapSqlParameterSource("patient", patientId),
-                (rs, n) -> new SymptomView(rs.getObject("id", UUID.class), cipher.decrypt(rs.getBytes("name_enc")),
+                (rs, n) -> new SymptomView(rs.getObject("id", UUID.class), dec(rs, "treatment_symptoms", "name_enc", "id"),
                         SymptomKind.valueOf(rs.getString("kind")), rs.getBoolean("archived")));
     }
 
@@ -113,12 +113,12 @@ public class JdbcTreatmentQueries implements TreatmentQueries {
                  where b.patient_id = :patient""" + (includeArchived ? "" : " and not b.archived")
                         + " order by b.archived, b.created_at desc",
                 new MapSqlParameterSource("patient", patientId).addValue("since", Timestamp.from(usageSince)),
-                (rs, n) -> new BatchStock(rs.getObject("id", UUID.class), cipher.decrypt(rs.getBytes("name_enc")),
+                (rs, n) -> new BatchStock(rs.getObject("id", UUID.class), dec(rs, "treatment_batches", "name_enc", "id"),
                         MedicineForm.valueOf(rs.getString("form")), Origin.valueOf(rs.getString("origin")),
                         rs.getBigDecimal("thc"), rs.getBigDecimal("cbd"), rs.getBigDecimal("drops_per_ml"),
                         rs.getBigDecimal("initial_quantity"), rs.getBigDecimal("remaining"),
                         rs.getBigDecimal("used_recently"), localDate(rs.getDate("manufactured_on")),
-                        localDate(rs.getDate("expires_on")), cipher.decrypt(rs.getBytes("notes_enc")),
+                        localDate(rs.getDate("expires_on")), dec(rs, "treatment_batches", "notes_enc", "id"),
                         rs.getBoolean("archived")));
     }
 
@@ -161,12 +161,13 @@ public class JdbcTreatmentQueries implements TreatmentQueries {
                     UUID batchId = rs.getObject("batch_id", UUID.class);
                     byte[] encryptedName = rs.getBytes("batch_name");
                     return new DoseEntry(id, batchId,
-                            batchNames.computeIfAbsent(batchId, key -> cipher.decrypt(encryptedName)),
+                            batchNames.computeIfAbsent(batchId, key -> cipher.decrypt(encryptedName,
+                                    FieldCipher.context("treatment_batches", "name_enc", batchId))),
                             MedicineForm.valueOf(rs.getString("form")), rs.getBigDecimal("amount"),
                             DoseUnit.valueOf(rs.getString("unit")), Route.valueOf(rs.getString("route")),
                             instant(rs.getTimestamp("taken_at")), rs.getBigDecimal("stock_quantity"),
                             rs.getBigDecimal("thc_mg"), rs.getBigDecimal("cbd_mg"),
-                            cipher.decrypt(rs.getBytes("notes_enc")), rs.getString("recorded_by_name"),
+                            dec(rs, "treatment_doses", "notes_enc", "id"), rs.getString("recorded_by_name"),
                             ratings.getOrDefault(id, List.of()), effects.getOrDefault(id, List.of()));
                 });
     }
@@ -198,7 +199,8 @@ public class JdbcTreatmentQueries implements TreatmentQueries {
         UUID symptomId = rs.getObject("symptom_id", UUID.class);
         byte[] encryptedName = rs.getBytes("name_enc");
         return new RatingEntry(rs.getObject("id", UUID.class), rs.getObject("dose_id", UUID.class), symptomId,
-                symptomNames.computeIfAbsent(symptomId, key -> cipher.decrypt(encryptedName)),
+                symptomNames.computeIfAbsent(symptomId, key -> cipher.decrypt(encryptedName,
+                        FieldCipher.context("treatment_symptoms", "name_enc", symptomId))),
                 SymptomKind.valueOf(rs.getString("kind")), RatingMoment.valueOf(rs.getString("moment")),
                 rs.getInt("value"), instant(rs.getTimestamp("recorded_at")), rs.getString("recorded_by_name"));
     }
@@ -221,5 +223,10 @@ public class JdbcTreatmentQueries implements TreatmentQueries {
 
     private static LocalDate localDate(Date date) {
         return date == null ? null : date.toLocalDate();
+    }
+
+    /** Decifra a coluna amarrada à linha (id na coluna {@code idColumn}). */
+    private String dec(ResultSet rs, String table, String column, String idColumn) throws SQLException {
+        return cipher.decrypt(rs.getBytes(column), FieldCipher.context(table, column, rs.getObject(idColumn, UUID.class)));
     }
 }

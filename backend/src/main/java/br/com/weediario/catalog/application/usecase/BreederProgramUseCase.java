@@ -8,7 +8,10 @@ import br.com.weediario.catalog.domain.model.CatalogKey;
 import br.com.weediario.catalog.domain.model.CatalogStrain;
 import br.com.weediario.catalog.domain.model.StrainTraits;
 import br.com.weediario.catalog.domain.repository.BreederRepresentativeRepository;
+import br.com.weediario.catalog.domain.repository.CatalogAuditLog;
 import br.com.weediario.catalog.domain.repository.CatalogRepository;
+import br.com.weediario.catalog.domain.repository.CatalogRepository.ItemKind;
+import br.com.weediario.shared.application.ForbiddenActionException;
 import br.com.weediario.shared.application.ModeratorOnlyException;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.application.UnitOfWork;
@@ -30,13 +33,15 @@ public final class BreederProgramUseCase {
 
     private final CatalogRepository catalog;
     private final BreederRepresentativeRepository representatives;
+    private final CatalogAuditLog audit;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public BreederProgramUseCase(CatalogRepository catalog, BreederRepresentativeRepository representatives,
-                                 UnitOfWork unitOfWork, Clock clock) {
+                                 CatalogAuditLog audit, UnitOfWork unitOfWork, Clock clock) {
         this.catalog = catalog;
         this.representatives = representatives;
+        this.audit = audit;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -104,9 +109,15 @@ public final class BreederProgramUseCase {
         });
     }
 
-    /** Aprova o pedido; o breeder passa a ter o tipo que a pessoa informou (banco ou independente). */
-    public void approve(UUID breederId, UUID userId, boolean moderator) {
+    /**
+     * Aprova o pedido; o breeder passa a ter o tipo que a pessoa informou (banco ou independente). Quem modera não
+     * aprova o próprio pedido.
+     */
+    public void approve(UUID breederId, UUID userId, UUID moderatorId, boolean moderator) {
         requireModerator(moderator);
+        if (userId.equals(moderatorId)) {
+            throw new ForbiddenActionException("Você não aprova o próprio pedido; outra pessoa da equipe aprova");
+        }
         unitOfWork.run(() -> {
             BreederRepresentative approved = representatives.save(representatives.find(breederId, userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Pedido")).approve(clock));
@@ -114,13 +125,22 @@ public final class BreederProgramUseCase {
             if (breeder.kind() != approved.claimedKind()) {
                 catalog.saveBreeder(breeder.withKind(approved.claimedKind()));
             }
+            audit.record(new CatalogAuditLog.Entry(CatalogAuditLog.Action.REPRESENTATIVE_APPROVED, ItemKind.BREEDER,
+                    breederId, breeder.name(), userId, moderatorId, clock.instant()));
         });
     }
 
     /** Recusa um pedido ou revoga um representante aprovado (apaga o vínculo). */
-    public void reject(UUID breederId, UUID userId, boolean moderator) {
+    public void reject(UUID breederId, UUID userId, UUID moderatorId, boolean moderator) {
         requireModerator(moderator);
-        withdraw(userId, breederId);
+        unitOfWork.run(() -> {
+            String name = breeder(breederId).name();
+            if (!representatives.delete(breederId, userId)) {
+                throw new ResourceNotFoundException("Pedido");
+            }
+            audit.record(new CatalogAuditLog.Entry(CatalogAuditLog.Action.REPRESENTATIVE_REVOKED, ItemKind.BREEDER,
+                    breederId, name, userId, moderatorId, clock.instant()));
+        });
     }
 
     private Breeder breeder(UUID id) {

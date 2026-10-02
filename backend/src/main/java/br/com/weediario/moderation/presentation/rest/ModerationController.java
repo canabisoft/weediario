@@ -79,8 +79,8 @@ public class ModerationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void reinstate(@AuthenticationPrincipal Jwt principal, @PathVariable @Size(max = 30) String username,
                           @Valid @RequestBody(required = false) NoteRequest request) {
-        moderate.reinstate(Viewer.requireId(principal), Viewer.isModerator(principal), username,
-                request == null ? null : request.note());
+        moderate.reinstate(Viewer.requireId(principal), Viewer.isModerator(principal), Viewer.isAdmin(principal),
+                username, request == null ? null : request.note());
     }
 
     /**

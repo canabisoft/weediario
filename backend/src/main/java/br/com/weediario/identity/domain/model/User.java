@@ -47,7 +47,7 @@ public final class User {
                  Instant termsAcceptedAt, boolean profileHidden, Instant createdAt, Instant updatedAt) {
         this.id = Guard.notNull(id, "Id");
         this.username = Guard.notNull(username, "Nome de usuário");
-        if (accessKeyHash == null && legacyPasswordHash == null) {
+        if (accessKeyHash == null && legacyPasswordHash == null && recoveryHash == null) {
             throw new DomainException("Conta sem credencial de acesso");
         }
         this.accessKeyHash = accessKeyHash;

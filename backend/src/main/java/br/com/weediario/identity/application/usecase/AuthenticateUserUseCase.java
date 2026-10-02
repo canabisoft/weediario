@@ -22,7 +22,8 @@ import java.util.Optional;
  * Login com apelido + chave de acesso. Também cobre a transição de contas antigas: um último login com a senha, que
  * troca a senha por uma chave de acesso e apaga a senha.
  * <p>
- * Conta inexistente, chave errada e conta suspensa recebem a mesma resposta; o limite de tentativas é por apelido.
+ * Conta inexistente, chave errada e conta suspensa recebem a mesma resposta. Só o login com senha (conta antiga) tem
+ * limite de tentativas por apelido: senha escolhida por gente pode ser adivinhada, chave de 256 bits não.
  */
 public final class AuthenticateUserUseCase {
 
@@ -49,8 +50,11 @@ public final class AuthenticateUserUseCase {
         this.passwordDecoy = passwordHasher.hash("timing-decoy-" + System.nanoTime());
     }
 
+    /**
+     * Sem limite de tentativas: a chave tem 256 bits (adivinhar é inviável) e um bloqueio por apelido só serviria
+     * para alguém trancar a conta dos outros. A sobrecarga é contida pelo teto de cálculos pesados.
+     */
     public AuthenticatedSession execute(Command command) {
-        LoginThrottle.Attempt attempt = throttle.begin(LoginThrottle.LOGIN, command.login());
         // Chave mal formada nem é comparada: conta como errada.
         Optional<AccessKeyHash> candidate = AccessKey.isWellFormed(command.accessKey())
                 ? Optional.of(new AccessKey(command.accessKey()).hash())
@@ -58,13 +62,9 @@ public final class AuthenticateUserUseCase {
         Optional<User> authenticated = findUser(command.login())
                 .filter(found -> candidate.map(found::accessKeyMatches).orElse(false) && found.canAuthenticate());
         if (authenticated.isEmpty()) {
-            throttle.failed(attempt);
             throw new InvalidCredentialsException();
         }
-        return unitOfWork.execute(() -> {
-            throttle.succeeded(attempt);
-            return sessionIssuer.startSession(authenticated.get());
-        });
+        return unitOfWork.execute(() -> sessionIssuer.startSession(authenticated.get()));
     }
 
     /**

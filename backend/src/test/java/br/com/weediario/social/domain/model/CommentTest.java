@@ -73,9 +73,9 @@ class CommentTest {
         Comment reply = Comment.reply(DIARY, root, VISITOR, "Bonita!", CLOCK);
         UUID stranger = UUID.randomUUID();
 
-        assertThat(reply.canBeDeletedBy(VISITOR, DIARY, false)).isTrue();
-        assertThat(reply.canBeDeletedBy(OWNER, DIARY, false)).isTrue();
-        assertThat(reply.canBeDeletedBy(stranger, DIARY, true)).isTrue();
-        assertThat(reply.canBeDeletedBy(stranger, DIARY, false)).isFalse();
+        assertThat(reply.canBeDeletedBy(VISITOR, DIARY)).isTrue();
+        assertThat(reply.canBeDeletedBy(OWNER, DIARY)).isTrue();
+        // Moderação não apaga direto: remove pela decisão de moderação (com log e hierarquia).
+        assertThat(reply.canBeDeletedBy(stranger, DIARY)).isFalse();
     }
 }

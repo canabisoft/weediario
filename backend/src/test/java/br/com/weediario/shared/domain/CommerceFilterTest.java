@@ -117,6 +117,20 @@ class CommerceFilterTest {
             assertThat(CommerceFilter.check(text)).isEqualTo(new Verdict(Decision.BLOCK, "uma chave PIX"));
         }
 
+        /** Achados da auditoria de segurança: emoji e marcadores como separador, letras soltas, número por extenso. */
+        @ParameterizedTest
+        @ValueSource(strings = {
+                "1\uD83C\uDF3F1\uD83C\uDF3F9\uD83C\uDF3F8\uD83C\uDF3F7\uD83C\uDF3F6\uD83C\uDF3F5\uD83C\uDF3F4\uD83C\uDF3F3\uD83C\uDF3F2\uD83C\uDF3F1",
+                "cpf 123\u2022456\u2022789\u202209",
+                "pix: f u l a n o @ g m a i l . c o m",
+                "me chama: onze nove oito sete seis cinco quatro tres dois um",
+                "zap: onze, nove, oito, sete, seis, cinco, quatro, tr\u00eas, dois, um",
+                "liga vinte e um nove nove oito sete seis cinco quatro tr\u00eas",
+        })
+        void evasionsFoundInTheSecurityAudit(String text) {
+            assertDecision(text, Decision.BLOCK);
+        }
+
         @ParameterizedTest
         @ValueSource(strings = {
                 "zap 98765-4321",
@@ -296,6 +310,12 @@ class CommerceFilterTest {
                 "dia 21 de setembro, 98 dias de vida",
                 "o telegram tem um grupo bom de cultivo",
                 "pics ou não aconteceu",
+                "um dois tr\u00eas e j\u00e1 estava germinando",
+                "semana um, dois e tr\u00eas sem rega",
+                "vinte e cinco dias de flora, trinta e dois graus no pico",
+                "\uD83D\uDD25\uD83D\uDD25 colheita linda \uD83C\uDF3F 26 \u00b0C e 55% de umidade",
+                "notas \u2022 4 \u2022 5 \u2022 4 \u2022 5",
+                "a e i o u do cultivo: \u00e1gua, espa\u00e7o, ilumina\u00e7\u00e3o, oxig\u00eanio, umidade",
         })
         void growVocabularyWithoutFalsePositives(String text) {
             assertDecision(text, Decision.ALLOW);

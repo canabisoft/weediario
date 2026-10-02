@@ -8,6 +8,7 @@ import br.com.weediario.catalog.application.usecase.ImportDatasetUseCase;
 import br.com.weediario.catalog.application.usecase.PromoteTestingStrainsUseCase;
 import br.com.weediario.catalog.application.usecase.ResolveCatalogUseCase;
 import br.com.weediario.catalog.domain.repository.BreederRepresentativeRepository;
+import br.com.weediario.catalog.domain.repository.CatalogAuditLog;
 import br.com.weediario.catalog.domain.repository.CatalogRepository;
 import br.com.weediario.shared.application.UnitOfWork;
 import org.slf4j.Logger;
@@ -27,8 +28,9 @@ public class CatalogConfig {
     }
 
     @Bean
-    CurateCatalogUseCase curateCatalogUseCase(CatalogRepository catalog, UnitOfWork unitOfWork, Clock clock) {
-        return new CurateCatalogUseCase(catalog, unitOfWork, clock);
+    CurateCatalogUseCase curateCatalogUseCase(CatalogRepository catalog, CatalogAuditLog audit, UnitOfWork unitOfWork,
+                                              Clock clock) {
+        return new CurateCatalogUseCase(catalog, audit, unitOfWork, clock);
     }
 
     @Bean
@@ -44,8 +46,8 @@ public class CatalogConfig {
     @Bean
     BreederProgramUseCase breederProgramUseCase(CatalogRepository catalog,
                                                 BreederRepresentativeRepository representatives,
-                                                UnitOfWork unitOfWork, Clock clock) {
-        return new BreederProgramUseCase(catalog, representatives, unitOfWork, clock);
+                                                CatalogAuditLog audit, UnitOfWork unitOfWork, Clock clock) {
+        return new BreederProgramUseCase(catalog, representatives, audit, unitOfWork, clock);
     }
 
     @Bean
@@ -79,6 +81,29 @@ public class CatalogConfig {
             if (promoted > 0) {
                 log.info("{} semente(s) em teste entraram no banco oficial", promoted);
             }
+        }
+    }
+
+    @Bean
+    CatalogAuditJanitor catalogAuditJanitor(CatalogAuditLog audit, Clock clock) {
+        return new CatalogAuditJanitor(audit, clock);
+    }
+
+    /** Minimização: o registro da curadoria some depois de {@link CatalogAuditLog#RETENTION_YEARS} anos. */
+    static class CatalogAuditJanitor {
+
+        private final CatalogAuditLog audit;
+        private final Clock clock;
+
+        CatalogAuditJanitor(CatalogAuditLog audit, Clock clock) {
+            this.audit = audit;
+            this.clock = clock;
+        }
+
+        @Scheduled(fixedDelayString = "PT24H", initialDelayString = "PT30M")
+        @org.springframework.transaction.annotation.Transactional
+        void purge() {
+            audit.deleteBefore(java.time.ZonedDateTime.now(clock).minusYears(CatalogAuditLog.RETENTION_YEARS).toInstant());
         }
     }
 }

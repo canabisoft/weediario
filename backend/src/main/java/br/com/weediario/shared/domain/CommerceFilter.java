@@ -711,10 +711,23 @@ public final class CommerceFilter {
         return unleetWords(plain(text));
     }
 
-    /** Minúsculo, sem acento, sem caractere invisível; letras gregas/cirílicas parecidas viram as latinas. */
+    /** Emoji, símbolo gráfico e marcadores ("1🌿1🌿9…", "123•456•789") viram espaço: separam, mas não escondem. */
+    private static final Pattern SYMBOLS = Pattern.compile("[\\p{So}\\p{Sk}\\p{Cs}•·∙●▪◦‧∘⋅]");
+    /** Letras soltas separadas por espaço ("f u l a n o @ g m a i l . c o m"): quatro ou mais viram uma palavra. */
+    private static final Pattern SPACED_LETTERS = Pattern.compile("(?<!\\S)(?:[a-z@.]\\s){3,}[a-z@.](?!\\S)");
+    private static final Pattern WHITESPACE = Pattern.compile("\\s");
+
+    /**
+     * Minúsculo, sem acento, sem caractere invisível; letras gregas/cirílicas parecidas viram as latinas; emoji e
+     * marcadores viram espaço; letras soltas são juntadas; número por extenso longo vira dígitos.
+     */
     private static String plain(String text) {
         String lower = homoglyphs(text.toLowerCase(Locale.ROOT));
-        return MARKS.matcher(Normalizer.normalize(lower, Normalizer.Form.NFKD)).replaceAll("");
+        String unmarked = MARKS.matcher(Normalizer.normalize(lower, Normalizer.Form.NFKD)).replaceAll("");
+        String separated = SYMBOLS.matcher(unmarked).replaceAll(" ");
+        String joined = SPACED_LETTERS.matcher(separated)
+                .replaceAll(match -> Matcher.quoteReplacement(WHITESPACE.matcher(match.group()).replaceAll("")));
+        return SpelledNumbers.toDigits(joined);
     }
 
     private static String homoglyphs(String text) {

@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -132,6 +133,75 @@ class AdminPanelIntegrationTest extends IntegrationTestSupport {
         decide(admin, byModerator, "REMOVE", "NONE").andExpect(status().isNoContent());
         assertThat(jdbc.queryForObject("select status from users where username = ?", String.class,
                 otherModerator.username())).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    void nobodyModeratesTheirOwnContentOrApprovesTheirOwnRequest() throws Exception {
+        Session moderator = moderator();
+        Session owner = newGrower();
+        UUID diaryId = createDiary(owner, "Self Haze", "PUBLIC", LocalDate.now().minusDays(10).toString());
+
+        // Comentário do próprio moderador retido pelo filtro: ele não consegue liberar.
+        String held = comment(moderator, diaryId, "vendo 5g por R$ 50, entrego");
+        mvc.perform(authed(post("/api/v1/moderation/decisions"), moderator).contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("targetType", "COMMENT", "targetId", held,
+                                "verdict", "KEEP"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(authed(post("/api/v1/moderation/decisions"), moderator()).contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("targetType", "COMMENT", "targetId", held,
+                                "verdict", "KEEP"))))
+                .andExpect(status().isNoContent());
+
+        // Pedido de representação do próprio moderador: outra pessoa da equipe aprova.
+        String breederId = body(mvc.perform(authed(post("/api/v1/catalog/breeders/resolve"), moderator)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Banco Proprio %s\",\"confirmNew\":true}".formatted(UUID.randomUUID())))
+                .andReturn()).get("item").get("id").asText();
+        mvc.perform(authed(post("/api/v1/breeder-program/representations"), moderator)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"breederId\":\"%s\",\"note\":\"Sou o dono deste banco, veja o site.\"}".formatted(breederId)))
+                .andExpect(status().isCreated());
+        String moderatorId = jdbc.queryForObject("select id::text from users where username = ?", String.class,
+                moderator.username());
+        mvc.perform(authed(post("/api/v1/moderation/breeder-representatives/{b}/{u}/approve", breederId, moderatorId),
+                        moderator))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void onlyAdminsLiftABanButModeratorsCanLiftASuspension() throws Exception {
+        Session moderator = moderator();
+        Session owner = newGrower();
+        Session banned = newGrower();
+        Session suspended = newGrower();
+        UUID diaryId = createDiary(owner, "Ban Kush", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        decide(moderator, comment(banned, diaryId, "comentário a banir"), "REMOVE", "BAN").andExpect(status().isNoContent());
+        decide(moderator, comment(suspended, diaryId, "comentário a suspender"), "REMOVE", "SUSPEND")
+                .andExpect(status().isNoContent());
+
+        mvc.perform(authed(post("/api/v1/moderation/users/{u}/reinstate", banned.username()), moderator))
+                .andExpect(status().isForbidden());
+        mvc.perform(authed(post("/api/v1/moderation/users/{u}/reinstate", suspended.username()), moderator))
+                .andExpect(status().isNoContent());
+        mvc.perform(authed(post("/api/v1/moderation/users/{u}/reinstate", banned.username()), admin()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void moderatorsCannotDeleteCommentsDirectlyOnlyThroughTheAuditedDecision() throws Exception {
+        Session moderator = moderator();
+        Session admin = admin();
+        Session owner = newGrower();
+        UUID diaryId = createDiary(owner, "Direct Haze", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        String byAdmin = comment(admin, diaryId, "Comentário do admin");
+
+        // O caminho direto não aceita moderador (nem deixa rastro); só autor e dono do diário.
+        mvc.perform(authed(delete("/api/v1/diaries/{d}/comments/{c}", diaryId, byAdmin), moderator))
+                .andExpect(status().isNotFound());
+        assertThat(jdbc.queryForObject("select count(*) from diary_comments where id = ?::uuid", Long.class, byAdmin))
+                .isEqualTo(1);
+        mvc.perform(authed(delete("/api/v1/diaries/{d}/comments/{c}", diaryId, byAdmin), owner))
+                .andExpect(status().isNoContent());
     }
 
     // ------------------------------------------------------------------------------------- corte imediato

@@ -141,11 +141,11 @@ public final class DiaryCommentsUseCase {
     }
 
     /** Apagar um comentário raiz apaga as respostas dele junto. */
-    public void delete(UUID diaryId, UUID commentId, UUID requesterId, boolean moderator) {
+    public void delete(UUID diaryId, UUID commentId, UUID requesterId) {
         unitOfWork.run(() -> {
             CommentableDiary diary = visibleDiary(diaryId, Optional.of(requesterId));
             Comment comment = commentOf(diary, commentId);
-            if (!comment.canBeDeletedBy(requesterId, diary, moderator)) {
+            if (!comment.canBeDeletedBy(requesterId, diary)) {
                 throw new ResourceNotFoundException("Comentário");
             }
             comments.delete(comment.id());

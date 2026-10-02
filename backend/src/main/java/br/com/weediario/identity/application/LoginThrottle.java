@@ -11,15 +11,15 @@ import java.time.Instant;
 import java.util.Locale;
 
 /**
- * Limite de tentativas por apelido (nunca por IP), compartilhado por login, recuperação e troca de frase.
- * A chave guardada é um HMAC do apelido normalizado, com um escopo para separar os limites.
+ * Limite de tentativas por apelido (nunca por IP), só no login com senha de contas antigas: senha escolhida por gente
+ * pode ser adivinhada. Chave de acesso e frase de recuperação não têm limite (são aleatórias e longas demais para
+ * adivinhar, e um bloqueio por apelido só deixaria alguém trancar a conta dos outros). A chave guardada é um HMAC do
+ * apelido normalizado, com um escopo para separar os limites.
  */
 public final class LoginThrottle {
 
-    /** Login com chave, login de conta antiga e troca de frase dividem o mesmo limite. */
+    /** Login com senha de conta antiga. */
     public static final String LOGIN = "";
-    /** A recuperação tem limite próprio: errar a frase não trava o login, e vice-versa. */
-    public static final String RECOVERY = "recover:";
 
     private final LoginAttemptsRepository attempts;
     private final LoginKeyHasher keyHasher;

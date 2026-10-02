@@ -1,7 +1,6 @@
 package br.com.weediario.identity.application.usecase;
 
 import br.com.weediario.identity.application.KeyedSession;
-import br.com.weediario.identity.application.LoginThrottle;
 import br.com.weediario.identity.application.SessionIssuer;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
 import br.com.weediario.identity.domain.model.AccessKey;
@@ -22,8 +21,9 @@ import java.util.Optional;
  * Recuperação de conta: apelido + derivado da frase de 12 palavras.
  * <p>
  * Confere o derivado com o hash guardado, gera uma chave de acesso nova (a antiga deixa de valer), encerra todas as
- * sessões abertas (quem perdeu a chave pode ter perdido o aparelho junto) e abre uma sessão nova. Tem limite de
- * tentativas próprio por apelido e leva o mesmo tempo exista a conta ou não.
+ * sessões abertas (quem perdeu a chave pode ter perdido o aparelho junto) e abre uma sessão nova. Leva o mesmo tempo
+ * exista a conta ou não. Sem bloqueio por apelido: a frase tem 128 bits (adivinhar é inviável), e bloquear só
+ * deixaria alguém impedir o dono de recuperar a própria conta. A sobrecarga é contida pelo teto de Argon2.
  */
 public final class RecoverAccountUseCase {
 
@@ -31,19 +31,16 @@ public final class RecoverAccountUseCase {
     private final PasswordHasher hasher;
     private final SessionIssuer sessionIssuer;
     private final RefreshTokenRepository refreshTokens;
-    private final LoginThrottle throttle;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
     private final PasswordHash timingDecoy;
 
     public RecoverAccountUseCase(UserRepository users, PasswordHasher hasher, SessionIssuer sessionIssuer,
-                                 RefreshTokenRepository refreshTokens, LoginThrottle throttle,
-                                 UnitOfWork unitOfWork, Clock clock) {
+                                 RefreshTokenRepository refreshTokens, UnitOfWork unitOfWork, Clock clock) {
         this.users = users;
         this.hasher = hasher;
         this.sessionIssuer = sessionIssuer;
         this.refreshTokens = refreshTokens;
-        this.throttle = throttle;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
         this.timingDecoy = hasher.hash("timing-decoy-" + System.nanoTime());
@@ -51,20 +48,17 @@ public final class RecoverAccountUseCase {
 
     public KeyedSession execute(Command command) {
         RecoveryVerifier verifier = new RecoveryVerifier(command.recoveryVerifier());
-        LoginThrottle.Attempt attempt = throttle.begin(LoginThrottle.RECOVERY, command.username());
 
         Optional<User> candidate = findUser(command.username());
         // Conta sem frase (anterior à frase) compara com o decoy: mesmo tempo, sempre falha.
         boolean matches = hasher.matches(verifier.value(), candidate.flatMap(User::recoveryHash).orElse(timingDecoy));
         Optional<User> recovered = candidate.filter(user -> matches && user.hasRecovery() && user.canAuthenticate());
         if (recovered.isEmpty()) {
-            throttle.failed(attempt);
             throw new InvalidCredentialsException("Apelido ou frase de recuperação inválidos");
         }
 
         AccessKey accessKey = AccessKey.generate();
         return unitOfWork.execute(() -> {
-            throttle.succeeded(attempt);
             User user = recovered.get();
             user.replaceAccessKey(accessKey.hash(), clock);
             users.save(user);

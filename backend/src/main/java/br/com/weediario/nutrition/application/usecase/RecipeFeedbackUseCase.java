@@ -168,11 +168,11 @@ public final class RecipeFeedbackUseCase {
     }
 
     /** Apagar um comentário raiz apaga as respostas dele junto. */
-    public void deleteComment(UUID recipeId, UUID commentId, UUID requesterId, boolean moderator) {
+    public void deleteComment(UUID recipeId, UUID commentId, UUID requesterId) {
         unitOfWork.run(() -> {
             Recipe recipe = visible(recipeId, Optional.of(requesterId));
             RecipeComment comment = commentOf(recipe, commentId);
-            if (!comment.canBeDeletedBy(requesterId, recipe, moderator)) {
+            if (!comment.canBeDeletedBy(requesterId, recipe)) {
                 throw new ResourceNotFoundException("Comentário");
             }
             feedback.deleteComment(commentId);
@@ -248,7 +248,7 @@ public final class RecipeFeedbackUseCase {
     private static CommentView view(CommentRow row, Recipe recipe, Optional<UUID> viewerId, boolean moderator,
                                     Map<UUID, CommentReactions> reactions, List<CommentView> replies, long replyCount) {
         boolean mine = viewerId.map(row.authorId()::equals).orElse(false);
-        boolean canDelete = moderator || mine || viewerId.map(recipe::isOwnedBy).orElse(false);
+        boolean canDelete = mine || viewerId.map(recipe::isOwnedBy).orElse(false);
         boolean canReport = viewerId.isPresent() && !mine;
         return new CommentView(row.id(), row.author(), row.body(), row.createdAt(), row.hidden(), canDelete, canReport,
                 row.parentId(), reactions.getOrDefault(row.id(), CommentReactions.of(Map.of(), Set.of())),

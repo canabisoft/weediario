@@ -96,10 +96,39 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Não foi possível concluir a operação");
     }
 
+    /**
+     * Sem a mensagem da exceção (pode trazer dado de usuário, como o valor de uma chave duplicada no Postgres): o log
+     * guarda só um código de referência, as classes da cadeia de erros e onde, no nosso código, aconteceu. O mesmo
+     * código vai na resposta, para quem relatar o problema.
+     */
     @ExceptionHandler(Exception.class)
     ProblemDetail handleUnexpected(Exception ex) {
-        log.error("Erro inesperado", ex);
-        return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno");
+        String reference = java.util.UUID.randomUUID().toString().substring(0, 8);
+        log.error("Erro inesperado [{}]: {} em {}", reference, causeChain(ex), ownFrames(ex));
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno");
+        problem.setProperty("reference", reference);
+        return problem;
+    }
+
+    private static String causeChain(Throwable ex) {
+        StringBuilder chain = new StringBuilder();
+        for (Throwable current = ex; current != null && chain.length() < 500; current = current.getCause()) {
+            chain.append(chain.isEmpty() ? "" : " <- ").append(current.getClass().getName());
+            if (current.getCause() == current) {
+                break;
+            }
+        }
+        return chain.toString();
+    }
+
+    /** Até 5 linhas da pilha que são do próprio weediário (sem mensagens). */
+    private static String ownFrames(Throwable ex) {
+        return java.util.Arrays.stream(ex.getStackTrace())
+                .filter(frame -> frame.getClassName().startsWith("br.com.weediario."))
+                .limit(5)
+                .map(frame -> frame.getClassName().substring("br.com.weediario.".length()) + "." + frame.getMethodName()
+                        + ":" + frame.getLineNumber())
+                .collect(java.util.stream.Collectors.joining(" > "));
     }
 
     @Override
