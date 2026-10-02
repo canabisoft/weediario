@@ -57,6 +57,18 @@ services:
       # Cifra dos textos de saúde do acompanhamento de tratamento (AES-256).
       WEEDIARIO_HEALTH_KEY: ${WEEDIARIO_HEALTH_KEY:?rode scripts/setup-env para acrescentar a chave ao .env}
       WEEDIARIO_HEALTH_PREVIOUS_KEYS: ${WEEDIARIO_HEALTH_PREVIOUS_KEYS:-}
+      # Cifra dos e-mails (opcionais) das contas (AES-256).
+      WEEDIARIO_EMAIL_KEY: ${WEEDIARIO_EMAIL_KEY:?rode scripts/setup-env para acrescentar a chave ao .env}
+      # E-mail opcional (confirmação, redefinição de senha, avisos). Sem SMTP, o envio fica desligado.
+      WEEDIARIO_PUBLIC_URL: ${WEEDIARIO_PUBLIC_URL:-http://localhost:${WEEDIARIO_HTTP_PORT:-8080}}
+      WEEDIARIO_MAIL_FROM: ${WEEDIARIO_MAIL_FROM:-}
+      # Só para desenvolvimento: sem SMTP, escreve no log do backend o link que iria por e-mail.
+      WEEDIARIO_MAIL_LOG_LINKS: ${WEEDIARIO_MAIL_LOG_LINKS:-false}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-true}
       # Mesma origem via nginx; a lista só importa para quem acessar a API de outra origem.
       WEEDIARIO_CORS_ORIGINS: http://localhost:${WEEDIARIO_HTTP_PORT:-8080}
       WEEDIARIO_MEDIA_PATH: /app/data/images

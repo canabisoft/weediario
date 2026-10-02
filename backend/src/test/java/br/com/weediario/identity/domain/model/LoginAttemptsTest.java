@@ -12,7 +12,7 @@ class LoginAttemptsTest {
     private static final Instant NOW = Instant.parse("2026-09-29T12:00:00Z");
 
     @Test
-    void locksAfterFiveFailuresInTheWindow() {
+    void waitsAfterFiveFailuresInTheWindow() {
         LoginAttempts attempts = LoginAttempts.none(NOW);
         for (int i = 0; i < 4; i++) {
             attempts = attempts.registerFailure(NOW.plusSeconds(i));
@@ -21,8 +21,8 @@ class LoginAttemptsTest {
 
         attempts = attempts.registerFailure(NOW.plusSeconds(5));
 
-        assertThat(attempts.lockRemaining(NOW.plusSeconds(5))).contains(Duration.ofMinutes(15));
-        assertThat(attempts.lockRemaining(NOW.plusSeconds(5).plus(Duration.ofMinutes(15)))).isEmpty();
+        assertThat(attempts.lockRemaining(NOW.plusSeconds(5))).contains(LoginAttempts.BASE_LOCK);
+        assertThat(attempts.lockRemaining(NOW.plusSeconds(5).plus(LoginAttempts.BASE_LOCK))).isEmpty();
     }
 
     @Test

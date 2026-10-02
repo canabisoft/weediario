@@ -19,12 +19,13 @@ const PRINCIPLES: readonly Principle[] = [
     icon: 'user',
     title: 'Cadastro mínimo, pode ser pseudônimo',
     points: [
-      'Pra criar conta a gente pede só um apelido, que não precisa ser o seu nome. Nem senha: o app gera pra você uma chave de acesso.',
-      'Nem e-mail a gente pede. Nunca pedimos CPF, nome completo, RG, endereço ou telefone. Não tem campo pra isso, nem escondido.',
-      'A chave de acesso aparece uma vez só, no cadastro. No banco fica só um hash dela: nem a gente consegue ler.',
-      'Perdeu a chave? Você anota 12 palavras na hora do cadastro (no padrão BIP-39, o mesmo das carteiras de cripto). ' +
+      'Pra criar conta a gente pede um apelido, que não precisa ser o seu nome, e uma senha. No banco a senha fica só como hash: nem a gente consegue ler.',
+      'E-mail é opcional. Se você quiser, ele serve só pra redefinir a senha e te avisar de mudanças na conta: fica cifrado, ' +
+        'nunca aparece pra ninguém, não serve pra entrar e o cadastro nunca diz se um e-mail já tem conta. Dá pra remover quando quiser.',
+      'Nunca pedimos CPF, nome completo, RG, endereço ou telefone. Não tem campo pra isso, nem escondido.',
+      'Esqueceu a senha? Você anota 12 palavras na hora do cadastro (no padrão BIP-39, o mesmo das carteiras de cripto). ' +
         'Elas são geradas no seu navegador e nunca chegam ao servidor: a gente guarda só um hash de um código derivado delas. ' +
-        'Com elas, você gera uma chave nova. O outro lado disso: se você perder a chave e as palavras, ninguém consegue devolver a conta.',
+        'Com elas você cria uma senha nova (e ganha uma frase nova). O outro lado disso: sem e-mail, se você perder a senha e as palavras, ninguém consegue devolver a conta.',
       'Um limite honesto: como em todo site, o código que gera a frase no seu navegador é entregue pelo nosso servidor. ' +
         'Por isso o código é aberto, cada arquivo vai com uma assinatura de integridade (SRI) e o build é reproduzível: ' +
         'qualquer pessoa pode compilar o repositório e conferir se os arquivos servidos são os mesmos.',

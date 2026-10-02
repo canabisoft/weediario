@@ -27,11 +27,11 @@ public class UserJpaEntity {
     @Column(nullable = false, length = 30)
     private String username;
 
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     @Column(name = "access_key_hash", length = 64)
     private String accessKeyHash;
-
-    @Column(name = "legacy_password_hash")
-    private String legacyPasswordHash;
 
     @Column(name = "recovery_hash")
     private String recoveryHash;
@@ -72,8 +72,8 @@ public class UserJpaEntity {
         UserJpaEntity entity = new UserJpaEntity();
         entity.id = user.id().value();
         entity.username = user.username().value();
+        entity.passwordHash = user.passwordHash().map(PasswordHash::value).orElse(null);
         entity.accessKeyHash = user.accessKeyHash().map(AccessKeyHash::value).orElse(null);
-        entity.legacyPasswordHash = user.legacyPasswordHash().map(PasswordHash::value).orElse(null);
         entity.recoveryHash = user.recoveryHash().map(PasswordHash::value).orElse(null);
         entity.role = user.role();
         entity.status = user.status();
@@ -89,8 +89,8 @@ public class UserJpaEntity {
 
     User toDomain() {
         return User.restore(new UserId(id), new Username(username),
+                passwordHash == null ? null : new PasswordHash(passwordHash),
                 accessKeyHash == null ? null : new AccessKeyHash(accessKeyHash),
-                legacyPasswordHash == null ? null : new PasswordHash(legacyPasswordHash),
                 recoveryHash == null ? null : new PasswordHash(recoveryHash), role, status, bio, avatarImageId,
                 termsVersion, termsAcceptedAt, profileHidden, createdAt, updatedAt);
     }

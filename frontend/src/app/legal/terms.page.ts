@@ -5,7 +5,7 @@ import { AuthService } from '../core/auth/auth.service';
 import { REPOSITORY_URL } from '../manifesto/manifesto.page';
 
 /** Versão vigente. Mudou o texto, muda a versão (e o backend também): todo mundo aceita de novo antes de publicar. */
-export const TERMS_VERSION = '1.0';
+export const TERMS_VERSION = '1.1';
 export const TERMS_PUBLISHED_ON = '1º de outubro de 2026';
 
 interface Clause {
@@ -39,15 +39,25 @@ export const CLAUSES: readonly Clause[] = [
     id: 'dados',
     title: '3. Sua conta e seus dados',
     paragraphs: [
-      'Pedimos só um apelido (pode ser pseudônimo). Para entrar, você usa uma chave de acesso gerada pelo app no ' +
-        'cadastro. Não pedimos senha, e-mail, CPF, nome completo, RG, ' +
+      'Pedimos um apelido (pode ser pseudônimo) e uma senha. O e-mail é opcional. Não pedimos CPF, nome completo, RG, ' +
         'endereço ou telefone.',
-      'Guardamos só um hash da chave de acesso, então não temos como mostrá-la de novo. Se você perder a chave, a frase ' +
-        'de 12 palavras mostrada no cadastro gera uma chave nova. Não temos como ver, reenviar ou redefinir a frase: se ' +
-        'você perder a chave e a frase, a conta não pode ser recuperada.',
-      'Não guardamos logs de acesso nem o endereço IP de quem usa o app. Do aceite destes termos, guardamos só a versão ' +
-        'e a data e hora. Os textos do acompanhamento de tratamento ficam cifrados. Você pode baixar ou apagar seus dados ' +
-        'quando quiser. Os detalhes estão no Manifesto.',
+      'A senha é guardada só como hash (Argon2id): ninguém da equipe consegue lê-la. Para recuperar a conta, toda conta ' +
+        'tem uma frase de 12 palavras, mostrada no cadastro; dela guardamos só o hash de um código derivado, então não ' +
+        'temos como ver ou reenviar a frase.',
+      'Se você cadastrar um e-mail, ele é usado só para confirmar o endereço, redefinir a senha e avisar de mudanças ' +
+        'sensíveis na conta. Ele fica cifrado, nunca aparece para ninguém, não serve para entrar nem para procurar contas, ' +
+        'e você pode removê-lo quando quiser. Para entregar esses e-mails usamos um provedor de envio, que recebe o ' +
+        'endereço e a mensagem. Sem e-mail cadastrado, se você esquecer a senha e perder a frase, a conta não pode ser ' +
+        'recuperada.',
+      'Não guardamos logs de acesso nem o endereço IP de quem usa o app. Para frear tentativas de adivinhar senhas, o ' +
+        'servidor conta pedidos de login por IP só na memória, por poucos minutos, sem gravar. Mudanças sensíveis na ' +
+        'conta (senha, e-mail, frase) ficam registradas por 90 dias só com o tipo e a data, para você conferir no perfil. ' +
+        'Do aceite destes termos, guardamos só a versão e a data e hora. Os textos do acompanhamento de tratamento ficam cifrados. Os detalhes estão no Manifesto.',
+      'No seu perfil você pode baixar todos os seus dados (um .zip com os dados e as fotos) e apagar a conta quando ' +
+        'quiser; os dois pedem a sua senha. Ao apagar, somem a conta, os diários, as fotos, as receitas, as avaliações, ' +
+        'os comentários e o tratamento. Ficam, sem vínculo com você: os itens que você cadastrou no catálogo aberto, os ' +
+        'registros de moderação sobre a conta (guardados por 5 anos, para atender ordem judicial) e as reações e ' +
+        'denúncias, que já são anônimas.',
     ],
   },
   {

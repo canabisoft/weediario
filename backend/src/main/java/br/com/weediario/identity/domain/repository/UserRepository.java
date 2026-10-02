@@ -19,4 +19,10 @@ public interface UserRepository {
 
     /** Moderadores e admins, em ordem de apelido. */
     List<User> findStaff();
+
+    /**
+     * Apaga a conta. O banco leva junto o que é dela ({@code on delete cascade}); registros que precisam ficar (moderação,
+     * itens do catálogo aberto) só perdem o vínculo ({@code on delete set null}).
+     */
+    void delete(UserId id);
 }

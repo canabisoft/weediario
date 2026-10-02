@@ -224,7 +224,7 @@ class AdminPanelIntegrationTest extends IntegrationTestSupport {
         mvc.perform(authed(post("/api/v1/diaries"), offender).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson(offender.username(), offender.accessKey())))
+                        .content(loginJson(offender.username(), offender.password())))
                 .andExpect(status().isUnauthorized());
     }
 

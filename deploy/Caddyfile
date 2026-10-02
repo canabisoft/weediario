@@ -2,7 +2,8 @@
 # - Domínio real: certificado Let's Encrypt automático (portas 80 e 443 abertas para a internet).
 # - "localhost": certificado de uma CA local do Caddy, para testar HTTPS na máquina.
 #
-# Privacidade: sem log de acesso e sem repassar o IP do visitante adiante.
+# Privacidade: sem log de acesso e sem repassar o IP do visitante adiante. A única exceção é X-Weediario-Client,
+# que o nginx usa só em memória para limitar tentativas de login por IP e não repassa ao backend.
 {
 	log {
 		level ERROR
@@ -21,5 +22,6 @@
 		header_up -X-Forwarded-For
 		header_up -X-Real-IP
 		header_up X-Forwarded-Proto https
+		header_up X-Weediario-Client {remote_host}
 	}
 }

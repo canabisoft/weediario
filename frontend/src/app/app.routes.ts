@@ -26,6 +26,17 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/recover.page').then((m) => m.RecoverPage),
   },
   {
+    // Link do e-mail: funciona logado ou não (a pessoa pode estar com outra conta aberta neste aparelho).
+    path: 'redefinir-senha',
+    title: 'Criar senha nova · weediário',
+    loadComponent: () => import('./auth/reset-password.page').then((m) => m.ResetPasswordPage),
+  },
+  {
+    path: 'confirmar-email',
+    title: 'Confirmar e-mail · weediário',
+    loadComponent: () => import('./auth/verify-email.page').then((m) => m.VerifyEmailPage),
+  },
+  {
     path: 'frase-de-recuperacao',
     title: 'Frase de recuperação · weediário',
     canActivate: [authGuard],

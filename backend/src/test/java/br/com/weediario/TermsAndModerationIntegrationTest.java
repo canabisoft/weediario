@@ -26,19 +26,18 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
     @Test
     void registrationRequiresTheCurrentTermsAndStoresOnlyVersionAndTime() throws Exception {
         String username = "t_" + randomLetters(8);
-        String base = """
-                {"username":"%s","recoveryVerifier":"%s"%s}""";
+        String base = "{\"username\":\"%s\",\"password\":\"" + PASSWORD + "\",\"recoveryVerifier\":\"%s\"%s}";
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                 .content(base.formatted(username, VERIFIER, ""))).andExpect(status().isBadRequest());
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(base.formatted(username, VERIFIER, ",\"acceptedTermsVersion\":\"0.9\"")))
                 .andExpect(status().isUnprocessableEntity());
         String token = body(mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(base.formatted(username, VERIFIER, ",\"acceptedTermsVersion\":\"1.0\"")))
+                        .content(base.formatted(username, VERIFIER, ",\"acceptedTermsVersion\":\"1.1\"")))
                 .andExpect(status().isCreated())
                 .andReturn()).get("accessToken").asText();
         mvc.perform(get("/api/v1/me").header("Authorization", "Bearer " + token))
-                .andExpect(jsonPath("$.termsVersion").value("1.0"))
+                .andExpect(jsonPath("$.termsVersion").value("1.1"))
                 .andExpect(jsonPath("$.termsAccepted").value(true))
                 .andExpect(jsonPath("$.termsAcceptedAt").isNotEmpty());
 
@@ -64,7 +63,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         mvc.perform(get("/api/v1/feed/diaries")).andExpect(status().isOk());
 
         mvc.perform(authed(put("/api/v1/me/terms"), legacy).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"version\":\"1.0\"}"))
+                        .content("{\"version\":\"" + TERMS + "\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.termsAccepted").value(true));
         Session renewed = relogin(grower);
@@ -170,7 +169,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
 
         mvc.perform(authed(get("/api/v1/diaries/{id}/comments", diaryId), owner)).andExpect(jsonPath("$.totalItems").value(0));
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                .content(loginJson(seller.username(), seller.accessKey())))
+                .content(loginJson(seller.username(), seller.password())))
                 .andExpect(status().isUnauthorized());
         String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8)));
         assertThat(jdbc.queryForList("""
@@ -186,7 +185,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"note\":\"recurso aceito\"}"))
                 .andExpect(status().isNoContent());
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                .content(loginJson(seller.username(), seller.accessKey())))
+                .content(loginJson(seller.username(), seller.password())))
                 .andExpect(status().isOk());
 
         // Exportação do log: só admin; sem quem denunciou.

@@ -1,10 +1,10 @@
 # Funcionalidades do weediário
 
-Inventário do que o app faz hoje (backend 0.30.0, frontend 0.23.0). Para instalar e rodar, veja o [README](README.md);
+Inventário do que o app faz hoje (backend 0.32.0, frontend 0.25.0). Para instalar e rodar, veja o [README](README.md);
 para contribuir, o [CONTRIBUTING](CONTRIBUTING.md).
 
 O weediário é um diário de cultivo de cannabis com comunidade, catálogo aberto de genéticas e acompanhamento de
-tratamento medicinal. Tudo foi feito para funcionar sem saber quem você é: sem e-mail, sem senha, sem IP e sem
+tratamento medicinal. Tudo foi feito para funcionar sem saber quem você é: e-mail opcional, sem IP e sem
 rastreamento.
 
 ---
@@ -13,24 +13,41 @@ rastreamento.
 
 | O quê | Onde |
 |---|---|
-| Criar conta só com um **apelido** (pode ser pseudônimo) e o aceite dos Termos de Uso | `/cadastro` |
-| Entrar com **apelido + chave de acesso** (`wd_sec_…`) | `/entrar` |
-| Recuperar a conta com a **frase de 12 palavras**, que gera uma chave nova | `/recuperar` |
-| Gerar ou trocar a frase de recuperação (pede a chave atual) | `/frase-de-recuperacao` |
-| Perfil: bio, foto, link para o perfil público | `/perfil` |
+| Criar conta com **apelido + senha**, e-mail opcional e o aceite dos Termos de Uso | `/cadastro` |
+| Entrar com **apelido + senha** | `/entrar` |
+| Recuperar a conta com a **frase de 12 palavras** ou pelo **link no e-mail** confirmado | `/recuperar` |
+| Criar senha nova pelo link do e-mail | `/redefinir-senha` |
+| Confirmar o e-mail pelo link | `/confirmar-email` |
+| Gerar ou trocar a frase de recuperação (pede a senha atual) | `/frase-de-recuperacao` |
+| Perfil: bio, foto, link para o perfil público e **Segurança da conta** (senha, e-mail, frase, histórico) | `/perfil` |
+| **Baixar meus dados** (.zip com `dados.json` e as fotos) e **apagar a conta**, com a senha atual | `/perfil` |
 
-- **Sem senha e sem e-mail.** No cadastro, o servidor gera a chave de acesso (256 bits aleatórios), mostra uma única
-  vez e guarda só o hash SHA-256 dela. A tela permite copiar a chave e salvar no gerenciador de senhas.
-- **Frase de recuperação (BIP-39, lista em português).** É gerada no navegador e confirmada no cadastro (a pessoa
-  digita 3 palavras sorteadas). O servidor nunca recebe as palavras, só um código derivado (PBKDF2), guardado como
-  Argon2id. A frase aceita maiúsculas, vírgulas, acentos e as 4 primeiras letras de cada palavra, e avisa quando há
-  palavra trocada ou fora de ordem.
-- **Recuperar a conta** gera uma chave nova, invalida a antiga e encerra todas as sessões abertas.
-- **Contas antigas** (de quando havia senha) entram uma última vez com a senha, recebem a chave e a senha é apagada.
-  Quem ainda não tem frase é levado a gerar uma, e um aviso fica no topo até isso acontecer.
-- **Ninguém tranca a conta de ninguém:** chave e frase não têm bloqueio por tentativas (são impossíveis de
-  adivinhar). Só o login com senha de conta antiga tem limite por apelido (15 min até 6 h, sem IP). Apelido
-  inexistente e credencial errada recebem a mesma resposta.
+- **Senha:** mínimo de 10 caracteres, sem regra de símbolo ou maiúscula (frase curta é ótima). Recusa as senhas
+  vazadas mais comuns (lista embutida, nada consultado fora) e senhas com o próprio apelido. Guardada como Argon2id.
+- **E-mail opcional:** só para redefinir a senha e receber avisos de segurança. Fica cifrado, nunca aparece para
+  ninguém (a tela mostra `br***@gm***.com`), não serve para entrar nem para procurar contas, e o cadastro nunca diz
+  se um e-mail já tem conta. Só vale para recuperar depois de confirmado. Dá para trocar ou remover no perfil.
+- **Frase de recuperação (BIP-39, lista em português).** Toda conta tem. É gerada no navegador e confirmada no
+  cadastro (a pessoa digita 3 palavras sorteadas). O servidor nunca recebe as palavras, só um código derivado
+  (PBKDF2), guardado como Argon2id. A frase aceita maiúsculas, vírgulas, acentos e as 4 primeiras letras de cada
+  palavra, e avisa quando há palavra trocada ou fora de ordem.
+- **Recuperar com a frase** define a senha nova, troca a frase por outra (a antiga acabou de ser digitada) e encerra
+  todas as sessões. **Recuperar pelo e-mail** parte do apelido, manda um link de uso único (30 min, no máximo um a
+  cada 2 min) e também encerra as sessões. A resposta é sempre a mesma, tenha a conta e-mail ou não.
+- **Mudanças com a sessão aberta** (senha, e-mail, frase) pedem a senha atual. Trocar a senha encerra as outras
+  sessões. Cada mudança entra no **histórico de segurança** (90 dias, só tipo e data) e gera um aviso no e-mail
+  confirmado; ao trocar o e-mail, quem recebe o aviso é o endereço antigo.
+- **Contas da época da chave de acesso** (`wd_sec_…`) colam a chave no campo de senha, criam uma senha e a chave
+  deixa de valer. Quem ainda não tem frase é levado a gerar uma, e um aviso fica no topo até isso acontecer.
+- **Seus dados (LGPD):** a exportação junta a parte de cada área do app (conta, e-mail, histórico de segurança,
+  diários inclusive privados, fotos sem metadados, setups, receitas, avaliações, comentários, catálogo, moderação e
+  tratamento). Apagar a conta pede a senha e o apelido digitado e leva tudo o que é da pessoa, inclusive os arquivos
+  das fotos; ficam, sem vínculo, os itens do catálogo aberto, os registros de moderação (5 anos) e as reações e
+  denúncias (já anônimas). O e-mail confirmado recebe um último aviso. Admins não se apagam pelo app. Os dois
+  funcionam mesmo com Termos novos ainda não aceitos.
+- **Tentativas:** depois de 5 senhas erradas, espera progressiva por apelido (30 s até 15 min, sem IP), mais um
+  limite por IP só em memória no nginx. A recuperação pela frase ou pelo e-mail nunca é bloqueada. Apelido
+  inexistente e senha errada recebem a mesma resposta, no mesmo tempo.
 - **Sessão:** token de acesso de 10 min só em memória e refresh token em cookie `HttpOnly`/`Secure`/`SameSite=Strict`,
   com rotação e tolerância a recarregar a página no meio de uma renovação.
 
@@ -219,9 +236,11 @@ das avaliações e g/planta), sem nenhum apelido ou id de diário.
 
 ## Privacidade e segurança (resumo)
 
-- **Coletamos só:** apelido; o hash da chave de acesso; o hash do derivado da frase de recuperação; e a versão e a
-  data/hora do aceite dos Termos.
-- **Não guardamos:** e-mail, senha, nome, CPF, telefone, IP, localização, user-agent nem logs de acesso.
+- **Coletamos só:** apelido; o hash (Argon2id) da senha; o hash do derivado da frase de recuperação; o e-mail, se a
+  pessoa quiser, cifrado; o histórico de mudanças sensíveis (tipo e data, 90 dias); e a versão e a data/hora do
+  aceite dos Termos.
+- **Não guardamos:** nome, CPF, telefone, IP, localização, user-agent nem logs de acesso. O IP só é usado na memória
+  do nginx, por minutos, para limitar tentativas de login.
 - **Fotos:** sem EXIF.
 - **Reações e denúncias:** usam pseudônimos HMAC.
 - **Dados de saúde:** cifrados e amarrados à própria linha, com troca de chave sem parar o app.

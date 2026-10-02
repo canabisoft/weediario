@@ -35,7 +35,10 @@ public class TermsAcceptanceFilter extends OncePerRequestFilter {
     private static final Set<String> READ_ONLY = Set.of(HttpMethod.GET.name(), HttpMethod.HEAD.name(),
             HttpMethod.OPTIONS.name(), HttpMethod.DELETE.name());
     private static final List<String> EXEMPT_PREFIXES = List.of("/api/v1/auth/", "/api/v1/me/terms",
-            "/api/v1/me/recovery", "/api/v1/me/notifications/");
+            "/api/v1/me/recovery", "/api/v1/me/security", "/api/v1/me/password", "/api/v1/me/email",
+            // Direitos do titular não dependem de aceitar uma versão nova dos termos.
+            "/api/v1/me/export", "/api/v1/me/delete",
+            "/api/v1/me/notifications/");
 
     private static final String BODY = """
             {"status":403,"code":"TERMS_ACCEPTANCE_REQUIRED","detail":"Atualizamos os Termos de Uso. Leia e aceite a versão %s para continuar publicando."}"""

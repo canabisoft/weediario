@@ -52,8 +52,7 @@ class HashingSaturationIntegrationTest extends IntegrationTestSupport {
             assertThat(holding.await(10, TimeUnit.SECONDS)).isTrue();
 
             mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {"username":"%s","recoveryVerifier":"%s"}""".formatted(grower.username(), VERIFIER)))
+                            .content(recoverJson(grower.username())))
                     .andExpect(status().isTooManyRequests())
                     .andExpect(header().string(HttpHeaders.RETRY_AFTER, "2"))
                     .andExpect(jsonPath("$.detail").value(containsString("Tente de novo em alguns segundos")));
@@ -62,21 +61,29 @@ class HashingSaturationIntegrationTest extends IntegrationTestSupport {
                     .andExpect(status().isTooManyRequests())
                     .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
 
-            // Login com chave de acesso é SHA-256: não passa pelo teto.
+            // O login com senha também é Argon2: espera na fila e, sem vaga, recebe 429 (não conta como erro de senha).
             mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson(grower.username(), grower.accessKey())))
-                    .andExpect(status().isOk());
+                            .content(loginJson(grower.username(), grower.password())))
+                    .andExpect(status().isTooManyRequests());
         } finally {
             release.countDown();
             pool.shutdown();
             assertThat(pool.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
         }
 
-        // Saturação não conta como tentativa errada (o login acima, se algo tivesse ficado, teria limpado o seu).
+        // Saturação não conta como tentativa errada.
         assertThat(jdbc.queryForObject("select count(*) from login_attempts", Long.class)).isLessThanOrEqualTo(attemptsBefore);
-        mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"username":"%s","recoveryVerifier":"%s"}""".formatted(grower.username(), VERIFIER)))
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson(grower.username(), grower.password())))
                 .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/auth/recover").contentType(MediaType.APPLICATION_JSON)
+                        .content(recoverJson(grower.username())))
+                .andExpect(status().isOk());
+    }
+
+    private static String recoverJson(String username) {
+        return """
+                {"username":"%s","recoveryVerifier":"%s","newPassword":"senha nova depois do teto",
+                 "newRecoveryVerifier":"%s"}""".formatted(username, VERIFIER, "d4".repeat(64));
     }
 }

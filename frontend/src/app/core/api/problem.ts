@@ -23,10 +23,14 @@ export function problemMessage(error: unknown, fallback = 'Algo deu errado. Tent
 function fieldLabel(field: string): string {
   const labels: Record<string, string> = {
     username: 'Apelido',
-    password: 'Senha antiga',
+    login: 'Apelido',
+    password: 'Senha',
+    newPassword: 'Senha nova',
+    currentPassword: 'Senha atual',
+    email: 'E-mail',
     accessKey: 'Chave de acesso',
-    currentAccessKey: 'Chave de acesso atual',
     recoveryVerifier: 'Frase de recuperação',
+    newRecoveryVerifier: 'Frase nova',
     title: 'Título',
     strainName: 'Strain',
     report: 'Relato',

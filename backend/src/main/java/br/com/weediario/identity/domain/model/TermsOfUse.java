@@ -11,7 +11,7 @@ import java.time.LocalDate;
  */
 public final class TermsOfUse {
 
-    public static final String CURRENT_VERSION = "1.0";
+    public static final String CURRENT_VERSION = "1.1";
     public static final LocalDate PUBLISHED_ON = LocalDate.of(2026, 10, 1);
 
     private TermsOfUse() {

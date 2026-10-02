@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -12,14 +12,16 @@ import { AuthService } from '../core/auth/auth.service';
 import { DiaryCardComponent } from '../diaries/diary-card';
 import { Avatar } from '../shared/avatar';
 import { Icon } from '../shared/icon';
+import { AccountSecurityPanel } from './account-security';
+import { AccountDataPanel } from './account-data';
 
 /**
- * Área do grower logado: perfil (bio e foto), diários (inclusive privados), quem ele segue e sair.
+ * Área do grower logado: perfil (bio e foto), segurança da conta, diários (inclusive privados), quem ele segue e sair.
  */
 @Component({
   selector: 'app-my-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, Avatar, Icon, DiaryCardComponent],
+  imports: [ReactiveFormsModule, RouterLink, Avatar, Icon, DiaryCardComponent, AccountSecurityPanel, AccountDataPanel],
   template: `
     @if (auth.me(); as me) {
       <section class="wd-card grid gap-4">
@@ -27,7 +29,6 @@ import { Icon } from '../shared/icon';
           <app-avatar class="size-20 text-2xl" [username]="me.username" [hasAvatar]="me.hasAvatar" [version]="avatarVersion()" />
           <div class="min-w-0 flex-1">
             <h1 class="text-2xl font-bold">{{ me.username }}</h1>
-            <a routerLink="/frase-de-recuperacao" class="block text-sm text-fg-muted underline">Frase de recuperação</a>
             <a [routerLink]="['/growers', me.username]" class="text-sm text-accent">Ver meu perfil público</a>
           </div>
         </div>
@@ -57,6 +58,8 @@ import { Icon } from '../shared/icon';
         }
       </section>
 
+      <app-account-security [justRegisteredWithEmail]="email() === 'confirmar'" />
+
       <div class="mt-6 flex items-center justify-between">
         <h2 class="text-lg font-semibold">Meus diários</h2>
         <a routerLink="/diarios/novo" class="text-sm font-semibold text-accent">+ Novo diário</a>
@@ -84,6 +87,8 @@ import { Icon } from '../shared/icon';
         }
       </ul>
 
+      <app-account-data [username]="me.username" />
+
       <button type="button" class="wd-button mt-10 bg-surface-raised text-danger" (click)="logout()">
         <app-icon name="logout" class="size-5" /> Sair
       </button>
@@ -91,6 +96,8 @@ import { Icon } from '../shared/icon';
   `,
 })
 export class MyProfilePage {
+  /** {@code ?email=confirmar}: acabou de se cadastrar com e-mail (lembrete de confirmar). */
+  readonly email = input<string | undefined>();
   private readonly account = inject(AccountApi);
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);

@@ -8,13 +8,11 @@ interface AccessTokenResponse {
   readonly expiresAt: string;
 }
 
-/** Sessão aberta junto com uma chave de acesso nova, que só aparece nesta resposta. */
-interface KeyedTokenResponse extends AccessTokenResponse {
-  readonly accessKey: string;
-}
-
-/** Prefixo das chaves de acesso; o que não começa assim, no login, é a senha de uma conta antiga. */
+/** Prefixo das chaves de acesso antigas: quem digita isso no lugar da senha ainda precisa criar uma senha. */
 export const ACCESS_KEY_PREFIX = 'wd_sec_';
+/** Mesmo mínimo do backend (PasswordPolicy.MIN_LENGTH). */
+export const PASSWORD_MIN_LENGTH = 10;
+export const PASSWORD_MAX_LENGTH = 128;
 
 const AUTH = '/api/v1/auth';
 
@@ -33,7 +31,7 @@ export class AuthService {
   readonly isLoggedIn = computed(() => this.me() !== null);
   readonly isModerator = computed(() => ['MODERATOR', 'ADMIN'].includes(this.me()?.role ?? ''));
   readonly isAdmin = computed(() => this.me()?.role === 'ADMIN');
-  /** Conta anterior à frase de recuperação: precisa gerar a frase (sem ela, não há como recuperar a conta). */
+  /** Conta anterior à frase de recuperação: precisa gerar a frase (sem ela e sem e-mail, não há como recuperar). */
   readonly needsRecoveryPhrase = computed(() => !!this.me() && !this.me()!.hasRecoveryPhrase);
   /** Logado, mas ainda sem aceitar a versão vigente dos Termos de Uso (não consegue publicar). */
   readonly needsTermsAcceptance = computed(() => !!this.me() && !this.me()!.termsAccepted);
@@ -52,38 +50,65 @@ export class AuthService {
     }
   }
 
-  /** Login com apelido + chave de acesso ({@code wd_sec_...}). Não existe senha nem e-mail. */
-  async login(login: string, accessKey: string): Promise<void> {
-    const response = await firstValueFrom(
-      this.http.post<AccessTokenResponse>(`${AUTH}/login`, { login, accessKey }),
-    );
-    await this.startSession(response.accessToken);
+  async login(login: string, password: string): Promise<void> {
+    await this.session(this.http.post<AccessTokenResponse>(`${AUTH}/login`, { login, password }));
+  }
+
+  /** Conta que só tinha a chave de acesso antiga: entra com ela uma última vez e cria a senha. */
+  async loginWithAccessKey(login: string, accessKey: string, newPassword: string): Promise<void> {
+    await this.session(this.http.post<AccessTokenResponse>(`${AUTH}/access-key-login`, { login, accessKey, newPassword }));
   }
 
   /**
-   * Cria a conta e já entra. Devolve a chave de acesso: o servidor não guarda a chave, então é a única vez que ela
-   * aparece.
+   * Cria a conta e já entra.
    *
+   * @param email                opcional; só serve para recuperar a senha e receber avisos de segurança
    * @param recoveryVerifier     derivado da frase de 12 palavras (as palavras nunca são enviadas)
    * @param acceptedTermsVersion versão dos Termos de Uso marcada como lida e aceita no cadastro
    */
-  async register(username: string, recoveryVerifier: string, acceptedTermsVersion: string): Promise<string> {
-    return this.keyed(this.http.post<KeyedTokenResponse>(`${AUTH}/register`, { username, recoveryVerifier, acceptedTermsVersion }));
+  async register(
+    username: string,
+    password: string,
+    email: string | null,
+    recoveryVerifier: string,
+    acceptedTermsVersion: string,
+  ): Promise<void> {
+    await this.session(
+      this.http.post<AccessTokenResponse>(`${AUTH}/register`, { username, password, email, recoveryVerifier, acceptedTermsVersion }),
+    );
   }
 
-  /** Conta anterior à chave de acesso: último login com a senha, que vira uma chave nova (devolvida aqui). */
-  async legacyLogin(login: string, password: string): Promise<string> {
-    return this.keyed(this.http.post<KeyedTokenResponse>(`${AUTH}/legacy-login`, { login, password }));
+  /**
+   * Recupera a conta com a frase: define a senha nova, troca a frase por outra (a antiga foi digitada e pode ter sido
+   * vista), encerra as outras sessões e já entra.
+   */
+  async recoverWithPhrase(username: string, recoveryVerifier: string, newPassword: string, newRecoveryVerifier: string): Promise<void> {
+    await this.session(
+      this.http.post<AccessTokenResponse>(`${AUTH}/recover`, { username, recoveryVerifier, newPassword, newRecoveryVerifier }),
+    );
   }
 
-  /** Recupera a conta com a frase: gera uma chave nova (devolvida aqui), derruba as outras sessões e já entra. */
-  async recover(username: string, recoveryVerifier: string): Promise<string> {
-    return this.keyed(this.http.post<KeyedTokenResponse>(`${AUTH}/recover`, { username, recoveryVerifier }));
+  /** Pede o link de redefinição. A resposta é sempre a mesma, tenha a conta e-mail ou não. */
+  async requestPasswordReset(username: string): Promise<void> {
+    await firstValueFrom(this.http.post<void>(`${AUTH}/password-reset`, { username }));
   }
 
-  /** Gera (conta antiga) ou troca a frase de recuperação; exige a chave de acesso atual. */
-  async changeRecoveryPhrase(recoveryVerifier: string, currentAccessKey: string): Promise<void> {
-    this.me.set(await firstValueFrom(this.http.put<MyProfile>('/api/v1/me/recovery', { recoveryVerifier, currentAccessKey })));
+  async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+    await this.session(this.http.post<AccessTokenResponse>(`${AUTH}/password-reset/confirm`, { token, newPassword }));
+  }
+
+  async verifyEmail(token: string): Promise<void> {
+    await firstValueFrom(this.http.post<void>(`${AUTH}/email/verify`, { token }));
+  }
+
+  /** Gera (conta antiga) ou troca a frase de recuperação; exige a senha atual. */
+  async changeRecoveryPhrase(recoveryVerifier: string, currentPassword: string): Promise<void> {
+    this.me.set(await firstValueFrom(this.http.put<MyProfile>('/api/v1/me/recovery', { recoveryVerifier, currentPassword })));
+  }
+
+  /** Troca a senha. O servidor encerra todas as sessões e devolve uma nova para este aparelho. */
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await this.session(this.http.put<AccessTokenResponse>('/api/v1/me/password', { currentPassword, newPassword }));
   }
 
   async logout(): Promise<void> {
@@ -123,14 +148,9 @@ export class AuthService {
     await firstValueFrom(this.refresh());
   }
 
-  private async keyed(request: Observable<KeyedTokenResponse>): Promise<string> {
+  private async session(request: Observable<AccessTokenResponse>): Promise<void> {
     const response = await firstValueFrom(request);
-    await this.startSession(response.accessToken);
-    return response.accessKey;
-  }
-
-  private async startSession(accessToken: string): Promise<void> {
-    this.token.set(accessToken);
+    this.token.set(response.accessToken);
     await firstValueFrom(this.loadMe());
   }
 

@@ -10,10 +10,26 @@ export interface SetupInput extends SetupSpec {
   readonly productIds?: string[];
 }
 
+/** Configurações de segurança da conta. O e-mail volta mascarado (`br***@gm***.com`), nunca inteiro. */
+export interface AccountSecurity {
+  readonly hasPassword: boolean;
+  readonly hasRecoveryPhrase: boolean;
+  readonly email: string | null;
+  readonly emailVerified: boolean;
+  readonly events: readonly SecurityEvent[];
+}
+
+/** Mudança sensível na conta (sem IP, aparelho ou local). */
+export interface SecurityEvent {
+  readonly kind: string;
+  readonly description: string;
+  readonly occurredAt: string;
+}
+
 /** Progresso de upload (0–100) e, ao final, a imagem já sanitizada pelo servidor. */
 export type UploadProgress = { readonly progress: number } | { readonly progress: 100; readonly image: UploadedImage };
 
-/** Recursos da conta do usuário logado: perfil, setups e upload de fotos. */
+/** Recursos da conta do usuário logado: perfil, segurança, setups e upload de fotos. */
 @Injectable({ providedIn: 'root' })
 export class AccountApi {
   private readonly http = inject(HttpClient);
@@ -28,6 +44,29 @@ export class AccountApi {
 
   removeAvatar(): Observable<MyProfile> {
     return this.http.delete<MyProfile>('/api/v1/me/avatar');
+  }
+
+  security(): Observable<AccountSecurity> {
+    return this.http.get<AccountSecurity>('/api/v1/me/security');
+  }
+
+  /** Cadastra, troca ou (com `null`) remove o e-mail. Exige a senha atual. */
+  changeEmail(currentPassword: string, email: string | null): Observable<AccountSecurity> {
+    return this.http.put<AccountSecurity>('/api/v1/me/email', { currentPassword, email });
+  }
+
+  resendEmailVerification(): Observable<void> {
+    return this.http.post<void>('/api/v1/me/email/resend', {});
+  }
+
+  /** Pacote .zip com todos os dados da conta (dados.json + fotos). Exige a senha atual. */
+  exportData(currentPassword: string): Observable<Blob> {
+    return this.http.post('/api/v1/me/export', { currentPassword }, { responseType: 'blob' });
+  }
+
+  /** Apaga a conta e tudo o que é dela. Exige a senha atual e o apelido digitado. */
+  deleteAccount(currentPassword: string, username: string): Observable<void> {
+    return this.http.post<void>('/api/v1/me/delete', { currentPassword, username });
   }
 
   setups(): Observable<GrowSetup[]> {

@@ -5,21 +5,21 @@ import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
 import { TERMS_VERSION } from '../legal/terms.page';
 import { PrivacyNote } from '../shared/privacy-note';
-import { AccessKeyReveal } from './access-key-reveal';
+import { NewPassword } from './new-password';
 import { RecoveryPhraseCard } from './recovery-phrase-card';
 
 /**
- * Cadastro em três passos: apelido + termos, frase de recuperação (gerada no navegador) e a chave de acesso (gerada
- * pelo servidor, mostrada uma vez). Não há e-mail nem senha.
+ * Cadastro em dois passos: dados (apelido, senha, e-mail opcional e termos) e a frase de recuperação, gerada no
+ * navegador. O e-mail é opcional: só serve para recuperar a senha e receber avisos de segurança, e é guardado cifrado.
  */
 @Component({
   selector: 'app-register-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, PrivacyNote, RecoveryPhraseCard, AccessKeyReveal],
+  imports: [ReactiveFormsModule, RouterLink, PrivacyNote, RecoveryPhraseCard, NewPassword],
   template: `
     <section class="mx-auto max-w-md">
       <h1 class="text-2xl font-bold">Criar conta</h1>
-      <p class="mt-1 text-fg-muted">Pra galera você é só o seu apelido. Nada de nome real, e-mail ou senha.</p>
+      <p class="mt-1 text-fg-muted">Pra galera você é só o seu apelido. Nada de nome real.</p>
 
       @switch (step()) {
         @case ('dados') {
@@ -30,6 +30,17 @@ import { RecoveryPhraseCard } from './recovery-phrase-card';
               <p class="mt-1 text-xs text-fg-muted">3 a 30 caracteres: letras, números, "_" e ".". Não use seu nome real.</p>
             </div>
 
+            <app-new-password id="register" (changed)="password.set($event)" />
+
+            <div>
+              <label class="wd-label" for="email">E-mail <span class="font-normal text-fg-muted">(opcional)</span></label>
+              <input id="email" type="email" class="wd-input" formControlName="email" autocomplete="email" autocapitalize="none" spellcheck="false" />
+              <p class="mt-1 text-xs text-fg-muted">
+                Só para recuperar a senha e receber avisos de segurança. Nunca aparece para ninguém, fica cifrado e não
+                serve para entrar. Pode deixar em branco: a frase de 12 palavras do próximo passo já recupera a conta.
+              </p>
+            </div>
+
             <label class="flex items-start gap-2 text-sm">
               <input type="checkbox" class="mt-0.5 size-5" formControlName="acceptTerms" />
               <span>
@@ -38,16 +49,16 @@ import { RecoveryPhraseCard } from './recovery-phrase-card';
               </span>
             </label>
 
-            <button type="submit" class="wd-button" [disabled]="form.invalid">Continuar</button>
+            <button type="submit" class="wd-button" [disabled]="form.invalid || !password()">Continuar</button>
           </form>
         }
         @case ('frase') {
           <section class="wd-card mt-6 grid gap-4">
             <div>
               <h2 class="text-lg font-semibold">Sua frase de recuperação</h2>
-              <p class="text-sm text-fg-muted">Passo 2 de 3 · conta {{ form.controls.username.value }}</p>
+              <p class="text-sm text-fg-muted">Passo 2 de 2 · conta {{ form.controls.username.value }}</p>
             </div>
-            <app-recovery-phrase-card confirmLabel="Criar conta" [disabled]="busy()" (verified)="create($event)" />
+            <app-recovery-phrase-card confirmLabel="Criar conta" [hasEmail]="!!email()" [disabled]="busy()" (verified)="create($event)" />
             @if (error()) {
               <p role="alert" class="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{{ error() }}</p>
             }
@@ -56,24 +67,13 @@ import { RecoveryPhraseCard } from './recovery-phrase-card';
             </button>
           </section>
         }
-        @case ('chave') {
-          <section class="wd-card mt-6 grid gap-4">
-            <div>
-              <h2 class="text-lg font-semibold">Conta criada!</h2>
-              <p class="text-sm text-fg-muted">Passo 3 de 3 · guarde sua chave de acesso</p>
-            </div>
-            <app-access-key-reveal [username]="form.controls.username.value" [accessKey]="accessKey()" (done)="finish()" />
-          </section>
-        }
       }
 
-      @if (step() !== 'chave') {
-        <app-privacy-note class="mt-4" title="Relaxa, aqui é tranquilo" />
+      <app-privacy-note class="mt-4" title="Relaxa, aqui é tranquilo" />
 
-        <p class="mt-4 text-center text-sm text-fg-muted">
-          Já tem conta? <a routerLink="/entrar" class="font-semibold text-accent">Entrar</a>
-        </p>
-      }
+      <p class="mt-4 text-center text-sm text-fg-muted">
+        Já tem conta? <a routerLink="/entrar" class="font-semibold text-accent">Entrar</a>
+      </p>
     </section>
   `,
 })
@@ -83,36 +83,39 @@ export class RegisterPage {
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     username: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(30), Validators.pattern(/^[A-Za-z0-9_.]+$/)]],
+    email: ['', [Validators.email, Validators.maxLength(254)]],
     acceptTerms: [false, [Validators.requiredTrue]],
   });
   protected readonly termsVersion = TERMS_VERSION;
-  protected readonly step = signal<'dados' | 'frase' | 'chave'>('dados');
-  protected readonly accessKey = signal('');
+  protected readonly step = signal<'dados' | 'frase'>('dados');
+  protected readonly password = signal<string | null>(null);
+  protected readonly email = signal<string | null>(null);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
 
   protected next(): void {
-    if (this.form.valid) {
+    if (this.form.valid && this.password()) {
       this.error.set(null);
+      this.email.set(this.form.controls.email.value.trim() || null);
       this.step.set('frase');
     }
   }
 
   protected async create(recoveryVerifier: string): Promise<void> {
+    const password = this.password();
+    if (!password) {
+      this.step.set('dados');
+      return;
+    }
     this.busy.set(true);
     this.error.set(null);
     try {
-      this.accessKey.set(await this.auth.register(this.form.controls.username.value, recoveryVerifier, TERMS_VERSION));
-      this.step.set('chave');
+      await this.auth.register(this.form.controls.username.value, password, this.email(), recoveryVerifier, TERMS_VERSION);
+      await this.router.navigate(['/perfil'], { queryParams: this.email() ? { email: 'confirmar' } : {} });
     } catch (error) {
       this.error.set(problemMessage(error, 'Não foi possível criar a conta.'));
     } finally {
       this.busy.set(false);
     }
-  }
-
-  protected async finish(): Promise<void> {
-    this.accessKey.set('');
-    await this.router.navigateByUrl('/perfil');
   }
 }

@@ -22,7 +22,7 @@ describe('RecoveryPhraseCard', () => {
     const { fixture, root, verifier } = await render();
     const words = [...root.querySelectorAll('ol li span.font-semibold')].map((el) => el.textContent!.trim());
     const button = () => [...root.querySelectorAll('button')].find((b) => b.textContent!.includes('Continuar'))!;
-    expect(root.textContent).toContain('não tem e-mail');
+    expect(root.textContent).toContain('único jeito de recuperar');
 
     const inputs = [...root.querySelectorAll<HTMLInputElement>('input[id^="word-"]')];
     expect(inputs.length).toBe(3);

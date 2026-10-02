@@ -18,12 +18,22 @@ Este projeto foi arquitetado sob premissas rígidas de segurança digital:
   celular) e gera variantes otimizadas em WebP (400px e 1600px).
 - **Reações anônimas:** cada reação é gravada com um pseudônimo derivado por HMAC do par (usuário, alvo). O mesmo
   usuário em alvos diferentes gera pseudônimos diferentes e não relacionáveis.
-- **Conta sem e-mail e sem senha:** o cadastro pede só um apelido. Para entrar, apelido + chave de acesso
-  (`wd_sec_…`, 256 bits gerados pelo servidor e mostrados uma única vez); o banco guarda só o SHA-256 da chave, com
-  índice único. Se a chave se perder, uma frase de 12 palavras (BIP-39, lista em português) gera outra. A frase é
-  criada no navegador e o servidor recebe só um derivado PBKDF2 dela, guardado como Argon2id. Sem chave e sem frase,
-  a conta não tem como ser recuperada.
-- **Boas práticas OWASP:** hashes com SHA-256 (chave de acesso) e Argon2id (frase de recuperação), tokens JWT de curta duração (10 min) com refresh token em cookie
+- **Conta com apelido + senha, e-mail opcional:** a senha é guardada como Argon2id e segue o NIST SP 800-63B
+  (mínimo de 10 caracteres, sem regra de símbolo, recusa as senhas vazadas mais comuns de uma lista embutida no app e
+  o próprio apelido). Toda conta tem uma frase de 12 palavras (BIP-39, lista em português) para recuperar o acesso: a
+  frase é criada no navegador e o servidor recebe só um derivado PBKDF2 dela, guardado como Argon2id. Recuperar com
+  a frase define uma senha nova, troca a frase e encerra todas as sessões.
+- **E-mail opcional e cifrado:** serve só para redefinir a senha (link de uso único, 30 min) e para avisos de
+  segurança. Fica cifrado (AES-256-GCM, amarrado à conta), sem índice e sem unicidade: não existe login nem busca por
+  e-mail, e o cadastro nunca revela se um endereço já tem conta. Só vale para recuperar depois de confirmado. O
+  pedido de redefinição parte do apelido e a resposta é sempre a mesma.
+- **Direitos do titular (LGPD):** no perfil, baixar todos os dados (.zip com `dados.json` e as fotos) e apagar a
+  conta, os dois com a senha atual. Cada contexto entrega a sua parte por `PersonalDataSection`
+  (`shared.application`); o banco apaga o resto por `on delete cascade`. Registros de moderação e itens do catálogo
+  aberto ficam sem vínculo com a conta.
+- **Histórico de segurança:** trocas de senha, e-mail e frase ficam 90 dias no perfil, só com tipo e data (sem IP nem
+  aparelho), e o e-mail confirmado recebe um aviso. Mudanças com a sessão aberta exigem a senha atual.
+- **Boas práticas OWASP:** Argon2id (senha e frase), tokens JWT de curta duração (10 min) com refresh token em cookie
   `HttpOnly`, `Secure` e `SameSite=Strict`, e payloads validados estritamente.
 
 ### Privacidade na infraestrutura
@@ -33,18 +43,23 @@ Este projeto foi arquitetado sob premissas rígidas de segurança digital:
 - Logs do docker com rotação (`max-size: 10m`, 3 arquivos): nada acumula para sempre no disco. Erro inesperado vai
   para o log só com a classe, onde aconteceu no nosso código e um código de referência (que também volta na
   resposta), nunca com a mensagem, que pode trazer dado de usuário.
-- Limite de tentativas por apelido (chave HMAC do apelido, sem IP) só no login com senha de conta antiga. Chave de
-  acesso (256 bits) e frase (128 bits) não têm bloqueio: adivinhar é inviável, e bloquear por apelido só deixaria
-  alguém trancar a conta dos outros.
-- Senha de conta antiga é apagada depois de 6 meses sem uso, se a conta já tem frase de recuperação.
+- Limite de tentativas por apelido (chave HMAC do apelido, sem IP) no login e na confirmação da senha atual: depois
+  de 5 erros, espera progressiva de 30 s até no máximo 15 min (curta, para ninguém trancar a conta dos outros por
+  horas). Frase (128 bits) e links de e-mail (256 bits) não têm bloqueio: adivinhar é inviável, e a recuperação
+  nunca fica travada.
+- Limite por IP **só em memória** no nginx para entrar, cadastrar e recuperar (20/min por IP, com folga). O IP vira
+  chave de um contador que some sozinho: não vai para log nem para o backend. Atrás do Caddy, o IP chega ao nginx num
+  cabeçalho próprio que o Caddy sobrescreve.
+- Contas da época da chave de acesso (`wd_sec_…`) entram uma última vez com a chave e criam uma senha; a chave deixa
+  de valer.
 - **Integridade do frontend:** cada script sai com SRI (`integrity="sha384-…"`) e o build é reproduzível.
   `scripts/verify-frontend.sh https://site` compila o repositório e confere, arquivo por arquivo, se o site serve o
   mesmo código.
-- **Proteção contra sobrecarga sem IP:** cadastro, recuperação de conta, último login de conta antiga e troca da
-  frase usam Argon2id, que é pesado de propósito. Um teto global de cálculos Argon2 simultâneos (padrão
+- **Proteção contra sobrecarga sem IP:** cadastro, login, recuperação de conta e troca de senha ou de frase usam
+  Argon2id, que é pesado de propósito. Um teto global de cálculos Argon2 simultâneos (padrão
   `max(2, núcleos / 2)`) impede que alguém derrube o servidor variando apelidos: com o teto cheio, a requisição
   espera até 2 s e, sem vaga, recebe `429` com `Retry-After`. O teto é só um contador (sem IP nem apelido) e não
-  conta como tentativa errada. O login com chave de acesso (SHA-256) não passa por ele. Ajuste com
+  conta como tentativa errada. Ajuste com
   `WEEDIARIO_HASH_MAX_CONCURRENT` (0 = automático) e `WEEDIARIO_HASH_MAX_WAIT` (ex.: `2s`).
 - Containers somente leitura e sem capabilities; app, API e nginx rodam sem root (o Caddy só tem a permissão de
   abrir as portas 80/443).

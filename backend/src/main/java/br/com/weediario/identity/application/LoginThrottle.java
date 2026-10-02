@@ -11,14 +11,14 @@ import java.time.Instant;
 import java.util.Locale;
 
 /**
- * Limite de tentativas por apelido (nunca por IP), só no login com senha de contas antigas: senha escolhida por gente
- * pode ser adivinhada. Chave de acesso e frase de recuperação não têm limite (são aleatórias e longas demais para
- * adivinhar, e um bloqueio por apelido só deixaria alguém trancar a conta dos outros). A chave guardada é um HMAC do
- * apelido normalizado, com um escopo para separar os limites.
+ * Limite de tentativas por apelido (nunca por IP) para tudo que confere a senha: login e a confirmação da senha atual
+ * antes de mudanças sensíveis. Senha escolhida por gente pode ser adivinhada. Frase de recuperação, chave de acesso
+ * antiga e links de e-mail não têm limite (são aleatórios e longos demais para adivinhar, e um bloqueio por apelido só
+ * deixaria alguém impedir o dono de recuperar a conta). A chave guardada é um HMAC do apelido normalizado.
  */
 public final class LoginThrottle {
 
-    /** Login com senha de conta antiga. */
+    /** Login com senha e confirmação da senha atual dividem o mesmo limite. */
     public static final String LOGIN = "";
 
     private final LoginAttemptsRepository attempts;

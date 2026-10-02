@@ -5,18 +5,20 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Controle de força bruta por conta, sem IP: conta falhas de login (ou de recuperação) por apelido dentro de uma janela.
+ * Controle de força bruta por conta, sem IP: conta falhas de senha por apelido dentro de uma janela.
  * <p>
- * Ao atingir {@link #MAX_FAILURES} falhas, o login fica bloqueado. Cada novo bloqueio dobra o tempo
- * (15 min, 30 min, 1 h...) até {@link #MAX_LOCK}. O bloqueio vale para qualquer apelido, exista a conta ou não,
+ * Ao atingir {@link #MAX_FAILURES} falhas, o login espera um pouco antes da próxima tentativa. Cada nova espera dobra
+ * (30 s, 1 min, 2 min...) até {@link #MAX_LOCK}: o bastante para inviabilizar adivinhar uma senha fora da lista de
+ * senhas comuns, mas curto para ninguém conseguir trancar a conta de outra pessoa por horas errando de propósito
+ * (e a recuperação pela frase ou pelo e-mail nunca é bloqueada). Vale para qualquer apelido, exista a conta ou não,
  * então não serve para descobrir quem está cadastrado.
  */
 public record LoginAttempts(int failures, Instant windowStartedAt, Instant lockedUntil, int lockCount) {
 
     public static final int MAX_FAILURES = 5;
     public static final Duration WINDOW = Duration.ofMinutes(15);
-    public static final Duration BASE_LOCK = Duration.ofMinutes(15);
-    public static final Duration MAX_LOCK = Duration.ofHours(6);
+    public static final Duration BASE_LOCK = Duration.ofSeconds(30);
+    public static final Duration MAX_LOCK = Duration.ofMinutes(15);
 
     public static LoginAttempts none(Instant now) {
         return new LoginAttempts(0, now, null, 0);

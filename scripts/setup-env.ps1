@@ -11,11 +11,16 @@ function New-RandomBytes([int] $count) {
 
 if (Test-Path $envFile) {
     # .env antigo: só acrescenta chaves que surgiram depois, sem mexer nas existentes.
-    if (-not (Select-String -Path $envFile -Pattern '^WEEDIARIO_HEALTH_KEY=' -Quiet)) {
-        $line = "WEEDIARIO_HEALTH_KEY=$([Convert]::ToBase64String((New-RandomBytes 32)))"
-        [System.IO.File]::AppendAllText($envFile, $line + "`n", (New-Object System.Text.UTF8Encoding $false))
-        Write-Output 'WEEDIARIO_HEALTH_KEY acrescentada ao .env (guarde uma cópia segura dela).'
-    } else {
+    $added = $false
+    foreach ($name in @('WEEDIARIO_HEALTH_KEY', 'WEEDIARIO_EMAIL_KEY')) {
+        if (-not (Select-String -Path $envFile -Pattern "^$name=" -Quiet)) {
+            $line = "$name=$([Convert]::ToBase64String((New-RandomBytes 32)))"
+            [System.IO.File]::AppendAllText($envFile, $line + "`n", (New-Object System.Text.UTF8Encoding $false))
+            Write-Output "$name acrescentada ao .env (guarde uma cópia segura dela)."
+            $added = $true
+        }
+    }
+    if (-not $added) {
         Write-Output '.env já existe; nada foi alterado.'
     }
     exit 0
@@ -27,6 +32,7 @@ $lines = @(
     "WEEDIARIO_JWT_SECRET=$([Convert]::ToBase64String((New-RandomBytes 48)))"
     "WEEDIARIO_PSEUDONYM_KEY=$([Convert]::ToBase64String((New-RandomBytes 48)))"
     "WEEDIARIO_HEALTH_KEY=$([Convert]::ToBase64String((New-RandomBytes 32)))"
+    "WEEDIARIO_EMAIL_KEY=$([Convert]::ToBase64String((New-RandomBytes 32)))"
     'WEEDIARIO_HTTP_PORT=8080'
 )
 # UTF-8 sem BOM: o docker compose lê o arquivo literalmente.

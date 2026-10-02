@@ -24,17 +24,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
 
     @Test
-    void passwordBruteForceOnLegacyLoginIsLimitedWithoutStoringUsernameOrIp() throws Exception {
-        // Só o login com senha (conta antiga) tem limite: senha pode ser adivinhada, chave de 256 bits não.
+    void passwordBruteForceIsSlowedDownWithoutStoringUsernameOrIp() throws Exception {
+        // Senha escolhida por gente pode ser adivinhada: depois de 5 erros, espera progressiva (30 s, 1 min...).
         String username = "alvo_" + UUID.randomUUID().toString().substring(0, 8);
-        String wrong = """
-                {"login":"%s","password":"senha-errada-errada"}""".formatted(username);
+        String wrong = loginJson(username, "senha errada demais");
         for (int i = 0; i < 5; i++) {
-            mvc.perform(post("/api/v1/auth/legacy-login").contentType(MediaType.APPLICATION_JSON).content(wrong))
+            mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(wrong))
                     .andExpect(status().isUnauthorized());
         }
 
-        mvc.perform(post("/api/v1/auth/legacy-login").contentType(MediaType.APPLICATION_JSON).content(wrong))
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(wrong))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
 

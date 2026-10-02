@@ -30,17 +30,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "weediario.media.storage-path=target/test-media",
         "weediario.social.pseudonym-key=cHNldWRvbnltLWtleS1mb3ItdGVzdHMtb25seS0yNTYtYml0cyE=",
         "weediario.treatment.encryption-key=dGVzdC1rZXktZm9yLWhlYWx0aC1kYXRhLTMyYnl0ZXM=",
+        "weediario.identity.mail.email-key=ZW1haWwta2V5LWZvci10ZXN0cy1vbmx5LTMyYnl0ZXM=",
         "spring.datasource.username=",
         "spring.datasource.password="
 })
 @AutoConfigureMockMvc
-@Import(EmbeddedPostgresConfig.class)
+@Import({EmbeddedPostgresConfig.class, RecordingAccountMailer.Config.class})
 public abstract class IntegrationTestSupport {
 
     /** Versão vigente dos Termos de Uso (o cadastro exige o aceite). */
-    protected static final String TERMS = "1.0";
+    protected static final String TERMS = "1.1";
     /** Derivado de uma frase de recuperação (no app ele é calculado no navegador; as palavras nunca chegam aqui). */
     protected static final String VERIFIER = "a1".repeat(64);
+    /** Senha que passa na política (10+ caracteres, fora da lista de senhas comuns). */
+    protected static final String PASSWORD = "varanda com tres vasos";
 
     @Autowired
     protected MockMvc mvc;
@@ -51,14 +54,17 @@ public abstract class IntegrationTestSupport {
     @Autowired
     protected JdbcTemplate jdbc;
 
-    /** @param accessKey chave de acesso devolvida no cadastro (o servidor só guarda o hash dela) */
-    public record Session(String username, String accessToken, String accessKey) {
+    /** E-mails que a conta "mandou" (confirmação, redefinição, avisos), para os testes pegarem os links. */
+    @Autowired
+    protected RecordingAccountMailer mail;
+
+    public record Session(String username, String accessToken, String password) {
         public String bearer() {
             return "Bearer " + accessToken;
         }
     }
 
-    /** Cadastro já devolve sessão aberta e a chave de acesso. */
+    /** Cadastro já devolve sessão aberta. */
     protected Session newGrower() throws Exception {
         String username = "g_" + randomLetters(12);
         MvcResult registered = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
@@ -66,7 +72,7 @@ public abstract class IntegrationTestSupport {
                 .andExpect(status().isCreated())
                 .andReturn();
         JsonNode response = body(registered);
-        return new Session(username, response.get("accessToken").asText(), response.get("accessKey").asText());
+        return new Session(username, response.get("accessToken").asText(), PASSWORD);
     }
 
     /** Grower promovido a moderador; o novo login traz o papel no access token. */
@@ -76,25 +82,29 @@ public abstract class IntegrationTestSupport {
         return relogin(session);
     }
 
-    /** Login de novo com a chave de acesso (pega papel e aceite de termos atualizados no token). */
+    /** Login de novo com a senha (pega papel e aceite de termos atualizados no token). */
     protected Session relogin(Session session) throws Exception {
         MvcResult login = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson(session.username(), session.accessKey())))
+                        .content(loginJson(session.username(), session.password())))
                 .andExpect(status().isOk())
                 .andReturn();
-        return new Session(session.username(), body(login).get("accessToken").asText(), session.accessKey());
+        return new Session(session.username(), body(login).get("accessToken").asText(), session.password());
     }
 
-    protected static String loginJson(String username, String accessKey) {
+    protected static String loginJson(String username, String password) {
         return """
-                {"login":"%s","accessKey":"%s"}""".formatted(username, accessKey);
+                {"login":"%s","password":"%s"}""".formatted(username, password);
     }
 
-    /** Cadastro mínimo: apelido, derivado da frase de recuperação e aceite dos termos (sem e-mail nem senha). */
+    /** Cadastro mínimo: apelido, senha, derivado da frase de recuperação e aceite dos termos (sem e-mail). */
     protected static String registerJson(String username) {
+        return registerJson(username, null);
+    }
+
+    protected static String registerJson(String username, String email) {
         return """
-                {"username":"%s","recoveryVerifier":"%s","acceptedTermsVersion":"%s"}"""
-                .formatted(username, VERIFIER, TERMS);
+                {"username":"%s","password":"%s","email":%s,"recoveryVerifier":"%s","acceptedTermsVersion":"%s"}"""
+                .formatted(username, PASSWORD, email == null ? "null" : "\"" + email + "\"", VERIFIER, TERMS);
     }
 
     protected UUID createDiary(Session session, String strain, String visibility, String startedOn) throws Exception {

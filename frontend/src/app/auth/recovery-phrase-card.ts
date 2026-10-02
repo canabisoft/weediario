@@ -16,11 +16,17 @@ const CHECKED_POSITIONS = 3;
     <div class="grid gap-4">
       <div role="alert" class="rounded-xl border border-warn/50 bg-warn/10 px-3 py-2 text-sm">
         <p class="font-semibold">Anote estas 12 palavras, na ordem, em papel.</p>
-        <p class="mt-1">
-          O weediário não tem e-mail nem qualquer outro jeito de recuperar sua conta: se você perder a chave de acesso e
-          as palavras, a conta está perdida de vez. Ninguém da equipe consegue ver ou reenviar a frase — ela só existe
-          aqui, neste aparelho, agora.
-        </p>
+        @if (hasEmail()) {
+          <p class="mt-1">
+            Ela recupera a conta mesmo se você perder o acesso ao e-mail. Ninguém da equipe consegue ver ou reenviar a
+            frase: ela só existe aqui, neste aparelho, agora.
+          </p>
+        } @else {
+          <p class="mt-1">
+            Sem e-mail cadastrado, esta frase é o único jeito de recuperar a conta se você esquecer a senha. Ninguém da
+            equipe consegue ver ou reenviar a frase: ela só existe aqui, neste aparelho, agora.
+          </p>
+        }
       </div>
 
       @if (words(); as list) {
@@ -55,7 +61,7 @@ const CHECKED_POSITIONS = 3;
           }
           <label class="flex items-start gap-2 text-sm">
             <input type="checkbox" class="mt-0.5 size-5" [ngModel]="saved()" (ngModelChange)="saved.set($event)" name="saved" />
-            <span>Guardei as palavras num lugar seguro e entendo que, sem elas, não dá para recuperar a conta.</span>
+            <span>Guardei as palavras num lugar seguro.</span>
           </label>
         </fieldset>
 
@@ -70,7 +76,9 @@ const CHECKED_POSITIONS = 3;
 })
 export class RecoveryPhraseCard {
   readonly confirmLabel = input('Continuar');
-  /** Trava o botão enquanto o pai ainda não pode enviar (ex.: falta a chave de acesso atual). */
+  /** Muda só o aviso: com e-mail, a frase é o plano B; sem e-mail, é o único jeito de recuperar. */
+  readonly hasEmail = input(false);
+  /** Trava o botão enquanto o pai ainda não pode enviar (ex.: falta a senha atual). */
   readonly disabled = input(false);
   /** Derivado da frase (PBKDF2), pronto para enviar ao servidor. */
   readonly verified = output<string>();

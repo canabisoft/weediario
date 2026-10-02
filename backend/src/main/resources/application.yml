@@ -59,12 +59,21 @@ weediario:
     # Troca de chave: as antigas (separadas por vírgula) só decifram; o recifrador regrava tudo com a atual.
     previous-keys: ${WEEDIARIO_HEALTH_PREVIOUS_KEYS:}
   identity:
-    # Teto global de Argon2 simultâneos (cadastro, recuperação, login de conta antiga, troca de frase). Sem IP:
+    # Teto global de Argon2 simultâneos (cadastro, login, recuperação, troca de senha e de frase). Sem IP:
     # quem passa do teto espera até max-wait na fila e, se não houver vaga, recebe 429 com Retry-After.
     password-hashing:
       # 0 = automático: max(2, núcleos / 2). Cada cálculo usa ~19 MiB de memória.
       max-concurrent: ${WEEDIARIO_HASH_MAX_CONCURRENT:0}
       max-wait: ${WEEDIARIO_HASH_MAX_WAIT:2s}
+    # E-mail opcional das contas (recuperar a senha e avisos de segurança). SMTP: variáveis SPRING_MAIL_HOST, _PORT,
+    # _USERNAME e _PASSWORD. Sem SMTP (ou sem remetente), o envio fica desligado.
+    mail:
+      # AES-256 (32 bytes em Base64) que cifra os endereços no banco. Gerada por scripts/setup-env.
+      email-key: ${WEEDIARIO_EMAIL_KEY}
+      public-url: ${WEEDIARIO_PUBLIC_URL:http://localhost:8080}
+      from: ${WEEDIARIO_MAIL_FROM:}
+      # Só para desenvolvimento: sem SMTP, escreve no log o link que iria por e-mail.
+      log-links: ${WEEDIARIO_MAIL_LOG_LINKS:false}
   security:
     jwt:
       issuer: ${WEEDIARIO_JWT_ISSUER:weediario}

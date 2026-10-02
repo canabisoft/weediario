@@ -20,8 +20,9 @@ public class JpaUserRepository implements UserRepository {
     }
 
     @Override
+    /** Com flush: e-mail, links e histórico são gravados por JDBC na mesma transação e referenciam a conta. */
     public User save(User user) {
-        return jpa.save(UserJpaEntity.fromDomain(user)).toDomain();
+        return jpa.saveAndFlush(UserJpaEntity.fromDomain(user)).toDomain();
     }
 
     @Override
@@ -43,5 +44,11 @@ public class JpaUserRepository implements UserRepository {
     public List<User> findStaff() {
         return jpa.findByRoleInOrderByUsernameAsc(List.of(Role.MODERATOR, Role.ADMIN)).stream()
                 .map(UserJpaEntity::toDomain).toList();
+    }
+
+    @Override
+    public void delete(UserId id) {
+        jpa.deleteById(id.value());
+        jpa.flush();
     }
 }
