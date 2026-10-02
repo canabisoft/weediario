@@ -1,7 +1,9 @@
 package br.com.weediario;
 
 import br.com.weediario.catalog.application.usecase.ImportDatasetUseCase;
+import br.com.weediario.catalog.application.usecase.ImportDatasetUseCase.DatasetStrain;
 import br.com.weediario.catalog.application.usecase.ImportDatasetUseCase.Report;
+import br.com.weediario.catalog.domain.model.StrainTraits;
 import br.com.weediario.catalog.infrastructure.dataset.DatasetCsvReaderTest;
 import br.com.weediario.support.IntegrationTestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +43,34 @@ class CatalogIntegrationTest extends IntegrationTestSupport {
         assertThat(jdbc.queryForObject("select count(*) from breeders where name ilike '%sale items%'", Long.class)).isZero();
         assertThat(jdbc.queryForObject("select source from strains where name = 'Bubba Kush'", String.class))
                 .isEqualTo("DATASET");
+    }
+
+    @Test
+    void importCleansShopNoiseAndSkipsWhatIsNotAGenetic() {
+        String suffix = UUID.randomUUID().toString().substring(0, 6);
+        long strainsBefore = jdbc.queryForObject("select count(*) from strains", Long.class);
+        Report report = importDataset.importStrains(List.of(
+                // Anúncio de loja: vira a strain que já existe (sem duplicar).
+                row("SALE - Bubba Kush - Teste Genetics Seeds", null),
+                // Brinde, pacote e preço: não são genéticas.
+                row("3 Free Seeds - £75 to £100", null),
+                row("Indoor Mixed Pack", "Teste Genetics Seeds"),
+                row("Petro $ OG", "Teste Genetics Seeds"),
+                // "Banco - Strain" sem breeder: separa e cria o breeder certo.
+                row("Quintal " + suffix + " Seeds - Runtz " + suffix, null)));
+
+        assertThat(report.skipped()).isEqualTo(3);
+        assertThat(report.strainsCreated()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from strains", Long.class)).isEqualTo(strainsBefore + 1);
+        assertThat(jdbc.queryForObject("select count(*) from strains where name ~* '^sale|[$£€]|free seed|mixed pack'",
+                Long.class)).isZero();
+        assertThat(jdbc.queryForObject("""
+                select b.name from strains s join breeders b on b.id = s.breeder_id where s.name = ?""",
+                String.class, "Runtz " + suffix)).isEqualTo("Quintal " + suffix + " Seeds");
+    }
+
+    private static DatasetStrain row(String name, String breeder) {
+        return new DatasetStrain(name, breeder, StrainTraits.EMPTY);
     }
 
     @Test

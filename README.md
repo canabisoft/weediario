@@ -131,6 +131,12 @@ a nota de um produto não mostra quem avaliou e só leva ao diário quando ele �
   Moderadores não podem "verificar" uma semente em teste, só recusar se ninguém a usa. Quem representa um breeder
   não é exibido publicamente, a não ser que um breeder independente escolha aparecer como criador(a) das genéticas
   (opcional, desligado por padrão, reversível a qualquer momento).
+- **Nomes limpos:** nome de genética não pode ter preço ou símbolo de moeda, anúncio ("SALE"), brinde de loja, pacote,
+  mistura ou produto que não é semente (`CatalogNames`, aplicado a todo cadastro novo e à importação do dataset).
+  A importação também tira o ruído de vitrine ("SALE - X - Banco" vira "X" do banco; "Banco - X" sem breeder vira "X"
+  do Banco). A migração V24 limpou o dataset já importado: anúncios juntados com a strain verdadeira (o nome antigo
+  vira apelido, para não voltar a duplicar), banco e linha do banco tirados do nome, e brindes, pacotes e produtos de
+  loja apagados (só o que ninguém usava).
 - **Banco aberto de strains** (`/dados-abertos`): `GET /api/v1/open-data/strains` (JSON) e
   `GET /api/v1/open-data/strains.csv`, públicos e sem login, sob a licença
   [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/). Só strains oficiais e só agregados (características,

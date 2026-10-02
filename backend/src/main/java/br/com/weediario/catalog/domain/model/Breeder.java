@@ -38,6 +38,7 @@ public record Breeder(UUID id, String name, String nameKey, Status status, Sourc
     }
 
     public static Breeder register(String name, Source source, UUID createdBy, Clock clock) {
+        CatalogNames.requireValid(name);
         return new Breeder(UUID.randomUUID(), name, null, Status.UNVERIFIED, source, createdBy, clock.instant());
     }
 

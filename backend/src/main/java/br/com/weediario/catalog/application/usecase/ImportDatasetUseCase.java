@@ -3,6 +3,7 @@ package br.com.weediario.catalog.application.usecase;
 import br.com.weediario.catalog.domain.model.Breeder;
 import br.com.weediario.catalog.domain.model.CatalogEnums.Source;
 import br.com.weediario.catalog.domain.model.CatalogKey;
+import br.com.weediario.catalog.domain.model.CatalogNames;
 import br.com.weediario.catalog.domain.model.CatalogStrain;
 import br.com.weediario.catalog.domain.model.StrainTraits;
 import br.com.weediario.catalog.domain.repository.CatalogRepository;
@@ -16,6 +17,8 @@ import java.util.Map;
 /**
  * Popula o catálogo a partir de um dataset público. Pode rodar várias vezes (idempotente):
  * <ul>
+ *   <li>o nome é limpo antes (ver {@link CatalogNames}): "SALE - X - Banco" vira "X" do banco certo, "Banco - X"
+ *   sem breeder vira "X" do banco, e brinde, pacote ou nome com preço é ignorado;</li>
  *   <li>strain nova → cadastrada com origem DATASET;</li>
  *   <li>strain já existente → só completa campos vazios, nunca sobrescreve o que a comunidade informou.</li>
  * </ul>
@@ -44,8 +47,10 @@ public final class ImportDatasetUseCase {
         return new Report(rows.size(), counters[0], counters[1], counters[2], counters[3]);
     }
 
-    private void importOne(DatasetStrain row, Map<String, Breeder> breeders, int[] counters) {
-        if (CatalogKey.of(row.name()).isEmpty()) {
+    private void importOne(DatasetStrain raw, Map<String, Breeder> breeders, int[] counters) {
+        DatasetStrain row = cleaned(raw);
+        if (row == null || CatalogKey.of(row.name()).isEmpty() || CatalogNames.problemOf(row.name()).isPresent()
+                || CatalogNames.problemOf(row.breederName()).isPresent()) {
             counters[3]++;
             return;
         }
@@ -68,6 +73,30 @@ public final class ImportDatasetUseCase {
         }
         catalog.saveStrain(CatalogStrain.register(row.name(), breeder, row.traits(), Source.DATASET, null, clock));
         counters[0]++;
+    }
+
+    /**
+     * Tira o ruído de loja do nome. O breeder achado no nome só é usado se já existir no catálogo (o texto costuma vir
+     * truncado, como "Seed City Bulk Canna").
+     */
+    private DatasetStrain cleaned(DatasetStrain row) {
+        String breederName = row.breederName() == null || row.breederName().isBlank() ? null : row.breederName();
+        CatalogNames.Cleaned noise = CatalogNames.stripStoreNoise(row.name(), breederName);
+        String name = noise.name();
+        if (breederName == null && noise.breeder() != null
+                && catalog.findBreederByKey(CatalogKey.breeder(noise.breeder())).isPresent()) {
+            breederName = noise.breeder();
+        }
+        if (breederName == null && name != null) {
+            String prefix = name.split("\\s+-\\s+", 2)[0];
+            boolean known = catalog.findBreederByKey(CatalogKey.breeder(prefix)).isPresent();
+            var split = CatalogNames.splitBreederPrefix(name, known);
+            if (split.isPresent()) {
+                name = split.get().name();
+                breederName = split.get().breeder();
+            }
+        }
+        return name == null ? null : new DatasetStrain(name, breederName, row.traits());
     }
 
     /**

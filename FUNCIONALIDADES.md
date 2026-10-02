@@ -1,6 +1,6 @@
 # Funcionalidades do weediário
 
-Inventário do que o app faz hoje (backend 0.28.0, frontend 0.22.0). Para instalar e rodar, veja o [README](README.md);
+Inventário do que o app faz hoje (backend 0.29.0, frontend 0.22.0). Para instalar e rodar, veja o [README](README.md);
 para contribuir, o [CONTRIBUTING](CONTRIBUTING.md).
 
 O weediário é um diário de cultivo de cannabis com comunidade, catálogo aberto de genéticas e acompanhamento de
@@ -93,6 +93,8 @@ Os setups aparecem no perfil público do grower.
 | Página do produto: marca, categoria, uso, receitas, notas | `/produtos/:id` |
 | Mais usados: ranking de strains, bancos, marcas e produtos | `/mais-usados` |
 
+- **Só genéticas:** o catálogo recusa nome com preço ou moeda, anúncio ("SALE"), brinde, pacote, mistura ou produto
+  de loja, e a importação limpa o nome que vem com o banco ou a linha do banco embutidos.
 - **Sem duplicatas:** os nomes são normalizados, a busca tolera erro de digitação e, antes de cadastrar algo novo,
   o app pergunta "você quis dizer?".
 - **A comunidade completa** as características que faltam numa strain (floração, dominância, tempo de flora,

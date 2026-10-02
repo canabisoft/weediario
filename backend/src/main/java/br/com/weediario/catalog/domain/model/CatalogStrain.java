@@ -56,6 +56,7 @@ public final class CatalogStrain {
 
     public static CatalogStrain register(String name, Breeder breeder, StrainTraits traits, Source source,
                                          UUID createdBy, Clock clock) {
+        CatalogNames.requireValid(name);
         Instant now = clock.instant();
         return new CatalogStrain(UUID.randomUUID(), name, breeder, traits, Status.UNVERIFIED, source, createdBy, now, now,
                 null);
@@ -67,6 +68,7 @@ public final class CatalogStrain {
     public static CatalogStrain registerForTesting(String name, Breeder breeder, StrainTraits traits, UUID createdBy,
                                                    Clock clock) {
         Guard.notNull(breeder, "Breeder");
+        CatalogNames.requireValid(name);
         Instant now = clock.instant();
         return new CatalogStrain(UUID.randomUUID(), name, breeder, traits, Status.TESTING, Source.BREEDER, createdBy,
                 now, now, null);
