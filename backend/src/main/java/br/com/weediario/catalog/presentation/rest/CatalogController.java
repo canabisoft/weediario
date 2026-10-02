@@ -21,6 +21,7 @@ import br.com.weediario.catalog.domain.model.CatalogEnums.FloweringKind;
 import br.com.weediario.catalog.domain.model.CatalogEnums.FloweringSpeed;
 import br.com.weediario.catalog.domain.model.CatalogEnums.ProductCategory;
 import br.com.weediario.catalog.domain.model.CatalogEnums.SeedKind;
+import br.com.weediario.catalog.domain.model.CatalogEnums.StrainGeneration;
 import br.com.weediario.catalog.domain.model.CatalogStrain;
 import br.com.weediario.catalog.domain.model.StrainTraits;
 import br.com.weediario.shared.application.PageQuery;
@@ -251,10 +252,12 @@ public class CatalogController {
             Set<SeedKind> seedTypes,
             @Size(max = StrainTraits.MAX_TAGS) List<@Size(max = StrainTraits.TAG_MAX_LENGTH) String> flavors,
             @Size(max = StrainTraits.MAX_TAGS) List<@Size(max = StrainTraits.TAG_MAX_LENGTH) String> effects,
-            @Size(max = StrainTraits.GENETICS_MAX_LENGTH) String genetics) {
+            @Size(max = StrainTraits.GENETICS_MAX_LENGTH) String genetics,
+            StrainGeneration generation) {
 
         public StrainTraits traits() {
-            return new StrainTraits(floweringType, dominance, floweringSpeed, seedTypes, flavors, effects, genetics);
+            return new StrainTraits(floweringType, dominance, floweringSpeed, seedTypes, flavors, effects, genetics,
+                    generation);
         }
     }
 }

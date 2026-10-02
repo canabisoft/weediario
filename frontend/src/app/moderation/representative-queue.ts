@@ -6,9 +6,10 @@ import { Page } from '../core/api/api.models';
 import { BreederProgramApi, RepresentativeRequest } from '../core/api/breeder-program.api';
 import { problemMessage } from '../core/api/problem';
 import { timeAgo } from '../notifications/notification-text';
+import { BREEDER_KIND_LABEL } from '../shared/labels';
 
 /**
- * Pedidos para representar breeders (pendentes primeiro) e representantes aprovados. Aprovar libera o cadastro
+ * Pedidos para representar breeders, bancos ou independentes (pendentes primeiro), e representantes aprovados. Aprovar libera o cadastro
  * de sementes em teste; recusar ou revogar apaga o vínculo. A nota de prova só aparece aqui.
  */
 @Component({
@@ -29,6 +30,12 @@ import { timeAgo } from '../notifications/notification-text';
                 <a [routerLink]="['/bancos', item.breederId]" class="font-semibold hover:text-accent">{{ item.breeder }}</a>
                 <p class="text-sm text-fg-muted">
                   por <a [routerLink]="['/growers', item.username]" class="underline">{{ item.username }}</a> · pedido {{ when(item.requestedAt) }}
+                </p>
+                <p class="text-xs text-fg-muted">
+                  Diz representar: <strong class="text-fg">{{ kindLabel[item.claimedKind] }}</strong>
+                  @if (item.publicCredit) {
+                    · quer aparecer como criador(a)
+                  }
                 </p>
               </div>
               <span class="rounded-full px-2 py-0.5 text-xs font-semibold" [class]="item.status === 'APPROVED' ? 'bg-accent/15 text-accent' : 'bg-warn/15 text-warn'">
@@ -67,6 +74,7 @@ import { timeAgo } from '../notifications/notification-text';
   `,
 })
 export class RepresentativeQueue {
+  protected readonly kindLabel = BREEDER_KIND_LABEL;
   private readonly api = inject(BreederProgramApi);
 
   /** Avisa o painel para atualizar os contadores das abas. */

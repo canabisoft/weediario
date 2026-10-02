@@ -97,6 +97,25 @@ export function categoryLabel(category: string | undefined): string {
   return category ? (CATEGORY_LABEL as Record<string, string>)[category] ?? category : '';
 }
 
+export type BreederKind = 'SEEDBANK' | 'INDEPENDENT';
+export type StrainGeneration = 'F1' | 'F2' | 'F3_PLUS' | 'S1' | 'BX' | 'IBL' | 'POLYHYBRID';
+
+export const BREEDER_KIND_LABEL: Record<BreederKind, string> = {
+  SEEDBANK: 'Banco de sementes',
+  INDEPENDENT: 'Breeder independente',
+};
+
+/** Geração da genética: diz o quanto ela é estável (o que esperar entre uma planta e outra). */
+export const GENERATION_LABEL: Record<StrainGeneration, string> = {
+  F1: 'F1 (primeiro cruzamento)',
+  F2: 'F2',
+  F3_PLUS: 'F3 ou mais',
+  S1: 'S1 (autocruzamento)',
+  BX: 'BX (retrocruzamento)',
+  IBL: 'IBL (linhagem estável)',
+  POLYHYBRID: 'Poli-híbrido',
+};
+
 export const SOURCE_LABEL: Record<'DATASET' | 'COMMUNITY' | 'BREEDER', string> = {
   DATASET: 'Base pública',
   COMMUNITY: 'Comunidade',

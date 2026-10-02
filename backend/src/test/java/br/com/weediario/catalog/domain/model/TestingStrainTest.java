@@ -94,4 +94,33 @@ class TestingStrainTest {
         assertThat(approved.decidedAt()).isEqualTo(CLOCK.instant());
         assertThatThrownBy(() -> approved.approve(CLOCK)).isInstanceOf(DomainException.class);
     }
+
+    @Test
+    void onlyIndependentBreedersMayBeCreditedAndCanOptOut() {
+        UUID breederId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String note = "Diários de polinização no meu perfil";
+
+        assertThatThrownBy(() -> BreederRepresentative.request(breederId, userId, note,
+                CatalogEnums.BreederKind.SEEDBANK, true, CLOCK)).isInstanceOf(DomainException.class);
+
+        BreederRepresentative credited = BreederRepresentative.request(breederId, userId, note,
+                CatalogEnums.BreederKind.INDEPENDENT, true, CLOCK);
+        assertThat(credited.publicCredit()).isTrue();
+        assertThat(credited.approve(CLOCK).withPublicCredit(false).publicCredit()).isFalse();
+        // Sem tipo informado (pedidos antigos): banco de sementes, anônimo.
+        assertThat(BreederRepresentative.request(breederId, userId, note, CLOCK).claimedKind())
+                .isEqualTo(CatalogEnums.BreederKind.SEEDBANK);
+    }
+
+    @Test
+    void generationIsFilledByTheCommunityOnlyWhenMissing() {
+        StrainTraits informed = new StrainTraits(null, null, null, null, null, null, null,
+                CatalogEnums.StrainGeneration.F1);
+        StrainTraits contribution = new StrainTraits(null, null, null, null, null, null, null,
+                CatalogEnums.StrainGeneration.IBL);
+        assertThat(informed.fillMissingFrom(contribution).generation()).isEqualTo(CatalogEnums.StrainGeneration.F1);
+        assertThat(StrainTraits.EMPTY.fillMissingFrom(contribution).generation())
+                .isEqualTo(CatalogEnums.StrainGeneration.IBL);
+    }
 }

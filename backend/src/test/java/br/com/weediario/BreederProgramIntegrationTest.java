@@ -202,6 +202,62 @@ class BreederProgramIntegrationTest extends IntegrationTestSupport {
         mvc.perform(post("/api/v1/open-data/strains")).andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void independentBreederJoinsTheProgramAndMayChooseToBeCredited() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 6);
+        Session creator = newGrower();
+        Session moderator = moderator();
+        // Breeder independente que ainda não estava no catálogo: entra pelo "achar ou cadastrar".
+        String breederId = breeder(creator, "Quintal Genetics " + suffix);
+
+        // Crédito público só para independente.
+        mvc.perform(authed(post("/api/v1/breeder-program/representations"), creator)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"breederId":"%s","note":"Meus diários de polinização estão no meu perfil.",
+                                 "kind":"SEEDBANK","publicCredit":true}""".formatted(breederId)))
+                .andExpect(status().isUnprocessableEntity());
+        mvc.perform(authed(post("/api/v1/breeder-program/representations"), creator)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"breederId":"%s","note":"Meus diários de polinização estão no meu perfil.",
+                                 "kind":"INDEPENDENT","publicCredit":true}""".formatted(breederId)))
+                .andExpect(status().isCreated());
+
+        JsonNode request = representativeRequest(moderator, creator.username());
+        assertThat(request.get("claimedKind").asText()).isEqualTo("INDEPENDENT");
+        assertThat(request.get("publicCredit").asBoolean()).isTrue();
+        // Antes da aprovação, ninguém aparece como criador.
+        mvc.perform(get("/api/v1/catalog/breeders/{id}", breederId))
+                .andExpect(jsonPath("$.creators").isEmpty());
+
+        mvc.perform(authed(post("/api/v1/moderation/breeder-representatives/{b}/{u}/approve", breederId,
+                        request.get("userId").asText()), moderator))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/v1/catalog/breeders/{id}", breederId))
+                .andExpect(jsonPath("$.kind").value("INDEPENDENT"))
+                .andExpect(jsonPath("$.creators[0]").value(creator.username()));
+
+        // Semente com geração informada.
+        String strainId = body(mvc.perform(authed(post("/api/v1/breeder-program/strains"), creator)
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"breederId":"%s","name":"Quintal Haze %s",
+                                 "traits":{"genetics":"Haze x Skunk","generation":"F2"}}""".formatted(breederId, suffix)))
+                .andExpect(status().isCreated()).andReturn()).get("id").asText();
+        mvc.perform(get("/api/v1/catalog/strains/{id}", strainId))
+                .andExpect(jsonPath("$.generation").value("F2"))
+                .andExpect(jsonPath("$.breederKind").value("INDEPENDENT"));
+
+        // A pessoa pode voltar ao anonimato quando quiser.
+        mvc.perform(authed(put("/api/v1/breeder-program/representations/{b}/credit", breederId), creator)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"publicCredit\":false}"))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/v1/catalog/breeders/{id}", breederId)).andExpect(jsonPath("$.creators").isEmpty());
+
+        // O banco aberto ganha as colunas novas no fim (sem mudar a ordem das antigas).
+        String header = mvc.perform(get("/api/v1/open-data/strains.csv")).andReturn().getResponse()
+                .getContentAsString(StandardCharsets.UTF_8).lines().findFirst().orElseThrow();
+        assertThat(header).endsWith("avg_grams_per_plant,breeder_kind,generation");
+    }
+
     // ------------------------------------------------------------------------------------- helpers
 
     private String breeder(Session session, String name) throws Exception {

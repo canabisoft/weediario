@@ -1,6 +1,7 @@
 package br.com.weediario.catalog.infrastructure.persistence;
 
 import br.com.weediario.catalog.domain.model.BreederRepresentative;
+import br.com.weediario.catalog.domain.model.CatalogEnums.BreederKind;
 import br.com.weediario.catalog.domain.model.BreederRepresentative.Status;
 import br.com.weediario.catalog.domain.repository.BreederRepresentativeRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -31,20 +32,26 @@ public class JdbcBreederRepresentativeRepository implements BreederRepresentativ
                         Status.valueOf(rs.getString("status")),
                         rs.getString("note"),
                         rs.getTimestamp("requested_at").toInstant(),
-                        rs.getTimestamp("decided_at") == null ? null : rs.getTimestamp("decided_at").toInstant()))
+                        rs.getTimestamp("decided_at") == null ? null : rs.getTimestamp("decided_at").toInstant(),
+                        BreederKind.valueOf(rs.getString("claimed_kind")),
+                        rs.getBoolean("public_credit")))
                 .stream().findFirst();
     }
 
     @Override
     public BreederRepresentative save(BreederRepresentative representative) {
         jdbc.update("""
-                insert into breeder_representatives (breeder_id, user_id, status, note, requested_at, decided_at)
-                values (:breederId, :userId, :status, :note, :requestedAt, :decidedAt)
+                insert into breeder_representatives (breeder_id, user_id, status, note, requested_at, decided_at,
+                                                     claimed_kind, public_credit)
+                values (:breederId, :userId, :status, :note, :requestedAt, :decidedAt, :claimedKind, :publicCredit)
                 on conflict (breeder_id, user_id) do update set
-                    status = excluded.status, decided_at = excluded.decided_at""",
+                    status = excluded.status, decided_at = excluded.decided_at,
+                    public_credit = excluded.public_credit""",
                 key(representative.breederId(), representative.userId())
                         .addValue("status", representative.status().name())
                         .addValue("note", representative.note())
+                        .addValue("claimedKind", representative.claimedKind().name())
+                        .addValue("publicCredit", representative.publicCredit())
                         .addValue("requestedAt", Timestamp.from(representative.requestedAt()))
                         .addValue("decidedAt", representative.decidedAt() == null ? null
                                 : Timestamp.from(representative.decidedAt()), Types.TIMESTAMP));

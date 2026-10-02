@@ -6,6 +6,7 @@ import br.com.weediario.catalog.application.query.BrowseCatalogUseCase.BreederPr
 import br.com.weediario.catalog.application.query.CatalogQueries.RepresentativeRequest;
 import br.com.weediario.catalog.application.usecase.BreederProgramUseCase;
 import br.com.weediario.catalog.domain.model.BreederRepresentative;
+import br.com.weediario.catalog.domain.model.CatalogEnums.BreederKind;
 import br.com.weediario.catalog.domain.model.CatalogStrain;
 import br.com.weediario.catalog.presentation.rest.CatalogController.TraitsRequest;
 import br.com.weediario.shared.application.PageQuery;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -53,7 +55,16 @@ public class BreederProgramController {
     @PostMapping("/api/v1/breeder-program/representations")
     @ResponseStatus(HttpStatus.CREATED)
     public void request(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody RepresentationRequest request) {
-        program.requestRepresentation(Viewer.requireId(principal), request.breederId(), request.note());
+        program.requestRepresentation(Viewer.requireId(principal), request.breederId(), request.note(),
+                request.kind(), Boolean.TRUE.equals(request.publicCredit()));
+    }
+
+    /** Breeder independente decide se aparece como criador(a) das genéticas. */
+    @PutMapping("/api/v1/breeder-program/representations/{breederId}/credit")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void credit(@AuthenticationPrincipal Jwt principal, @PathVariable UUID breederId,
+                       @Valid @RequestBody CreditRequest request) {
+        program.changePublicCredit(Viewer.requireId(principal), breederId, request.publicCredit());
     }
 
     @DeleteMapping("/api/v1/breeder-program/representations/{breederId}")
@@ -93,10 +104,19 @@ public class BreederProgramController {
         program.reject(breederId, userId, Viewer.isModerator(principal));
     }
 
+    /**
+     * @param kind         o que a pessoa representa (padrão: banco de sementes)
+     * @param publicCredit só para breeder independente: aparecer como criador(a)
+     */
     public record RepresentationRequest(
             @NotNull UUID breederId,
             @NotBlank @Size(min = BreederRepresentative.NOTE_MIN_LENGTH, max = BreederRepresentative.NOTE_MAX_LENGTH)
-            String note) {
+            String note,
+            BreederKind kind,
+            Boolean publicCredit) {
+    }
+
+    public record CreditRequest(boolean publicCredit) {
     }
 
     public record BreederStrainRequest(

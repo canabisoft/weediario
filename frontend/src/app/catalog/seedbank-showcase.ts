@@ -20,7 +20,7 @@ interface StrainsState {
 }
 
 /**
- * Vitrine do banco de sementes: um card por strain que ele tem no catálogo e os cultivos mais recentes da
+ * Vitrine do breeder (banco de sementes ou independente): um card por strain que ele tem no catálogo e os cultivos mais recentes da
  * comunidade com sementes dele. Só diários públicos entram (contagens e fotos).
  */
 @Component({
@@ -30,7 +30,7 @@ interface StrainsState {
   template: `
     <section class="mt-6" aria-labelledby="bank-strains">
       <h2 id="bank-strains" class="text-lg font-semibold">
-        Sementes do banco
+        Sementes do breeder
         @if (strains(); as s) {
           <span class="text-sm font-normal text-fg-muted">· {{ s.total }}</span>
         }
@@ -81,7 +81,7 @@ interface StrainsState {
             <button type="button" class="wd-button mt-3 w-full bg-surface-raised text-fg" (click)="more()">Ver mais sementes</button>
           }
         } @else {
-          <p class="wd-card mt-3 text-sm text-fg-muted">Nenhuma strain deste banco no catálogo ainda. Elas aparecem quando alguém cadastra um cultivo com sementes dele.</p>
+          <p class="wd-card mt-3 text-sm text-fg-muted">Nenhuma strain deste breeder no catálogo ainda. Elas aparecem quando alguém cadastra um cultivo com sementes dele.</p>
         }
       } @else {
         <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" aria-busy="true">
@@ -93,7 +93,7 @@ interface StrainsState {
     </section>
 
     <section class="mt-6" aria-labelledby="bank-diaries">
-      <h2 id="bank-diaries" class="text-lg font-semibold">Últimos cultivos com sementes do banco</h2>
+      <h2 id="bank-diaries" class="text-lg font-semibold">Últimos cultivos com sementes deste breeder</h2>
       @if (latest(); as diaries) {
         @if (diaries.length) {
           <ul class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -102,7 +102,7 @@ interface StrainsState {
             }
           </ul>
         } @else {
-          <p class="wd-card mt-3 text-sm text-fg-muted">Ainda não há cultivos públicos com sementes deste banco.</p>
+          <p class="wd-card mt-3 text-sm text-fg-muted">Ainda não há cultivos públicos com sementes deste breeder.</p>
         }
       } @else {
         <div class="mt-3 h-40 animate-pulse rounded-2xl bg-surface" aria-busy="true"></div>

@@ -1,3 +1,4 @@
+import { BreederKind, StrainGeneration } from '../../shared/labels';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -57,6 +58,10 @@ export interface BreederListItem {
   readonly diaries: number;
   readonly reviewCount: number;
   readonly overall?: number;
+  /** Banco de sementes ou breeder independente (ausente se ninguém informou). */
+  readonly kind?: BreederKind;
+  /** Breeders independentes que escolheram aparecer como criadores das genéticas. */
+  readonly creators: string[];
 }
 
 /** Card de uma strain na página do banco de sementes. */
@@ -125,6 +130,7 @@ export interface TestingStrainItem {
   readonly promotedAt?: string;
   /** Só enquanto está em teste. */
   readonly progress?: TestingProgress;
+  readonly generation?: StrainGeneration;
 }
 
 export interface StrainTraits {
@@ -135,6 +141,7 @@ export interface StrainTraits {
   readonly flavors?: string[];
   readonly effects?: string[];
   readonly genetics?: string;
+  readonly generation?: StrainGeneration;
 }
 
 export interface StrainDetail extends StrainTraits {
@@ -152,6 +159,7 @@ export interface StrainDetail extends StrainTraits {
   readonly promotedAt?: string;
   /** Andamento do teste (só para strains em teste). */
   readonly testing?: TestingProgress;
+  readonly breederKind?: BreederKind;
 }
 
 export interface RankingRow {

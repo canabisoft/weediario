@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { Page } from './api.models';
 import { CatalogItem, StrainTraits, TestingStrainItem } from './catalog-db.api';
 import { compact } from './diaries.api';
+import { BreederKind } from '../../shared/labels';
 
 export type RepresentationStatus = 'PENDING' | 'APPROVED';
 
@@ -14,6 +15,9 @@ export interface Representation {
   readonly status: RepresentationStatus;
   readonly requestedAt: string;
   readonly decidedAt?: string;
+  readonly claimedKind: BreederKind;
+  /** Breeder independente aparecendo como criador(a) das genéticas. */
+  readonly publicCredit: boolean;
 }
 
 export interface BreederProgram {
@@ -32,6 +36,8 @@ export interface RepresentativeRequest {
   readonly note?: string;
   readonly requestedAt: string;
   readonly decidedAt?: string;
+  readonly claimedKind: BreederKind;
+  readonly publicCredit: boolean;
 }
 
 /**
@@ -45,8 +51,13 @@ export class BreederProgramApi {
     return this.http.get<BreederProgram>('/api/v1/breeder-program');
   }
 
-  requestRepresentation(breederId: string, note: string): Observable<void> {
-    return this.http.post<void>('/api/v1/breeder-program/representations', { breederId, note });
+  requestRepresentation(breederId: string, note: string, kind: BreederKind, publicCredit: boolean): Observable<void> {
+    return this.http.post<void>('/api/v1/breeder-program/representations', { breederId, note, kind, publicCredit });
+  }
+
+  /** Breeder independente decide se aparece como criador(a) das genéticas. */
+  changeCredit(breederId: string, publicCredit: boolean): Observable<void> {
+    return this.http.put<void>(`/api/v1/breeder-program/representations/${breederId}/credit`, { publicCredit });
   }
 
   withdraw(breederId: string): Observable<void> {

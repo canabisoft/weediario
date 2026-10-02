@@ -50,6 +50,26 @@ public final class CatalogEnums {
         REGULAR
     }
 
+    /** Banco de sementes (empresa ou marca) ou breeder independente (quem cria genéticas por conta própria). */
+    public enum BreederKind {
+        SEEDBANK,
+        INDEPENDENT
+    }
+
+    /**
+     * Geração da genética, que indica o quanto ela é estável: F1 (primeiro cruzamento), F2, F3 ou mais, S1
+     * (autocruzamento), BX (retrocruzamento), IBL (linhagem estável) ou poli-híbrido.
+     */
+    public enum StrainGeneration {
+        F1,
+        F2,
+        F3_PLUS,
+        S1,
+        BX,
+        IBL,
+        POLYHYBRID
+    }
+
     public enum ProductCategory {
         NUTRIENT,
         ADDITIVE,

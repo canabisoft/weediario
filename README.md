@@ -119,13 +119,18 @@ apelidos e "você quis dizer?"). As notas vêm só de cultivos reais: o autor de
 opcionalmente, o banco e cada produto usado no cultivo. As médias consideram só avaliações publicadas de contas ativas;
 a nota de um produto não mostra quem avaliou e só leva ao diário quando ele é público (`/produtos/:id`).
 
-- **Programa de breeders** (`/breeders/programa`): quem representa um banco pede o vínculo com uma nota de prova
-  (só a moderação vê, na aba "Representantes" do painel). Aprovado, cadastra as sementes do banco, que entram como
+- **Programa de breeders** (`/breeders/programa`): para **bancos de sementes** e para **breeders independentes**
+  (quem cria genéticas por conta própria). Quem pede diz o que representa e manda uma nota de prova (só a moderação
+  vê, na aba "Representantes" do painel): site oficial do banco ou, para independentes, diários de polinização,
+  fotos, perfil onde divulga o trabalho. O breeder independente que ainda não está no catálogo cadastra o nome do
+  projeto na hora (com "você quis dizer?"). Ao aprovar, o breeder fica marcado como banco ou independente. Aprovado,
+  cadastra as sementes, com a **geração** opcional (F1, F2, F3+, S1, BX, IBL, poli-híbrido), que entram como
   **em teste**: aparecem no autocomplete e na aba "Em teste", mas ficam fora da listagem oficial, dos rankings e do
   banco aberto. A semente entra no banco oficial sozinha quando **3 cultivadores** diferentes abrem diário com ela e
-  há **1 avaliação pós-colheita**, sem contar representantes do banco (checado a cada review e a cada 10 min).
-  Moderadores não podem "verificar" uma semente em teste, só recusar se ninguém a usa. Quem representa um banco nunca
-  é exibido publicamente.
+  há **1 avaliação pós-colheita**, sem contar quem representa o breeder (checado a cada review e a cada 10 min).
+  Moderadores não podem "verificar" uma semente em teste, só recusar se ninguém a usa. Quem representa um breeder
+  não é exibido publicamente, a não ser que um breeder independente escolha aparecer como criador(a) das genéticas
+  (opcional, desligado por padrão, reversível a qualquer momento).
 - **Banco aberto de strains** (`/dados-abertos`): `GET /api/v1/open-data/strains` (JSON) e
   `GET /api/v1/open-data/strains.csv`, públicos e sem login, sob a licença
   [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/). Só strains oficiais e só agregados (características,

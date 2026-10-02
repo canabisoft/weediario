@@ -2,6 +2,7 @@ package br.com.weediario.catalog.infrastructure.persistence;
 
 import br.com.weediario.catalog.domain.model.Brand;
 import br.com.weediario.catalog.domain.model.Breeder;
+import br.com.weediario.catalog.domain.model.CatalogEnums.BreederKind;
 import br.com.weediario.catalog.domain.model.CatalogEnums.Dominance;
 import br.com.weediario.catalog.domain.model.CatalogEnums.FloweringKind;
 import br.com.weediario.catalog.domain.model.CatalogEnums.FloweringSpeed;
@@ -9,6 +10,7 @@ import br.com.weediario.catalog.domain.model.CatalogEnums.ProductCategory;
 import br.com.weediario.catalog.domain.model.CatalogEnums.SeedKind;
 import br.com.weediario.catalog.domain.model.CatalogEnums.Source;
 import br.com.weediario.catalog.domain.model.CatalogEnums.Status;
+import br.com.weediario.catalog.domain.model.CatalogEnums.StrainGeneration;
 import br.com.weediario.catalog.domain.model.CatalogStrain;
 import br.com.weediario.catalog.domain.model.Product;
 import br.com.weediario.catalog.domain.model.StrainTraits;
@@ -40,7 +42,7 @@ public class JdbcCatalogRepository implements CatalogRepository {
 
     private static final String STRAIN_SELECT = """
             select s.*, b.id as b_id, b.name as b_name, b.name_key as b_name_key, b.status as b_status,
-                   b.source as b_source, b.created_by as b_created_by, b.created_at as b_created_at
+                   b.source as b_source, b.created_by as b_created_by, b.created_at as b_created_at, b.kind as b_kind
               from strains s
               left join breeders b on b.id = s.breeder_id
             """;
@@ -74,12 +76,12 @@ public class JdbcCatalogRepository implements CatalogRepository {
         StrainTraits traits = strain.traits();
         jdbc.update("""
                 insert into strains (id, name, breeder, name_key, breeder_key, breeder_id, flowering_type, dominance,
-                                     flowering_speed, seed_types, flavors, effects, genetics, status, source,
+                                     flowering_speed, seed_types, flavors, effects, genetics, generation, status, source,
                                      created_by, created_at, updated_at, promoted_at)
                 values (:id, :name, :breeder, :nameKey, :breederKey, :breederId, :floweringType, :dominance,
                         :floweringSpeed, cast(:seedTypes as varchar(20)[]), cast(:flavors as varchar(30)[]),
-                        cast(:effects as varchar(30)[]), :genetics, :status, :source, :createdBy, :createdAt, :updatedAt,
-                        :promotedAt)
+                        cast(:effects as varchar(30)[]), :genetics, :generation, :status, :source, :createdBy,
+                        :createdAt, :updatedAt, :promotedAt)
                 on conflict (id) do update set
                     flowering_type = excluded.flowering_type,
                     dominance = excluded.dominance,
@@ -88,6 +90,7 @@ public class JdbcCatalogRepository implements CatalogRepository {
                     flavors = excluded.flavors,
                     effects = excluded.effects,
                     genetics = excluded.genetics,
+                    generation = excluded.generation,
                     status = excluded.status,
                     updated_at = excluded.updated_at,
                     promoted_at = excluded.promoted_at""",
@@ -104,6 +107,7 @@ public class JdbcCatalogRepository implements CatalogRepository {
                         .addValue("flavors", traits.flavors().toArray(String[]::new))
                         .addValue("effects", traits.effects().toArray(String[]::new))
                         .addValue("genetics", traits.genetics())
+                        .addValue("generation", name(traits.generation()))
                         .addValue("status", strain.status().name())
                         .addValue("source", strain.source().name())
                         .addValue("createdBy", strain.createdBy(), Types.OTHER)
@@ -306,11 +310,12 @@ public class JdbcCatalogRepository implements CatalogRepository {
     @Override
     public Breeder saveBreeder(Breeder breeder) {
         jdbc.update("""
-                insert into breeders (id, name, name_key, status, source, created_by, created_at)
-                values (:id, :name, :key, :status, :source, :createdBy, :createdAt)
-                on conflict (id) do update set status = excluded.status""",
+                insert into breeders (id, name, name_key, status, source, created_by, created_at, kind)
+                values (:id, :name, :key, :status, :source, :createdBy, :createdAt, :kind)
+                on conflict (id) do update set status = excluded.status, kind = excluded.kind""",
                 namedParams(breeder.id(), breeder.name(), breeder.nameKey(), breeder.status(), breeder.source(),
-                        breeder.createdBy(), breeder.createdAt()));
+                        breeder.createdBy(), breeder.createdAt())
+                        .addValue("kind", breeder.kind() == null ? null : breeder.kind().name()));
         return breeder;
     }
 
@@ -433,7 +438,8 @@ public class JdbcCatalogRepository implements CatalogRepository {
                 seedKinds(rs.getArray("seed_types")),
                 strings(rs.getArray("flavors")),
                 strings(rs.getArray("effects")),
-                rs.getString("genetics"));
+                rs.getString("genetics"),
+                enumOf(StrainGeneration.class, rs.getString("generation")));
         return CatalogStrain.restore(
                 rs.getObject("id", UUID.class),
                 rs.getString("name"),
@@ -455,7 +461,8 @@ public class JdbcCatalogRepository implements CatalogRepository {
                 Status.valueOf(rs.getString(prefix + "status")),
                 Source.valueOf(rs.getString(prefix + "source")),
                 rs.getObject(prefix + "created_by", UUID.class),
-                rs.getTimestamp(prefix + "created_at").toInstant());
+                rs.getTimestamp(prefix + "created_at").toInstant(),
+                enumOf(BreederKind.class, rs.getString(prefix + "kind")));
     }
 
     private Brand brand(ResultSet rs, int rowNum) throws SQLException {

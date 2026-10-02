@@ -8,16 +8,27 @@ import { CatalogItem, Dominance, FloweringSpeed, SeedKind, StrainTraits } from '
 import { problemMessage } from '../core/api/problem';
 import { CatalogPicker } from '../shared/catalog-picker';
 import { Icon } from '../shared/icon';
-import { DOMINANCE_LABEL, SEED_KIND_LABEL, SPEED_LABEL, formatDate, options } from '../shared/labels';
+import {
+  BREEDER_KIND_LABEL,
+  BreederKind,
+  DOMINANCE_LABEL,
+  GENERATION_LABEL,
+  SEED_KIND_LABEL,
+  SPEED_LABEL,
+  StrainGeneration,
+  formatDate,
+  options,
+} from '../shared/labels';
 import { TestingProgressBar } from '../shared/testing-progress';
 
 const NOTE_MIN = 10;
 const NOTE_MAX = 500;
 
 /**
- * Programa de breeders: quem representa um banco de sementes (aprovado pela moderação) cadastra as sementes dele.
- * Elas ficam "em teste" e só entram no banco oficial quando 3 cultivadores de fora do banco as cultivam e há
- * uma avaliação pós-colheita. Quem representa um breeder nunca aparece publicamente.
+ * Programa de breeders, para bancos de sementes e para breeders independentes (quem cria genéticas por conta
+ * própria). Quem é aprovado pela moderação cadastra as sementes; elas ficam "em teste" e só entram no banco oficial
+ * quando 3 cultivadores de fora do breeder as cultivam e há uma avaliação pós-colheita. Quem representa um breeder
+ * não aparece publicamente, a não ser que um breeder independente escolha aparecer como criador(a).
  */
 @Component({
   selector: 'app-breeder-program-page',
@@ -26,15 +37,22 @@ const NOTE_MAX = 500;
   template: `
     <a routerLink="/strains" class="text-sm text-fg-muted">← Catálogo</a>
     <h1 class="mt-2 text-2xl font-bold">Programa de breeders</h1>
-    <p class="text-fg-muted">Para bancos de sementes colocarem as genéticas deles no catálogo, validadas por quem cultiva.</p>
+    <p class="text-fg-muted">
+      Para bancos de sementes e para breeders independentes — quem cria genéticas em casa ou em pequenos projetos —
+      colocarem suas genéticas no catálogo, validadas por quem cultiva.
+    </p>
 
     <ol class="wd-card mt-4 grid gap-2 text-sm">
-      <li><strong>1. Peça para representar o banco.</strong> A moderação confere o vínculo (ex.: pelo site oficial). Ninguém mais vê seu pedido.</li>
+      <li>
+        <strong>1. Peça para entrar.</strong> Se for um banco, mostre o vínculo (site oficial, rede do banco). Se for breeder
+        independente, cadastre o nome do seu projeto e mostre seu trabalho (diários de polinização aqui no weediário, fotos,
+        perfil onde você divulga). A moderação confere; ninguém mais vê seu pedido.
+      </li>
       <li><strong>2. Cadastre as sementes.</strong> Elas entram como <em>em teste</em>: aparecem para quem for abrir um diário, mas ainda não no catálogo oficial.</li>
       <li>
-        <strong>3. A comunidade valida.</strong> Com 3 cultivadores de fora do banco e 1 avaliação pós-colheita, a semente entra no
+        <strong>3. A comunidade valida.</strong> Com 3 cultivadores de fora do breeder e 1 avaliação pós-colheita, a semente entra no
         banco oficial e no <a routerLink="/dados-abertos" class="text-accent underline">banco aberto</a>. Diários e avaliações de
-        representantes do banco não contam.
+        quem representa o breeder não contam.
       </li>
     </ol>
 
@@ -44,12 +62,13 @@ const NOTE_MAX = 500;
       }
 
       <section class="mt-6" aria-labelledby="representations-title">
-        <h2 id="representations-title" class="text-lg font-semibold">Bancos que você representa</h2>
+        <h2 id="representations-title" class="text-lg font-semibold">Breeders que você representa</h2>
         <ul class="mt-3 grid gap-2">
           @for (rep of state.data.representations; track rep.breederId) {
             <li class="wd-card flex flex-wrap items-center gap-3">
               <span class="min-w-0 flex-1">
                 <a [routerLink]="['/bancos', rep.breederId]" class="font-semibold">{{ rep.breeder }}</a>
+                <span class="block text-xs text-fg-muted">{{ kindLabel[rep.claimedKind] }}</span>
                 <span class="block text-xs text-fg-muted">
                   @if (rep.status === 'APPROVED') {
                     Aprovado em {{ date(rep.decidedAt) }}
@@ -64,22 +83,60 @@ const NOTE_MAX = 500;
               <button type="button" class="wd-button min-h-9 bg-surface-raised text-fg" [disabled]="busy()" (click)="withdraw(rep)">
                 {{ rep.status === 'APPROVED' ? 'Deixar de representar' : 'Cancelar pedido' }}
               </button>
+              @if (rep.claimedKind === 'INDEPENDENT') {
+                <label class="flex w-full items-start gap-2 text-sm">
+                  <input type="checkbox" class="mt-0.5 size-5" [checked]="rep.publicCredit" [disabled]="busy()"
+                         (change)="changeCredit(rep, $any($event.target).checked)" />
+                  <span>
+                    Mostrar meu apelido como criador(a) das genéticas na página do breeder.
+                    <span class="block text-xs text-fg-muted">Desligado, ninguém sabe que é você. Dá para mudar quando quiser.</span>
+                  </span>
+                </label>
+              }
             </li>
           } @empty {
-            <li class="wd-card text-sm text-fg-muted">Você ainda não representa nenhum banco.</li>
+            <li class="wd-card text-sm text-fg-muted">Você ainda não representa nenhum banco ou breeder.</li>
           }
         </ul>
 
         <form class="wd-card mt-3 grid gap-3" (ngSubmit)="request()" aria-labelledby="request-title">
-          <h3 id="request-title" class="font-semibold">Pedir para representar um banco</h3>
-          <app-catalog-picker kind="breeders" label="Banco de sementes" placeholder="Busque o banco no catálogo" [(value)]="breeder" />
+          <h3 id="request-title" class="font-semibold">Pedir para entrar no programa</h3>
+          <fieldset>
+            <legend class="wd-label">Você é</legend>
+            <div class="flex flex-wrap gap-4">
+              @for (o of kindOptions; track o.value) {
+                <label class="inline-flex min-h-11 items-center gap-2">
+                  <input type="radio" class="size-5" name="kind" [value]="o.value" [(ngModel)]="requestKind" />
+                  {{ o.value === 'SEEDBANK' ? 'De um banco de sementes' : 'Breeder independente' }}
+                </label>
+              }
+            </div>
+          </fieldset>
+          <app-catalog-picker
+            kind="breeders"
+            [label]="requestKind === 'INDEPENDENT' ? 'Nome do seu projeto de breeding' : 'Banco de sementes'"
+            [placeholder]="requestKind === 'INDEPENDENT' ? 'Ex.: Quintal Genetics' : 'Busque o banco no catálogo'"
+            [hint]="requestKind === 'INDEPENDENT' ? 'Se ainda não estiver no catálogo, cadastre o nome aqui mesmo.' : ''"
+            [(value)]="breeder"
+          />
           <div>
-            <label class="wd-label" for="rep-note">Como comprovar o vínculo (só a moderação vê)</label>
+            <label class="wd-label" for="rep-note">Como comprovar (só a moderação vê)</label>
             <textarea id="rep-note" rows="3" class="wd-input py-2 text-base" [attr.minlength]="noteMin" [attr.maxlength]="noteMax"
-                      placeholder="Ex.: sou o fundador; o site oficial do banco cita meu apelido na página Sobre."
+                      [placeholder]="requestKind === 'INDEPENDENT'
+                        ? 'Ex.: faço cruzamentos há 3 anos; os diários de polinização das minhas F1 estão no meu perfil aqui.'
+                        : 'Ex.: sou o fundador; o site oficial do banco cita meu apelido na página Sobre.'"
                       [(ngModel)]="note" name="note"></textarea>
             <p class="mt-1 text-xs text-fg-muted">Sem telefone, PIX ou contato para negócio. A moderação pode pedir mais informações.</p>
           </div>
+          @if (requestKind === 'INDEPENDENT') {
+            <label class="flex items-start gap-2 text-sm">
+              <input type="checkbox" class="mt-0.5 size-5" [(ngModel)]="publicCredit" name="publicCredit" />
+              <span>
+                Quero aparecer como criador(a) das genéticas (meu apelido na página do breeder).
+                <span class="block text-xs text-fg-muted">Opcional. Sem isso, ninguém sabe quem está por trás do projeto.</span>
+              </span>
+            </label>
+          }
           <button type="submit" class="wd-button w-fit" [disabled]="busy() || !breeder() || note.trim().length < noteMin">Enviar pedido</button>
         </form>
       </section>
@@ -89,9 +146,9 @@ const NOTE_MAX = 500;
           <h2 id="register-title" class="text-lg font-semibold">Cadastrar semente para teste</h2>
           <form class="wd-card mt-3 grid gap-3 sm:grid-cols-2" (ngSubmit)="register()">
             <div>
-              <label class="wd-label" for="s-breeder">Banco</label>
+              <label class="wd-label" for="s-breeder">Breeder</label>
               <select id="s-breeder" class="wd-input" [(ngModel)]="strainBreederId" name="breederId">
-                <option [ngValue]="undefined" disabled>Escolha o banco</option>
+                <option [ngValue]="undefined" disabled>Escolha o breeder</option>
                 @for (rep of approved(); track rep.breederId) {
                   <option [ngValue]="rep.breederId">{{ rep.breeder }}</option>
                 }
@@ -138,9 +195,19 @@ const NOTE_MAX = 500;
                 }
               </div>
             </fieldset>
-            <div class="sm:col-span-2">
+            <div>
               <label class="wd-label" for="s-genetics">Genética (cruzamento)</label>
               <input id="s-genetics" class="wd-input" maxlength="120" placeholder="Ex.: Gelato 41 x Zkittlez" [(ngModel)]="traits.genetics" name="genetics" />
+            </div>
+            <div>
+              <label class="wd-label" for="s-generation">Geração</label>
+              <select id="s-generation" class="wd-input" [(ngModel)]="traits.generation" name="generation">
+                <option [ngValue]="undefined">Não informar</option>
+                @for (o of generationOptions; track o.value) {
+                  <option [ngValue]="o.value">{{ o.label }}</option>
+                }
+              </select>
+              <p class="mt-1 text-xs text-fg-muted">Ajuda quem vai testar a saber o quanto as plantas podem variar.</p>
             </div>
             <div>
               <label class="wd-label" for="s-flavors">Sabores (separe por vírgula)</label>
@@ -159,7 +226,7 @@ const NOTE_MAX = 500;
 
       @if (state.data.strains.length) {
         <section class="mt-6" aria-labelledby="mine-title">
-          <h2 id="mine-title" class="text-lg font-semibold">Sementes dos seus bancos</h2>
+          <h2 id="mine-title" class="text-lg font-semibold">Suas sementes</h2>
           <ul class="mt-3 grid gap-3 sm:grid-cols-2">
             @for (strain of state.data.strains; track strain.id) {
               <li class="wd-card grid gap-2">
@@ -173,7 +240,9 @@ const NOTE_MAX = 500;
                     </span>
                   }
                 </p>
-                <p class="text-xs text-fg-muted">{{ strain.breeder }} · cadastrada em {{ date(strain.createdAt) }}</p>
+                <p class="text-xs text-fg-muted">
+                  {{ strain.breeder }}{{ strain.generation ? ' · ' + generationLabel[strain.generation] : '' }} · cadastrada em {{ date(strain.createdAt) }}
+                </p>
                 @if (strain.progress; as progress) {
                   <app-testing-progress [progress]="progress" />
                 } @else if (strain.promotedAt) {
@@ -201,14 +270,26 @@ export class BreederProgramPage {
   protected readonly dominanceOptions = options(DOMINANCE_LABEL);
   protected readonly speedOptions = options(SPEED_LABEL);
   protected readonly seedOptions = options(SEED_KIND_LABEL);
+  protected readonly kindOptions = options(BREEDER_KIND_LABEL);
+  protected readonly kindLabel = BREEDER_KIND_LABEL;
+  protected readonly generationOptions = options(GENERATION_LABEL);
+  protected readonly generationLabel = GENERATION_LABEL;
 
   protected readonly busy = signal(false);
   protected readonly message = signal<string | null>(null);
   protected readonly breeder = signal<CatalogItem | null>(null);
   protected note = '';
+  protected requestKind: BreederKind = 'SEEDBANK';
+  protected publicCredit = false;
   protected strainBreederId: string | undefined;
   protected strainName = '';
-  protected traits: { floweringType?: StrainTraits['floweringType']; dominance?: Dominance; floweringSpeed?: FloweringSpeed; genetics?: string } = {};
+  protected traits: {
+    floweringType?: StrainTraits['floweringType'];
+    dominance?: Dominance;
+    floweringSpeed?: FloweringSpeed;
+    genetics?: string;
+    generation?: StrainGeneration;
+  } = {};
   protected readonly seedTypes = new Set<SeedKind>();
   protected flavorsText = '';
   protected effectsText = '';
@@ -243,11 +324,19 @@ export class BreederProgramPage {
     if (!breeder) {
       return;
     }
-    this.run(this.api.requestRepresentation(breeder.id, this.note.trim()), () => {
+    const kind = this.requestKind;
+    this.run(this.api.requestRepresentation(breeder.id, this.note.trim(), kind, kind === 'INDEPENDENT' && this.publicCredit), () => {
       this.message.set(`Pedido enviado. A moderação vai conferir seu vínculo com ${breeder.name}.`);
       this.breeder.set(null);
       this.note = '';
+      this.publicCredit = false;
     });
+  }
+
+  protected changeCredit(rep: Representation, publicCredit: boolean): void {
+    this.run(this.api.changeCredit(rep.breederId, publicCredit), () =>
+      this.message.set(publicCredit ? `Seu apelido aparece como criador(a) em ${rep.breeder}.` : `Você não aparece mais em ${rep.breeder}.`),
+    );
   }
 
   protected withdraw(rep: Representation): void {
@@ -261,7 +350,7 @@ export class BreederProgramPage {
   protected register(): void {
     const breederId = this.strainBreederId ?? (this.approved().length === 1 ? this.approved()[0].breederId : undefined);
     if (!breederId) {
-      this.message.set('Escolha o banco da semente.');
+      this.message.set('Escolha o breeder da semente.');
       return;
     }
     const traits: StrainTraits = {

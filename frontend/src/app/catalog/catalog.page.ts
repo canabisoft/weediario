@@ -155,7 +155,7 @@ export class CatalogPage {
   protected readonly tabs: readonly { id: Tab; label: string }[] = [
     { id: 'strains', label: 'Strains' },
     { id: 'teste', label: 'Em teste' },
-    { id: 'bancos', label: 'Bancos de sementes' },
+    { id: 'bancos', label: 'Bancos e breeders' },
     { id: 'produtos', label: 'Produtos' },
   ];
   protected readonly tab = computed<Tab>(() => TAB_IDS.find((id) => id === this.aba()) ?? 'strains');
@@ -233,7 +233,8 @@ export class CatalogPage {
             id: b.id,
             link: ['/bancos', b.id],
             name: b.name,
-            subtitle: `${b.strains} ${b.strains === 1 ? 'strain' : 'strains'} no catálogo`,
+            subtitle: [b.kind === 'INDEPENDENT' ? 'Breeder independente' : null,
+              `${b.strains} ${b.strains === 1 ? 'strain' : 'strains'} no catálogo`].filter(Boolean).join(' · '),
             source: b.source,
             verified: b.status === 'VERIFIED',
             usage: b.diaries,

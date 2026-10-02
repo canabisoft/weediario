@@ -36,7 +36,7 @@ public class OpenDataController {
     private static final String CSV_HEADER = String.join(",", "id", "name", "breeder", "flowering_type", "dominance",
             "flowering_speed", "seed_types", "flavors", "effects", "genetics", "status", "source", "promoted_at",
             "public_diaries", "growers", "review_count", "vigor", "pest_resistance", "ease_of_growth", "yield",
-            "terpene_profile", "overall", "avg_grams_per_plant");
+            "terpene_profile", "overall", "avg_grams_per_plant", "breeder_kind", "generation");
 
     private final BrowseCatalogUseCase browse;
     private final Clock clock;
@@ -66,7 +66,8 @@ public class OpenDataController {
                     Csv.value(s.promotedAt()), Csv.value(s.publicDiaries()), Csv.value(s.growers()),
                     Csv.value(s.reviewCount()), Csv.value(s.vigor()), Csv.value(s.pestResistance()),
                     Csv.value(s.easeOfGrowth()), Csv.value(s.yield()), Csv.value(s.terpeneProfile()),
-                    Csv.value(s.overall()), Csv.value(s.avgGramsPerPlant())).toList())).append('\n');
+                    Csv.value(s.overall()), Csv.value(s.avgGramsPerPlant()), Csv.value(s.breederKind()),
+                    Csv.value(s.generation())).toList())).append('\n');
         }
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))

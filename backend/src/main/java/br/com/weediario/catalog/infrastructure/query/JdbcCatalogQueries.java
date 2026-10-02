@@ -190,7 +190,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
     @Override
     public Optional<StrainDetail> strain(UUID id) {
         return jdbc.query("""
-                select s.*, b.name as breeder_name, r.review_count, r.overall,
+                select s.*, b.name as breeder_name, b.kind as breeder_kind, r.review_count, r.overall,
                        (select count(*) from %1$s where d.strain_id = s.id) as diaries,
                        (select round(sum(d.harvest_dry_grams)::numeric / nullif(sum(d.harvest_plants), 0), 1)
                           from %1$s where d.strain_id = s.id and d.harvest_dry_grams is not null) as avg_gpp,
@@ -206,7 +206,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                         strings(rs.getArray("flavors")), strings(rs.getArray("effects")), rs.getString("genetics"),
                         rs.getString("status"), rs.getString("source"), rs.getLong("diaries"), rs.getLong("review_count"),
                         rs.getBigDecimal("overall"), rs.getBigDecimal("avg_gpp"), instant(rs.getTimestamp("promoted_at")),
-                        progress(rs)))
+                        progress(rs), rs.getString("generation"), rs.getString("breeder_kind")))
                 .stream().findFirst();
     }
 
@@ -247,7 +247,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
 
     private static final String TESTING_SELECT = """
             select s.id, s.name, b.id as breeder_id, b.name as breeder_name, s.flowering_type, s.dominance, s.genetics,
-                   s.status, s.created_at, s.promoted_at,
+                   s.generation, s.status, s.created_at, s.promoted_at,
                    case when s.status = 'TESTING' then %s end as testers,
                    case when s.status = 'TESTING' then %s end as tester_reviews
               from strains s join breeders b on b.id = s.breeder_id
@@ -270,14 +270,15 @@ public class JdbcCatalogQueries implements CatalogQueries {
     @Override
     public List<Representation> representationsOf(UUID userId) {
         return jdbc.query("""
-                select r.breeder_id, b.name, r.status, r.requested_at, r.decided_at
+                select r.breeder_id, b.name, r.status, r.requested_at, r.decided_at, r.claimed_kind, r.public_credit
                   from breeder_representatives r join breeders b on b.id = r.breeder_id
                  where r.user_id = :userId
                  order by (r.status = 'APPROVED') desc, b.name""",
                 new MapSqlParameterSource("userId", userId),
                 (rs, n) -> new Representation(rs.getObject("breeder_id", UUID.class), rs.getString("name"),
                         rs.getString("status"), rs.getTimestamp("requested_at").toInstant(),
-                        instant(rs.getTimestamp("decided_at"))));
+                        instant(rs.getTimestamp("decided_at")), rs.getString("claimed_kind"),
+                        rs.getBoolean("public_credit")));
     }
 
     @Override
@@ -297,7 +298,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
         Long total = jdbc.queryForObject("select count(*) from breeder_representatives", params, Long.class);
         List<RepresentativeRequest> items = jdbc.query("""
                 select r.breeder_id, b.name as breeder, r.user_id, u.username, r.status, r.note, r.requested_at,
-                       r.decided_at
+                       r.decided_at, r.claimed_kind, r.public_credit
                   from breeder_representatives r
                   join breeders b on b.id = r.breeder_id
                   join users u on u.id = r.user_id
@@ -307,7 +308,8 @@ public class JdbcCatalogQueries implements CatalogQueries {
                 (rs, n) -> new RepresentativeRequest(rs.getObject("breeder_id", UUID.class), rs.getString("breeder"),
                         rs.getObject("user_id", UUID.class), rs.getString("username"), rs.getString("status"),
                         rs.getString("note"), rs.getTimestamp("requested_at").toInstant(),
-                        instant(rs.getTimestamp("decided_at"))));
+                        instant(rs.getTimestamp("decided_at")), rs.getString("claimed_kind"),
+                        rs.getBoolean("public_credit")));
         return PageResult.of(items, page, total == null ? 0 : total);
     }
 
@@ -322,7 +324,8 @@ public class JdbcCatalogQueries implements CatalogQueries {
         return new TestingStrainItem(rs.getObject("id", UUID.class), rs.getString("name"),
                 rs.getObject("breeder_id", UUID.class), rs.getString("breeder_name"), rs.getString("flowering_type"),
                 rs.getString("dominance"), rs.getString("genetics"), rs.getString("status"),
-                rs.getTimestamp("created_at").toInstant(), instant(rs.getTimestamp("promoted_at")), progress(rs));
+                rs.getTimestamp("created_at").toInstant(), instant(rs.getTimestamp("promoted_at")), progress(rs),
+                rs.getString("generation"));
     }
 
     /** Andamento só faz sentido enquanto a semente está em teste (colunas nulas nos demais casos). */
@@ -360,8 +363,9 @@ public class JdbcCatalogQueries implements CatalogQueries {
                                       + rv.terpene_profile) / 5.0), 1) as overall
                       from reviews rv join users ru on ru.id = rv.author_id and ru.status = 'ACTIVE' and not rv.hidden
                      group by rv.strain_id)
-                select s.id, s.name, b.name as breeder_name, s.flowering_type, s.dominance, s.flowering_speed,
-                       s.seed_types, s.flavors, s.effects, s.genetics, s.status, s.source, s.promoted_at,
+                select s.id, s.name, b.name as breeder_name, b.kind as breeder_kind, s.flowering_type, s.dominance,
+                       s.flowering_speed, s.seed_types, s.flavors, s.effects, s.genetics, s.generation, s.status,
+                       s.source, s.promoted_at,
                        coalesce(u.public_diaries, 0) as public_diaries, coalesce(u.growers, 0) as growers, u.avg_gpp,
                        coalesce(r.review_count, 0) as review_count, r.vigor, r.pest_resistance, r.ease_of_growth,
                        r.yield_rating, r.terpene_profile, r.overall
@@ -380,7 +384,8 @@ public class JdbcCatalogQueries implements CatalogQueries {
                         rs.getLong("public_diaries"), rs.getLong("growers"), rs.getLong("review_count"),
                         rs.getBigDecimal("vigor"), rs.getBigDecimal("pest_resistance"),
                         rs.getBigDecimal("ease_of_growth"), rs.getBigDecimal("yield_rating"),
-                        rs.getBigDecimal("terpene_profile"), rs.getBigDecimal("overall"), rs.getBigDecimal("avg_gpp")));
+                        rs.getBigDecimal("terpene_profile"), rs.getBigDecimal("overall"), rs.getBigDecimal("avg_gpp"),
+                        rs.getString("breeder_kind"), rs.getString("generation")));
     }
 
 
@@ -557,8 +562,12 @@ public class JdbcCatalogQueries implements CatalogQueries {
     // ----------------------------------------------------------------------------------------- helpers
 
     private static final String BREEDER_SELECT = """
-            select b.id, b.name, b.status, b.source,
+            select b.id, b.name, b.status, b.source, b.kind,
                    (select count(*) from strains s where s.breeder_id = b.id and s.status <> 'TESTING') as strains,
+                   (select array_agg(cu.username order by cu.username)
+                      from breeder_representatives cr join users cu on cu.id = cr.user_id and cu.status = 'ACTIVE'
+                     where cr.breeder_id = b.id and cr.status = 'APPROVED' and cr.public_credit
+                       and cr.claimed_kind = 'INDEPENDENT') as creators,
                    (select count(*) from %s where d.breeder_id = b.id) as diaries,
                    r.review_count, r.overall
               from breeders b
@@ -572,7 +581,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
     private static BreederListItem breederItem(java.sql.ResultSet rs) throws SQLException {
         return new BreederListItem(rs.getObject("id", UUID.class), rs.getString("name"), rs.getString("status"),
                 rs.getString("source"), rs.getLong("strains"), rs.getLong("diaries"), rs.getLong("review_count"),
-                rs.getBigDecimal("overall"));
+                rs.getBigDecimal("overall"), rs.getString("kind"), strings(rs.getArray("creators")));
     }
 
     private static Suggestion suggestion(java.sql.ResultSet rs) throws SQLException {

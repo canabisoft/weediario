@@ -7,7 +7,7 @@ import { DOMINANCE_LABEL } from '../shared/labels';
 import { TestingProgressBar } from '../shared/testing-progress';
 
 /**
- * Sementes do banco ainda em teste pela comunidade, com o andamento de cada uma. Some quando não há nenhuma.
+ * Sementes do breeder ainda em teste pela comunidade, com o andamento de cada uma. Some quando não há nenhuma.
  */
 @Component({
   selector: 'app-testing-strains',
@@ -19,7 +19,7 @@ import { TestingProgressBar } from '../shared/testing-progress';
         <section class="mt-6" aria-labelledby="testing-strains-title">
           <h2 id="testing-strains-title" class="text-lg font-semibold">Sementes em teste</h2>
           <p class="text-sm text-fg-muted">
-            Cadastradas pelo próprio banco. Entram no catálogo oficial quando 3 cultivadores de fora do banco as cultivam
+            Cadastradas pelo próprio breeder. Entram no catálogo oficial quando 3 cultivadores de fora do breeder as cultivam
             e uma colheita é avaliada.
           </p>
           <ul class="mt-3 grid gap-3 sm:grid-cols-2">

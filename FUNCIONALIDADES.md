@@ -1,6 +1,6 @@
 # Funcionalidades do weediário
 
-Inventário do que o app faz hoje (backend 0.27.0, frontend 0.21.0). Para instalar e rodar, veja o [README](README.md);
+Inventário do que o app faz hoje (backend 0.28.0, frontend 0.22.0). Para instalar e rodar, veja o [README](README.md);
 para contribuir, o [CONTRIBUTING](CONTRIBUTING.md).
 
 O weediário é um diário de cultivo de cannabis com comunidade, catálogo aberto de genéticas e acompanhamento de
@@ -104,14 +104,20 @@ Os setups aparecem no perfil público do grower.
 
 | O quê | Onde |
 |---|---|
-| Pedir para representar um banco, cadastrar sementes, acompanhar o teste | `/breeders/programa` |
+| Entrar no programa como banco de sementes ou breeder independente, cadastrar sementes, acompanhar o teste | `/breeders/programa` |
 
-- Quem representa um banco pede o vínculo com uma justificativa (só a moderação vê) e é aprovado no painel.
-- Sementes cadastradas pelo representante entram **em teste**. Dá para escolher a semente ao abrir um diário, mas
+- **Para bancos e para breeders independentes** (quem cria genéticas em casa ou em pequenos projetos). Quem pede
+  diz o que representa e manda uma justificativa que só a moderação vê: site do banco ou, para independentes,
+  diários de polinização, fotos, perfil onde divulga o trabalho. O independente que ainda não está no catálogo
+  cadastra o nome do projeto na hora.
+- Sementes cadastradas entram **em teste**, com a **geração** opcional (F1, F2, F3+, S1, BX, IBL, poli-híbrido),
+  que ajuda quem testa a saber o quanto as plantas podem variar. Dá para escolher a semente ao abrir um diário, mas
   ela fica fora do catálogo oficial, dos rankings e do banco aberto.
 - A semente entra no **banco oficial** sozinha com **3 cultivadores diferentes + 1 avaliação pós-colheita**.
-  Representantes do banco não contam, e a moderação não consegue pular essa regra.
-- Quem representa um banco nunca aparece publicamente.
+  Quem representa o breeder não conta, e a moderação não consegue pular essa regra.
+- Quem representa um breeder não aparece publicamente. Breeder independente pode **escolher aparecer como
+  criador(a)** das genéticas na página do breeder (desligado por padrão, dá para desligar quando quiser).
+- O catálogo mostra se o breeder é banco de sementes ou independente, e o banco aberto traz o tipo e a geração.
 
 ## Dados abertos
 

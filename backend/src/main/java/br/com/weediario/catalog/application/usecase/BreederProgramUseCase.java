@@ -3,6 +3,7 @@ package br.com.weediario.catalog.application.usecase;
 import br.com.weediario.catalog.application.CatalogItem;
 import br.com.weediario.catalog.domain.model.Breeder;
 import br.com.weediario.catalog.domain.model.BreederRepresentative;
+import br.com.weediario.catalog.domain.model.CatalogEnums.BreederKind;
 import br.com.weediario.catalog.domain.model.CatalogKey;
 import br.com.weediario.catalog.domain.model.CatalogStrain;
 import br.com.weediario.catalog.domain.model.StrainTraits;
@@ -21,6 +22,9 @@ import java.util.UUID;
 /**
  * Programa de breeders: quem representa um breeder do catálogo (aprovado pela moderação) cadastra as sementes dele,
  * que ficam "em teste" até a comunidade cultivar e avaliar (ver {@link PromoteTestingStrainsUseCase}).
+ * <p>
+ * Vale para bancos de sementes e para breeders independentes, que criam genéticas por conta própria. Um breeder
+ * independente que ainda não está no catálogo entra pelo "achar ou cadastrar" do catálogo e já faz o pedido.
  */
 public final class BreederProgramUseCase {
 
@@ -37,8 +41,14 @@ public final class BreederProgramUseCase {
         this.clock = clock;
     }
 
-    /** Pede para representar um breeder. A nota (prova de vínculo) só é lida pela moderação. */
-    public void requestRepresentation(UUID userId, UUID breederId, String note) {
+    /**
+     * Pede para representar um breeder. A nota (prova de vínculo) só é lida pela moderação.
+     *
+     * @param claimedKind  banco de sementes ou breeder independente (a moderação confere ao aprovar)
+     * @param publicCredit só para independente: aparecer como criador(a) das genéticas
+     */
+    public void requestRepresentation(UUID userId, UUID breederId, String note, BreederKind claimedKind,
+                                      boolean publicCredit) {
         unitOfWork.run(() -> {
             breeder(breederId);
             if (representatives.find(breederId, userId).isPresent()) {
@@ -47,8 +57,15 @@ public final class BreederProgramUseCase {
             if (representatives.countPendingBy(userId) >= BreederRepresentative.MAX_PENDING_PER_USER) {
                 throw new DomainException("Aguarde a moderação responder os pedidos que você já fez");
             }
-            representatives.save(BreederRepresentative.request(breederId, userId, note, clock));
+            representatives.save(BreederRepresentative.request(breederId, userId, note,
+                    claimedKind == null ? BreederKind.SEEDBANK : claimedKind, publicCredit, clock));
         });
+    }
+
+    /** Breeder independente liga ou desliga o crédito público como criador(a) das genéticas. */
+    public void changePublicCredit(UUID userId, UUID breederId, boolean publicCredit) {
+        unitOfWork.run(() -> representatives.save(representatives.find(breederId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido")).withPublicCredit(publicCredit)));
     }
 
     /** Desiste do pedido ou deixa de representar o breeder. */
@@ -87,10 +104,17 @@ public final class BreederProgramUseCase {
         });
     }
 
+    /** Aprova o pedido; o breeder passa a ter o tipo que a pessoa informou (banco ou independente). */
     public void approve(UUID breederId, UUID userId, boolean moderator) {
         requireModerator(moderator);
-        unitOfWork.run(() -> representatives.save(representatives.find(breederId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Pedido")).approve(clock)));
+        unitOfWork.run(() -> {
+            BreederRepresentative approved = representatives.save(representatives.find(breederId, userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Pedido")).approve(clock));
+            Breeder breeder = breeder(breederId);
+            if (breeder.kind() != approved.claimedKind()) {
+                catalog.saveBreeder(breeder.withKind(approved.claimedKind()));
+            }
+        });
     }
 
     /** Recusa um pedido ou revoga um representante aprovado (apaga o vínculo). */

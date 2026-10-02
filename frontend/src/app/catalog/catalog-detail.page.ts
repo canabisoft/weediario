@@ -22,7 +22,7 @@ import { Icon } from '../shared/icon';
 import { RatingBar } from '../shared/rating';
 import { SeedbankShowcase } from './seedbank-showcase';
 import { TestingStrains } from './testing-strains';
-import { DOMINANCE_LABEL, SEED_KIND_LABEL, SOURCE_LABEL, SPEED_LABEL, formatDate, options } from '../shared/labels';
+import { BREEDER_KIND_LABEL, DOMINANCE_LABEL, formatDate, GENERATION_LABEL, options, SEED_KIND_LABEL, SOURCE_LABEL, SPEED_LABEL } from '../shared/labels';
 import { TestingProgressBar } from '../shared/testing-progress';
 
 export type CatalogKind = 'strain' | 'seedbank';
@@ -41,6 +41,10 @@ interface Detail {
   readonly name: string;
   readonly subtitle?: string;
   readonly breederId?: string;
+  /** Banco de sementes ou breeder independente. */
+  readonly kindLabel?: string;
+  /** Breeders independentes que escolheram aparecer como criadores. */
+  readonly creators?: string[];
   readonly verified: boolean;
   /** Semente de breeder ainda em teste pela comunidade (com o andamento). */
   readonly testing?: TestingProgress;
@@ -61,7 +65,7 @@ interface Detail {
 const EMPTY_PAGE = { items: [], page: 0, size: 0, totalItems: 0, totalPages: 0 };
 
 /**
- * Detalhe de uma strain ou banco de sementes: características do catálogo (base pública + comunidade),
+ * Detalhe de uma strain ou de um breeder (banco de sementes ou independente): características do catálogo (base pública + comunidade),
  * uso nos diários, médias das reviews e curadoria (completar informações; moderadores verificam e juntam duplicatas).
  */
 import { ReportButton } from '../shared/report-button';
@@ -72,7 +76,7 @@ import { ReportButton } from '../shared/report-button';
   imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker, SeedbankShowcase, TestingStrains, TestingProgressBar, ReportButton],
   template: `
     <a routerLink="/strains" [queryParams]="kind() === 'seedbank' ? { aba: 'bancos' } : {}" class="text-sm text-fg-muted">
-      ← {{ kind() === 'strain' ? 'Strains' : 'Bancos de sementes' }}
+      ← {{ kind() === 'strain' ? 'Strains' : 'Bancos e breeders' }}
     </a>
     @if (detail(); as state) {
       @if (state.detail; as d) {
@@ -88,7 +92,18 @@ import { ReportButton } from '../shared/report-button';
               @if (d.testing) {
                 <span class="inline-flex items-center rounded-full bg-warn/15 px-2 py-0.5 text-xs font-semibold text-warn">em teste</span>
               }
+              @if (d.kindLabel) {
+                <span class="inline-flex items-center rounded-full bg-surface-raised px-2 py-0.5 text-xs font-semibold text-fg-muted">{{ d.kindLabel }}</span>
+              }
             </h1>
+            @if (d.creators?.length) {
+              <p class="text-sm text-fg-muted">
+                Genéticas criadas por
+                @for (creator of d.creators; track creator; let last = $last) {
+                  <a [routerLink]="['/growers', creator]" class="font-semibold text-fg underline">{{ creator }}</a>{{ last ? '' : ', ' }}
+                }
+              </p>
+            }
             @if (d.subtitle) {
               @if (d.breederId) {
                 <a [routerLink]="['/bancos', d.breederId]" class="text-fg-muted underline">{{ d.subtitle }}</a>
@@ -394,6 +409,7 @@ export class CatalogDetailPage {
         name: s.name,
         subtitle: s.breeder ?? 'Breeder não informado',
         breederId: s.breederId,
+        kindLabel: s.breederKind === 'INDEPENDENT' ? 'de breeder independente' : undefined,
         verified: s.status === 'VERIFIED',
         testing: s.status === 'TESTING' ? s.testing : undefined,
         promotedAt: s.promotedAt,
@@ -405,6 +421,7 @@ export class CatalogDetailPage {
           s.floweringSpeed ? { label: 'Tempo de flora', value: SPEED_LABEL[s.floweringSpeed as FloweringSpeed] } : null,
           s.seedTypes?.length ? { label: 'Sementes', value: s.seedTypes.map((k) => SEED_KIND_LABEL[k as SeedKind]).join(', ') } : null,
           s.genetics ? { label: 'Genética', value: s.genetics } : null,
+          s.generation ? { label: 'Geração', value: GENERATION_LABEL[s.generation] } : null,
           s.avgGramsPerPlant != null ? { label: 'Média da comunidade', value: `${formatCompact(s.avgGramsPerPlant)} g/planta` } : null,
         ].filter((fact): fact is { label: string; value: string } => fact !== null),
         tags: [
@@ -448,6 +465,8 @@ export class CatalogDetailPage {
         id: b.id,
         name: b.name,
         subtitle: `${b.strains} ${b.strains === 1 ? 'strain' : 'strains'} no catálogo`,
+        kindLabel: b.kind ? BREEDER_KIND_LABEL[b.kind] : undefined,
+        creators: b.creators,
         verified: b.status === 'VERIFIED',
         source: b.source,
         facts: [],

@@ -102,8 +102,12 @@ public interface CatalogQueries {
                              BigDecimal overall, BigDecimal avgGramsPerPlant, String coverThumbnailUrl) {
     }
 
+    /**
+     * @param kind     banco de sementes ou breeder independente (nulo se não informado)
+     * @param creators apelidos de breeders independentes que escolheram aparecer como criadores
+     */
     record BreederListItem(UUID id, String name, String status, String source, long strains, long diaries,
-                           long reviewCount, BigDecimal overall) {
+                           long reviewCount, BigDecimal overall, String kind, List<String> creators) {
     }
 
     /**
@@ -128,7 +132,8 @@ public interface CatalogQueries {
     record StrainDetail(UUID id, String name, UUID breederId, String breeder, String floweringType, String dominance,
                         String floweringSpeed, List<String> seedTypes, List<String> flavors, List<String> effects,
                         String genetics, String status, String source, long diaries, long reviewCount,
-                        BigDecimal overall, BigDecimal avgGramsPerPlant, Instant promotedAt, Progress testing) {
+                        BigDecimal overall, BigDecimal avgGramsPerPlant, Instant promotedAt, Progress testing,
+                        String generation, String breederKind) {
     }
 
     /** Andamento do teste da comunidade (cultivadores e avaliações de fora do breeder). */
@@ -137,15 +142,17 @@ public interface CatalogQueries {
 
     record TestingStrainItem(UUID id, String name, UUID breederId, String breeder, String floweringType,
                              String dominance, String genetics, String status, Instant createdAt, Instant promotedAt,
-                             Progress progress) {
+                             Progress progress, String generation) {
     }
 
-    record Representation(UUID breederId, String breeder, String status, Instant requestedAt, Instant decidedAt) {
+    record Representation(UUID breederId, String breeder, String status, Instant requestedAt, Instant decidedAt,
+                          String claimedKind, boolean publicCredit) {
     }
 
     /** Só para a moderação: inclui quem pediu e a nota de prova de vínculo. */
     record RepresentativeRequest(UUID breederId, String breeder, UUID userId, String username, String status,
-                                 String note, Instant requestedAt, Instant decidedAt) {
+                                 String note, Instant requestedAt, Instant decidedAt, String claimedKind,
+                                 boolean publicCredit) {
     }
 
     /**
@@ -157,7 +164,7 @@ public interface CatalogQueries {
                       String genetics, String status, String source, Instant promotedAt, long publicDiaries,
                       long growers, long reviewCount, BigDecimal vigor, BigDecimal pestResistance,
                       BigDecimal easeOfGrowth, BigDecimal yield, BigDecimal terpeneProfile, BigDecimal overall,
-                      BigDecimal avgGramsPerPlant) {
+                      BigDecimal avgGramsPerPlant, String breederKind, String generation) {
     }
 
     /**
