@@ -4,6 +4,7 @@ import br.com.weediario.media.application.ImageLibrary;
 import br.com.weediario.media.application.port.ImageSanitizer;
 import br.com.weediario.media.application.port.ImageStorage;
 import br.com.weediario.media.application.usecase.PurgeOrphanImagesUseCase;
+import br.com.weediario.media.application.usecase.SweepImagesUseCase;
 import br.com.weediario.media.application.usecase.UploadImageUseCase;
 import br.com.weediario.media.domain.repository.ImageRepository;
 import br.com.weediario.shared.application.UnitOfWork;
@@ -42,6 +43,36 @@ public class MediaConfig {
     @Bean
     OrphanImageJanitor orphanImageJanitor(PurgeOrphanImagesUseCase purge) {
         return new OrphanImageJanitor(purge);
+    }
+
+    @Bean
+    SweepImagesUseCase sweepImagesUseCase(ImageRepository images, ImageStorage storage, UnitOfWork unitOfWork,
+                                          Clock clock) {
+        return new SweepImagesUseCase(images, storage, unitOfWork, clock);
+    }
+
+    @Bean
+    ImageSweepJanitor imageSweepJanitor(SweepImagesUseCase sweep) {
+        return new ImageSweepJanitor(sweep);
+    }
+
+    /** Diária: apaga fotos que nada usa e arquivos sem registro (ex.: sobra de uma conta apagada). */
+    public static class ImageSweepJanitor {
+
+        private final SweepImagesUseCase sweep;
+
+        ImageSweepJanitor(SweepImagesUseCase sweep) {
+            this.sweep = sweep;
+        }
+
+        @Scheduled(fixedDelayString = "PT24H", initialDelayString = "PT20M")
+        public int sweep() {
+            int removed = sweep.execute();
+            if (removed > 0) {
+                log.info("{} foto(s) sem uso removidas do servidor", removed);
+            }
+            return removed;
+        }
     }
 
     static class OrphanImageJanitor {

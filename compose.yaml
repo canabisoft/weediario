@@ -59,6 +59,8 @@ services:
       WEEDIARIO_HEALTH_PREVIOUS_KEYS: ${WEEDIARIO_HEALTH_PREVIOUS_KEYS:-}
       # Cifra dos e-mails (opcionais) das contas (AES-256).
       WEEDIARIO_EMAIL_KEY: ${WEEDIARIO_EMAIL_KEY:?rode scripts/setup-env para acrescentar a chave ao .env}
+      # Dia em que os Termos de Uso entraram no ar (lançamento), ex. 2026-11-01.
+      WEEDIARIO_TERMS_PUBLISHED_ON: ${WEEDIARIO_TERMS_PUBLISHED_ON:-}
       # E-mail opcional (confirmação, redefinição de senha, avisos). Sem SMTP, o envio fica desligado.
       WEEDIARIO_PUBLIC_URL: ${WEEDIARIO_PUBLIC_URL:-http://localhost:${WEEDIARIO_HTTP_PORT:-8080}}
       WEEDIARIO_MAIL_FROM: ${WEEDIARIO_MAIL_FROM:-}
@@ -69,8 +71,11 @@ services:
       SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-true}
+      # Provedores na porta 465 (SSL direto, ex. Hostinger): true aqui e STARTTLS false.
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE:-false}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-true}
       # Mesma origem via nginx; a lista só importa para quem acessar a API de outra origem.
-      WEEDIARIO_CORS_ORIGINS: http://localhost:${WEEDIARIO_HTTP_PORT:-8080}
+      WEEDIARIO_CORS_ORIGINS: ${WEEDIARIO_PUBLIC_URL:-http://localhost:${WEEDIARIO_HTTP_PORT:-8080}}
       WEEDIARIO_MEDIA_PATH: /app/data/images
     volumes:
       - images:/app/data

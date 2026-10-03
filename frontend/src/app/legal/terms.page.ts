@@ -1,12 +1,22 @@
+import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
+import { catchError, map, of } from 'rxjs';
 import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
 import { REPOSITORY_URL } from '../manifesto/manifesto.page';
 
 /** Versão vigente. Mudou o texto, muda a versão (e o backend também): todo mundo aceita de novo antes de publicar. */
-export const TERMS_VERSION = '1.1';
-export const TERMS_PUBLISHED_ON = '1º de outubro de 2026';
+export const TERMS_VERSION = '1.0';
+
+/** "2026-11-01" → "1º de novembro de 2026". */
+function formatLongDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro',
+    'novembro', 'dezembro'];
+  return `${day === 1 ? '1º' : day} de ${months[month - 1]} de ${year}`;
+}
 
 interface Clause {
   readonly id: string;
@@ -139,7 +149,9 @@ export const CLAUSES: readonly Clause[] = [
       <header>
         <p class="text-sm font-semibold uppercase tracking-wider text-accent">Termos de Uso</p>
         <h1 class="mt-1 text-3xl font-bold">As regras do weediário</h1>
-        <p class="mt-2 text-sm text-fg-muted">Versão {{ version }} · publicada em {{ publishedOn }}</p>
+        <p class="mt-2 text-sm text-fg-muted">
+          Versão {{ version }}@if (publishedOn(); as date) { · publicada em {{ date }}}
+        </p>
       </header>
 
       @if (auth.needsTermsAcceptance()) {
@@ -193,7 +205,14 @@ export class TermsPage {
 
   protected readonly clauses = CLAUSES;
   protected readonly version = TERMS_VERSION;
-  protected readonly publishedOn = TERMS_PUBLISHED_ON;
+  /** Data de publicação vem do servidor (definida no lançamento); sem ela, a página não mostra data. */
+  protected readonly publishedOn = toSignal(
+    inject(HttpClient).get<{ version: string; publishedOn?: string }>('/api/v1/terms').pipe(
+      map((terms) => (terms.publishedOn ? formatLongDate(terms.publishedOn) : null)),
+      catchError(() => of(null)),
+    ),
+    { initialValue: null },
+  );
   protected readonly repository = REPOSITORY_URL;
   protected readonly agreed = signal(false);
   protected readonly busy = signal(false);

@@ -29,4 +29,12 @@ interface SpringDataImageRepository extends JpaRepository<ImageJpaEntity, UUID> 
             limit :limit
             for update skip locked""", nativeQuery = true)
     List<ImageJpaEntity> findPendingCreatedBefore(@Param("cutoff") Instant cutoff, @Param("limit") int limit);
+
+    @Query(value = """
+            select i.id from images i
+             where i.status = 'ATTACHED' and i.created_at < :cutoff
+               and not exists (select 1 from diary_update_photos p where p.image_id = i.id)
+               and not exists (select 1 from users u where u.avatar_image_id = i.id)
+             limit :limit""", nativeQuery = true)
+    List<UUID> findUnreferencedBefore(@Param("cutoff") Instant cutoff, @Param("limit") int limit);
 }

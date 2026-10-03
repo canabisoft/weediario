@@ -15,6 +15,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.stream.Stream;
+import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
+import java.time.Instant;
 
 /**
  * Guarda os arquivos como {@code <raiz>/<2 primeiros chars do id>/<id>-<variante>.<webp|jpg>}.
@@ -71,6 +76,29 @@ public class FileSystemImageStorage implements ImageStorage {
                 }
             }
         }
+    }
+
+    @Override
+    public Set<ImageId> storedBefore(Instant cutoff) {
+        Set<ImageId> ids = new HashSet<>();
+        try (Stream<Path> files = Files.walk(root, 2)) {
+            files.filter(Files::isRegularFile).forEach(file -> {
+                String name = file.getFileName().toString();
+                if (name.length() < 36 || name.startsWith(".")) {
+                    return;
+                }
+                try {
+                    if (Files.getLastModifiedTime(file).toInstant().isBefore(cutoff)) {
+                        ids.add(new ImageId(UUID.fromString(name.substring(0, 36))));
+                    }
+                } catch (IllegalArgumentException | IOException ignored) {
+                    // Arquivo que não é imagem nossa (ou sumiu no meio da varredura): fica de fora.
+                }
+            });
+        } catch (IOException e) {
+            throw new UncheckedIOException("Falha ao listar imagens", e);
+        }
+        return ids;
     }
 
     private Path pathOf(ImageId id, ImageVariant variant, ImageFormat format) {

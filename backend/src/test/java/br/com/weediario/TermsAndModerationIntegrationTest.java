@@ -33,11 +33,11 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
                         .content(base.formatted(username, VERIFIER, ",\"acceptedTermsVersion\":\"0.9\"")))
                 .andExpect(status().isUnprocessableEntity());
         String token = body(mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(base.formatted(username, VERIFIER, ",\"acceptedTermsVersion\":\"1.1\"")))
+                        .content(base.formatted(username, VERIFIER, ",\"acceptedTermsVersion\":\"" + TERMS + "\"")))
                 .andExpect(status().isCreated())
                 .andReturn()).get("accessToken").asText();
         mvc.perform(get("/api/v1/me").header("Authorization", "Bearer " + token))
-                .andExpect(jsonPath("$.termsVersion").value("1.1"))
+                .andExpect(jsonPath("$.termsVersion").value(TERMS))
                 .andExpect(jsonPath("$.termsAccepted").value(true))
                 .andExpect(jsonPath("$.termsAcceptedAt").isNotEmpty());
 

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -49,6 +50,20 @@ public class JpaImageRepository implements ImageRepository {
     @Override
     public List<Image> findPendingCreatedBefore(Instant cutoff, int limit) {
         return jpa.findPendingCreatedBefore(cutoff, limit).stream().map(ImageJpaEntity::toDomain).toList();
+    }
+
+    @Override
+    public Set<ImageId> existing(Collection<ImageId> ids) {
+        if (ids.isEmpty()) {
+            return Set.of();
+        }
+        return jpa.findAllById(ids.stream().map(ImageId::value).toList()).stream()
+                .map(ImageJpaEntity::toDomain).map(Image::id).collect(java.util.stream.Collectors.toSet());
+    }
+
+    @Override
+    public List<ImageId> findUnreferencedBefore(Instant cutoff, int limit) {
+        return jpa.findUnreferencedBefore(cutoff, limit).stream().map(ImageId::new).toList();
     }
 
     @Override

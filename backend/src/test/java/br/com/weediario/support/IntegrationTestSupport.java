@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public abstract class IntegrationTestSupport {
 
     /** Versão vigente dos Termos de Uso (o cadastro exige o aceite). */
-    protected static final String TERMS = "1.1";
+    protected static final String TERMS = "1.0";
     /** Derivado de uma frase de recuperação (no app ele é calculado no navegador; as palavras nunca chegam aqui). */
     protected static final String VERIFIER = "a1".repeat(64);
     /** Senha que passa na política (10+ caracteres, fora da lista de senhas comuns). */

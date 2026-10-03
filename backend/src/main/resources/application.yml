@@ -18,6 +18,13 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+  mail:
+    # Host, porta, usuário e senha vêm de SPRING_MAIL_*. Tempo máximo para o provedor responder: sem isso, um SMTP
+    # travado prende a fila de e-mails para sempre.
+    properties:
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 15000
+      mail.smtp.writetimeout: 15000
   servlet:
     multipart:
       # Um pouco acima do limite de 12 MB do caso de uso, para a mensagem de erro vir do domínio.
@@ -59,6 +66,8 @@ weediario:
     # Troca de chave: as antigas (separadas por vírgula) só decifram; o recifrador regrava tudo com a atual.
     previous-keys: ${WEEDIARIO_HEALTH_PREVIOUS_KEYS:}
   identity:
+    # Data em que os Termos de Uso entraram no ar (ISO, ex. 2026-11-01): defina no lançamento em produção.
+    terms-published-on: ${WEEDIARIO_TERMS_PUBLISHED_ON:}
     # Teto global de Argon2 simultâneos (cadastro, login, recuperação, troca de senha e de frase). Sem IP:
     # quem passa do teto espera até max-wait na fila e, se não houver vaga, recebe 429 com Retry-After.
     password-hashing:

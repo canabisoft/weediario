@@ -60,3 +60,22 @@ Desktop.ini
 claude/
 /claude
 claude/*
+# Backups (scripts/backup.sh): banco e fotos de usuários, NUNCA no repositório
+/backups/
+*.dump
+fotos.tar
+
+# Cache do Angular CLI quando roda da raiz (o frontend/.gitignore só cobre frontend/.angular)
+.angular/
+
+# Ajustes locais do Docker Compose (portas, volumes da máquina de cada um)
+compose.override.yaml
+compose.override.yml
+docker-compose.override.yml
+
+# Claude Code: configurações locais e worktrees de agentes
+.claude/settings.local.json
+.claude/worktrees/
+
+# Guia de deploy em produção: fica só na máquina de quem publica
+/docs/DEPLOY.md

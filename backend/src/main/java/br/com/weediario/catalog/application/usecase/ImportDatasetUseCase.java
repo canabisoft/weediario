@@ -13,6 +13,7 @@ import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Popula o catálogo a partir de um dataset público. Pode rodar várias vezes (idempotente):
@@ -37,18 +38,23 @@ public final class ImportDatasetUseCase {
         this.clock = clock;
     }
 
+    /** Prefixo "X - " em pelo menos esta quantidade de linhas sem breeder é tratado como nome de banco. */
+    static final int PREFIX_AS_BREEDER_MIN = 3;
+
     public Report importStrains(List<DatasetStrain> rows) {
+        Set<String> frequentPrefixes = frequentPrefixes(rows);
         Map<String, Breeder> breeders = new HashMap<>();
         int[] counters = new int[4]; // strains criadas, strains completadas, breeders criados, ignoradas
         for (int start = 0; start < rows.size(); start += BATCH_SIZE) {
             List<DatasetStrain> batch = rows.subList(start, Math.min(rows.size(), start + BATCH_SIZE));
-            unitOfWork.run(() -> batch.forEach(row -> importOne(row, breeders, counters)));
+            unitOfWork.run(() -> batch.forEach(row -> importOne(row, frequentPrefixes, breeders, counters)));
         }
         return new Report(rows.size(), counters[0], counters[1], counters[2], counters[3]);
     }
 
-    private void importOne(DatasetStrain raw, Map<String, Breeder> breeders, int[] counters) {
-        DatasetStrain row = cleaned(raw);
+    private void importOne(DatasetStrain raw, Set<String> frequentPrefixes, Map<String, Breeder> breeders,
+                           int[] counters) {
+        DatasetStrain row = cleaned(raw, frequentPrefixes);
         if (row == null || CatalogKey.of(row.name()).isEmpty() || CatalogNames.problemOf(row.name()).isPresent()
                 || CatalogNames.problemOf(row.breederName()).isPresent()) {
             counters[3]++;
@@ -79,7 +85,7 @@ public final class ImportDatasetUseCase {
      * Tira o ruído de loja do nome. O breeder achado no nome só é usado se já existir no catálogo (o texto costuma vir
      * truncado, como "Seed City Bulk Canna").
      */
-    private DatasetStrain cleaned(DatasetStrain row) {
+    private DatasetStrain cleaned(DatasetStrain row, Set<String> frequentPrefixes) {
         String breederName = row.breederName() == null || row.breederName().isBlank() ? null : row.breederName();
         CatalogNames.Cleaned noise = CatalogNames.stripStoreNoise(row.name(), breederName);
         String name = noise.name();
@@ -89,14 +95,49 @@ public final class ImportDatasetUseCase {
         }
         if (breederName == null && name != null) {
             String prefix = name.split("\\s+-\\s+", 2)[0];
-            boolean known = catalog.findBreederByKey(CatalogKey.breeder(prefix)).isPresent();
+            boolean known = frequentPrefixes.contains(CatalogKey.of(prefix))
+                    || catalog.findBreederByKey(CatalogKey.breeder(prefix)).isPresent();
             var split = CatalogNames.splitBreederPrefix(name, known);
             if (split.isPresent()) {
                 name = split.get().name();
                 breederName = split.get().breeder();
             }
         }
+        if (breederName != null && name != null) {
+            name = withoutBreederLine(name, breederName);
+        }
         return name == null ? null : new DatasetStrain(name, breederName, row.traits());
+    }
+
+    /**
+     * "Linha do Banco - X" quando o breeder já é conhecido ("Blimburn America - Gelato" do BlimBurn Seeds,
+     * "Kera California - Gelato" do Kera Seeds): fica só "X".
+     */
+    static String withoutBreederLine(String name, String breederName) {
+        String breederKey = CatalogKey.breeder(breederName);
+        String[] parts = name.split("\\s+-\\s+", 2);
+        if (breederKey.isEmpty() || parts.length < 2 || parts[1].isBlank()) {
+            return name;
+        }
+        return CatalogKey.of(parts[0]).startsWith(breederKey) ? parts[1].strip() : name;
+    }
+
+    /** Prefixos "X - " repetidos em linhas sem breeder: "Professor Trichome - Gelato", "Professor Trichome - Runtz"... */
+    private static Set<String> frequentPrefixes(List<DatasetStrain> rows) {
+        Map<String, Integer> counts = new HashMap<>();
+        for (DatasetStrain row : rows) {
+            if ((row.breederName() == null || row.breederName().isBlank()) && row.name() != null
+                    && row.name().contains(" - ") && !row.name().strip().toLowerCase(java.util.Locale.ROOT).startsWith("sale")) {
+                counts.merge(CatalogKey.of(row.name().split("\\s+-\\s+", 2)[0]), 1, Integer::sum);
+            }
+        }
+        Set<String> frequent = new java.util.HashSet<>();
+        counts.forEach((prefix, count) -> {
+            if (count >= PREFIX_AS_BREEDER_MIN && !prefix.isEmpty()) {
+                frequent.add(prefix);
+            }
+        });
+        return frequent;
     }
 
     /**

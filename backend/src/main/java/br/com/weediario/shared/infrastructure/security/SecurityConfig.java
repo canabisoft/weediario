@@ -75,7 +75,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/feed/**", "/api/v1/diaries/**", "/api/v1/strains/**",
                                 "/api/v1/seedbanks/**", "/api/v1/growers/**", "/api/v1/catalog/**", "/api/v1/recipes/**",
                                 // Banco aberto de strains (ODbL): só leitura, só agregados.
-                                "/api/v1/open-data/**")
+                                "/api/v1/open-data/**",
+                                // Versão e data dos Termos de Uso.
+                                "/api/v1/terms")
                         .permitAll()
                         // Dupla checagem: os casos de uso de moderação também exigem o papel.
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

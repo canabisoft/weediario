@@ -161,7 +161,7 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"username":"grower_quatro","password":"%s","recoveryVerifier":"%s",
-                                 "acceptedTermsVersion":"1.1","role":"ADMIN"}""".formatted(PASSWORD, VERIFIER)))
+                                 "acceptedTermsVersion":"1.0","role":"ADMIN"}""".formatted(PASSWORD, VERIFIER)))
                 .andExpect(status().isBadRequest());
     }
 

@@ -2,7 +2,6 @@ package br.com.weediario.identity.domain.model;
 
 import br.com.weediario.shared.domain.DomainException;
 
-import java.time.LocalDate;
 
 /**
  * Versão vigente dos Termos de Uso. O texto de cada versão fica no código aberto (página /termos), então o
@@ -11,8 +10,8 @@ import java.time.LocalDate;
  */
 public final class TermsOfUse {
 
-    public static final String CURRENT_VERSION = "1.1";
-    public static final LocalDate PUBLISHED_ON = LocalDate.of(2026, 10, 1);
+    /** A primeira versão pública: a contagem começa no lançamento em produção. */
+    public static final String CURRENT_VERSION = "1.0";
 
     private TermsOfUse() {
     }

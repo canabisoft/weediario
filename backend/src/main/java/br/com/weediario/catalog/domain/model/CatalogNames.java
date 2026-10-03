@@ -41,7 +41,7 @@ public final class CatalogNames {
      */
     private static final Pattern MERCH = Pattern.compile(
             "(?i)\\b(?:t-?shirts?|tshirts?|sweatshirts?|hoodies?|crewneck|crop\\s+top|tote\\s+bag|drawstring\\s+bag"
-                    + "|storage\\s+rack|clothing|apparel|merch(?:andise)?|camisetas?|canecas?)\\b");
+                    + "|storage|silica\\s+gel|clothing|apparel|merch(?:andise)?|camisetas?|canecas?)\\b");
     private static final Pattern SALE_PREFIX = Pattern.compile("(?i)^\\s*(?:sale|promo(?:[cç][aã]o)?|oferta)\\s*[-:–]\\s*");
     /** Sufixo de vitrine depois do nome: "Northern Lights Regular Seeds". */
     private static final Pattern SEED_SUFFIX = Pattern.compile(

@@ -125,18 +125,6 @@ navegador ──► nginx (frontend, porta publicada) ──/api──► backen
 Só o nginx fica exposto, e apenas em `127.0.0.1`. Backend e banco ficam na rede interna do Compose. Como o app e
 a API estão na mesma origem, o cookie de sessão (`SameSite=Strict`) funciona sem CORS.
 
-### Publicando com HTTPS
-
-O compose tem um perfil `https` com o Caddy na frente do nginx, que obtém e renova o certificado Let's Encrypt
-sozinho. Aponte o DNS do domínio para o servidor, libere as portas 80 e 443 e rode:
-
-```sh
-WEEDIARIO_DOMAIN=weediario.exemplo.com docker compose --profile https up -d --build
-```
-
-Com `WEEDIARIO_DOMAIN=localhost` o Caddy usa uma CA local, útil para testar HTTPS na máquina. O Caddy não grava log
-de acesso e não repassa o IP do visitante. O cookie de sessão é `Secure` e só trafega em HTTPS (ou em `localhost`).
-
 ### Catálogo, avaliações e banco aberto
 
 O catálogo (`/strains`) junta strains, bancos de sementes, marcas e produtos sem duplicar (chave normalizada,
