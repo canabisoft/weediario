@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Optional;
 
 @Repository
 public class JdbcLoginAttemptsRepository implements LoginAttemptsRepository {
@@ -20,13 +19,18 @@ public class JdbcLoginAttemptsRepository implements LoginAttemptsRepository {
     }
 
     @Override
-    public Optional<LoginAttempts> find(String key) {
-        return jdbc.query("select * from login_attempts where attempt_key = :key", new MapSqlParameterSource("key", key),
+    public LoginAttempts findForUpdate(String key, Instant now) {
+        MapSqlParameterSource params = new MapSqlParameterSource("key", key).addValue("now", Timestamp.from(now));
+        jdbc.update("""
+                insert into login_attempts (attempt_key, failures, window_started_at, locked_until, lock_count, updated_at)
+                values (:key, 0, :now, null, 0, now())
+                on conflict (attempt_key) do nothing""", params);
+        return jdbc.queryForObject("select * from login_attempts where attempt_key = :key for update", params,
                 (rs, rowNum) -> new LoginAttempts(
                         rs.getInt("failures"),
                         rs.getTimestamp("window_started_at").toInstant(),
                         rs.getTimestamp("locked_until") == null ? null : rs.getTimestamp("locked_until").toInstant(),
-                        rs.getInt("lock_count"))).stream().findFirst();
+                        rs.getInt("lock_count")));
     }
 
     @Override

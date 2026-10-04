@@ -4,6 +4,7 @@ import br.com.weediario.identity.application.AuthenticatedSession;
 import br.com.weediario.identity.application.LoginThrottle;
 import br.com.weediario.identity.application.SecurityNotifier;
 import br.com.weediario.identity.application.SessionIssuer;
+import br.com.weediario.identity.application.exception.HashingBusyException;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
 import br.com.weediario.identity.domain.model.AccessKey;
 import br.com.weediario.identity.domain.model.PasswordHash;
@@ -56,12 +57,17 @@ public final class AuthenticateUserUseCase {
         LoginThrottle.Attempt attempt = throttle.begin(LoginThrottle.LOGIN, command.login());
         Optional<User> user = findUser(command.login());
         String password = command.password() == null ? "" : command.password();
-        boolean matches = passwordHasher.matches(password, user.flatMap(User::passwordHash).orElse(passwordDecoy));
+        boolean matches;
+        try {
+            matches = passwordHasher.matches(password, user.flatMap(User::passwordHash).orElse(passwordDecoy));
+        } catch (HashingBusyException busy) {
+            throttle.released(attempt);
+            throw busy;
+        }
 
         Optional<User> authenticated = user.filter(found ->
                 matches && found.hasPassword() && found.canAuthenticate());
         if (authenticated.isEmpty()) {
-            throttle.failed(attempt);
             throw new InvalidCredentialsException();
         }
         return unitOfWork.execute(() -> {

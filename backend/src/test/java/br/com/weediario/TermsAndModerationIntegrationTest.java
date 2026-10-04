@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -128,11 +129,11 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         UUID diaryId = createDiary(owner, "Denunciado", "PUBLIC", LocalDate.now().toString());
 
         report(owner, "DIARY", diaryId, "SPAM").andExpect(status().isUnprocessableEntity());
-        report(newGrower(), "DIARY", diaryId, "ILLEGAL_COMMERCE").andExpect(jsonPath("$.hidden").value(false));
-        Session repeated = newGrower();
+        report(trustedGrower(), "DIARY", diaryId, "ILLEGAL_COMMERCE").andExpect(jsonPath("$.hidden").value(false));
+        Session repeated = trustedGrower();
         report(repeated, "DIARY", diaryId, "ILLEGAL_COMMERCE").andExpect(status().isOk());
         report(repeated, "DIARY", diaryId, "ILLEGAL_COMMERCE").andExpect(jsonPath("$.hidden").value(false));
-        report(newGrower(), "DIARY", diaryId, "TRAFFICKING_APOLOGY").andExpect(jsonPath("$.hidden").value(true));
+        report(trustedGrower(), "DIARY", diaryId, "TRAFFICKING_APOLOGY").andExpect(jsonPath("$.hidden").value(true));
 
         mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(status().isNotFound());
         mvc.perform(authed(get("/api/v1/moderation/queue"), owner)).andExpect(status().isForbidden());
@@ -153,6 +154,42 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    void reportsFromBrandNewAccountsGoToTheQueueButHideNothing() throws Exception {
+        Session owner = newGrower();
+        Session moderator = moderator();
+        UUID diaryId = createDiary(owner, "Alvo de contas falsas", "PUBLIC", LocalDate.now().toString());
+
+        for (int i = 0; i < 5; i++) {
+            report(newGrower(), "DIARY", diaryId, "ILLEGAL_COMMERCE").andExpect(jsonPath("$.hidden").value(false));
+        }
+        // Conta antiga mas sem nenhum uso real também não conta.
+        Session idle = newGrower();
+        jdbc.update("update users set created_at = created_at - interval '30 days' where username = ?", idle.username());
+        report(idle, "DIARY", diaryId, "ILLEGAL_COMMERCE").andExpect(jsonPath("$.hidden").value(false));
+
+        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.visibility").value("PUBLIC"));
+        assertThat(queued(moderator, diaryId.toString()).get("reports").asInt()).isEqualTo(6);
+    }
+
+    @Test
+    void eachAccountHasADailyReportQuota() throws Exception {
+        Session author = newGrower();
+        Session reporter = trustedGrower();
+        for (int i = 0; i < 10; i++) {
+            UUID diaryId = createDiary(author, "Cota " + i, "PUBLIC", LocalDate.now().toString());
+            report(reporter, "DIARY", diaryId, "SPAM").andExpect(status().isOk());
+        }
+        UUID eleventh = createDiary(author, "Cota 10", "PUBLIC", LocalDate.now().toString());
+        report(reporter, "DIARY", eleventh, "SPAM")
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists("Retry-After"));
+        // Recusada não gasta cota nem registra nada; outra conta continua denunciando normalmente.
+        assertThat(jdbc.queryForObject("select count(*) from content_reports where target_id = ?", Long.class, eleventh))
+                .isZero();
+        report(newGrower(), "DIARY", eleventh, "SPAM").andExpect(status().isOk());
+    }
+
+    @Test
     void removingContentAndBanningTheAuthorLeavesAHashAndBlocksLogin() throws Exception {
         Session owner = newGrower();
         Session seller = newGrower();
@@ -161,7 +198,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         String text = "olha esse material, top demais";
         String commentId = comment(seller, diaryId, text);
         for (int i = 0; i < 3; i++) {
-            report(newGrower(), "COMMENT", commentId, "ILLEGAL_COMMERCE").andExpect(status().isOk());
+            report(trustedGrower(), "COMMENT", commentId, "ILLEGAL_COMMERCE").andExpect(status().isOk());
         }
 
         decide(moderator, "COMMENT", UUID.fromString(commentId), "REMOVE", "BAN", "ILLEGAL_COMMERCE")
@@ -205,10 +242,10 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
                 .content("{\"bio\":\"bio ofensiva qualquer\"}")).andExpect(status().isOk());
         UUID userId = jdbc.queryForObject("select id from users where username = ?", UUID.class, grower.username());
         for (int i = 0; i < 2; i++) {
-            report(newGrower(), "PROFILE", userId, "INAPPROPRIATE").andExpect(status().isOk());
+            report(trustedGrower(), "PROFILE", userId, "INAPPROPRIATE").andExpect(status().isOk());
         }
         // A tela denuncia perfil pelo apelido (a API pública não expõe o id da conta).
-        mvc.perform(authed(post("/api/v1/reports/profiles/{u}", grower.username()), newGrower())
+        mvc.perform(authed(post("/api/v1/reports/profiles/{u}", grower.username()), trustedGrower())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"INAPPROPRIATE\"}"))
                 .andExpect(jsonPath("$.hidden").value(true));
         mvc.perform(get("/api/v1/growers/{u}", grower.username())).andExpect(jsonPath("$.bio").doesNotExist());

@@ -19,12 +19,13 @@ docker compose stop backend frontend
 docker compose exec -T postgres sh -c \
   'dropdb -U "$POSTGRES_USER" --if-exists "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB"'
 # shellcheck disable=SC2016
-docker compose exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner' < "$source_dir/banco.dump"
+docker compose exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges' < "$source_dir/banco.dump"
 
 if [ -f "$source_dir/fotos.tar" ]; then
   docker compose run --rm --no-deps -T --entrypoint sh backend -c \
     'rm -rf /app/data/images && tar -C /app/data -xf -' < "$source_dir/fotos.tar"
 fi
 
+# O serviço db-roles devolve a posse das tabelas ao dono do schema e refaz as permissões do backend.
 docker compose up -d
 echo "Restaurado."

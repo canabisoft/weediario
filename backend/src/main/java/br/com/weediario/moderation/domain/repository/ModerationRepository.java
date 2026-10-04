@@ -12,9 +12,11 @@ public interface ModerationRepository {
     /**
      * Registra a denúncia (uma por pseudônimo de quem denuncia; repetir não conta de novo).
      *
-     * @return total de denúncias distintas do conteúdo
+     * @param countsTowardHide se a denúncia conta para a ocultação automática (conta com histórico)
+     * @return total de denúncias distintas do conteúdo que contam para a ocultação
      */
-    long addReport(ContentRef target, String reporterPseudonym, ReportReason reason, Instant at);
+    long addReport(ContentRef target, String reporterPseudonym, ReportReason reason, boolean countsTowardHide,
+                   Instant at);
 
     void clearReports(ContentRef target);
 

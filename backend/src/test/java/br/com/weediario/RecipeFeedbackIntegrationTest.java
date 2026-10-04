@@ -86,7 +86,7 @@ class RecipeFeedbackIntegrationTest extends IntegrationTestSupport {
 
         // Três denúncias distintas ocultam o comentário para o público.
         for (int i = 0; i < 3; i++) {
-            report(newGrower(), "RECIPE_COMMENT", commentId, "INAPPROPRIATE").andExpect(status().isOk());
+            report(trustedGrower(), "RECIPE_COMMENT", commentId, "INAPPROPRIATE").andExpect(status().isOk());
         }
         mvc.perform(get("/api/v1/recipes/{id}/comments", id)).andExpect(jsonPath("$.totalItems").value(0));
         mvc.perform(authed(get("/api/v1/recipes/{id}/comments", id), moderator()))

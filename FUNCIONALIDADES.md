@@ -46,7 +46,7 @@ rastreamento.
   denúncias (já anônimas). O e-mail confirmado recebe um último aviso. Admins não se apagam pelo app. Os dois
   funcionam mesmo com Termos novos ainda não aceitos.
 - **Tentativas:** depois de 5 senhas erradas, espera progressiva por apelido (30 s até 15 min, sem IP), mais um
-  limite por IP só em memória no nginx. A recuperação pela frase ou pelo e-mail nunca é bloqueada. Apelido
+  limite por IP só em memória no nginx. Tentativas simultâneas contam uma a uma. A recuperação pela frase ou pelo e-mail nunca é bloqueada. Apelido
   inexistente e senha errada recebem a mesma resposta, no mesmo tempo.
 - **Sessão:** token de acesso de 10 min só em memória e refresh token em cookie `HttpOnly`/`Secure`/`SameSite=Strict`,
   com rotação e tolerância a recarregar a página no meio de uma renovação.
@@ -205,8 +205,9 @@ das avaliações e g/planta), sem nenhum apelido ou id de diário.
     telefone ambíguo. O conteúdo fica visível só para o autor, com o selo "em análise".
   - **Não atrapalha o cultivo:** medidas (EC, pH, PPFD, VPD), datas, modelos de LED e strains com número passam.
   - **Vale para** comentários, diários, updates, avaliações, receitas, bio e nomes do catálogo.
-- **Denúncias** em qualquer conteúdo público ou perfil, com motivo e anônimas. Com 3 denúncias o conteúdo sai do
-  ar até a moderação decidir.
+- **Denúncias** em qualquer conteúdo público ou perfil, com motivo e anônimas. Com 3 denúncias de contas com
+  histórico (7 dias de conta e um update publicado ou e-mail confirmado) o conteúdo sai do ar até a moderação decidir.
+  Denúncias de contas novas vão para a fila sem ocultar nada. Até 10 denúncias por conta por dia.
 - **Painel com abas:**
   - Denúncias e retidos: manter, remover, remover e suspender, remover e banir.
   - Catálogo, por tipo: verificar, juntar duplicatas, recusar.
@@ -244,7 +245,8 @@ das avaliações e g/planta), sem nenhum apelido ou id de diário.
 - **Fotos:** sem EXIF.
 - **Reações e denúncias:** usam pseudônimos HMAC.
 - **Dados de saúde:** cifrados e amarrados à própria linha, com troca de chave sem parar o app.
-- **Infraestrutura:** containers sem root e somente leitura; CSP estrita, sem estilos inline; teto de cálculos
+- **Infraestrutura:** o backend usa um papel do banco que só lê e escreve linhas (sem DDL nem acesso a arquivos do
+  servidor); containers sem root e somente leitura; CSP estrita, sem estilos inline; teto de cálculos
   pesados (Argon2) para o servidor não cair sob ataque, sem usar IP.
 - **Projeto open-source** (código AGPL-3.0, dados abertos ODbL 1.0): qualquer pessoa pode auditar e contribuir.
 

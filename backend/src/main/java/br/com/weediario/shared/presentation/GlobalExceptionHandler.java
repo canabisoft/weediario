@@ -7,6 +7,7 @@ import br.com.weediario.identity.application.exception.HashingBusyException;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
 import br.com.weediario.identity.application.exception.LoginThrottledException;
 import br.com.weediario.media.application.exception.InvalidImageException;
+import br.com.weediario.shared.application.QuotaExceededException;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.treatment.application.ConsentRequiredException;
 import br.com.weediario.shared.domain.DomainException;
@@ -53,6 +54,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(LoginThrottledException.class)
     ResponseEntity<ProblemDetail> handleThrottled(LoginThrottledException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.retryAfter().toSeconds())))
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
+    }
+
+    /** Cota da conta para a ação esgotada na janela atual (denúncias, exportação...). */
+    @ExceptionHandler(QuotaExceededException.class)
+    ResponseEntity<ProblemDetail> handleQuotaExceeded(QuotaExceededException ex) {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.retryAfter().toSeconds())))
                 .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));

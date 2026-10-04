@@ -38,15 +38,17 @@ public class JdbcModerationRepository implements ModerationRepository {
     }
 
     @Override
-    public long addReport(ContentRef target, String reporterPseudonym, ReportReason reason, Instant at) {
+    public long addReport(ContentRef target, String reporterPseudonym, ReportReason reason, boolean countsTowardHide,
+                          Instant at) {
         MapSqlParameterSource params = ref(target).addValue("reporter", reporterPseudonym)
-                .addValue("reason", reason.name()).addValue("at", Timestamp.from(at));
+                .addValue("reason", reason.name()).addValue("counts", countsTowardHide).addValue("at", Timestamp.from(at));
         jdbc.update("""
-                insert into content_reports (target_type, target_id, reporter, reason, created_at)
-                values (:type, :id, :reporter, :reason, :at)
+                insert into content_reports (target_type, target_id, reporter, reason, counts_toward_hide, created_at)
+                values (:type, :id, :reporter, :reason, :counts, :at)
                 on conflict do nothing""", params);
-        Long total = jdbc.queryForObject(
-                "select count(*) from content_reports where target_type = :type and target_id = :id", params, Long.class);
+        Long total = jdbc.queryForObject("""
+                select count(*) from content_reports
+                 where target_type = :type and target_id = :id and counts_toward_hide""", params, Long.class);
         return total == null ? 0 : total;
     }
 

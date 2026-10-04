@@ -1,5 +1,6 @@
 package br.com.weediario.identity.application;
 
+import br.com.weediario.identity.application.exception.HashingBusyException;
 import br.com.weediario.identity.application.exception.InvalidCredentialsException;
 import br.com.weediario.identity.domain.model.AccessKey;
 import br.com.weediario.identity.domain.model.User;
@@ -25,11 +26,16 @@ public final class CredentialCheck {
     public void require(User user, String currentSecret) {
         LoginThrottle.Attempt attempt = throttle.begin(LoginThrottle.LOGIN, user.username().value());
         String secret = currentSecret == null ? "" : currentSecret;
-        boolean matches = user.passwordHash()
-                .map(hash -> hasher.matches(secret, hash))
-                .orElseGet(() -> AccessKey.isWellFormed(secret) && user.accessKeyMatches(new AccessKey(secret).hash()));
+        boolean matches;
+        try {
+            matches = user.passwordHash()
+                    .map(hash -> hasher.matches(secret, hash))
+                    .orElseGet(() -> AccessKey.isWellFormed(secret) && user.accessKeyMatches(new AccessKey(secret).hash()));
+        } catch (HashingBusyException busy) {
+            throttle.released(attempt);
+            throw busy;
+        }
         if (!matches) {
-            throttle.failed(attempt);
             throw new InvalidCredentialsException("Senha atual incorreta");
         }
         throttle.succeeded(attempt);

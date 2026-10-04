@@ -45,8 +45,16 @@ Este projeto foi arquitetado sob premissas rígidas de segurança digital:
   resposta), nunca com a mensagem, que pode trazer dado de usuário.
 - Limite de tentativas por apelido (chave HMAC do apelido, sem IP) no login e na confirmação da senha atual: depois
   de 5 erros, espera progressiva de 30 s até no máximo 15 min (curta, para ninguém trancar a conta dos outros por
-  horas). Frase (128 bits) e links de e-mail (256 bits) não têm bloqueio: adivinhar é inviável, e a recuperação
-  nunca fica travada.
+  horas). Cada tentativa é reservada antes do Argon2, com a linha do apelido travada no banco, então tentativas em
+  paralelo também contam uma a uma. Frase (128 bits) e links de e-mail (256 bits) não têm bloqueio: adivinhar é
+  inviável, e a recuperação nunca fica travada.
+- **Banco com menor privilégio:** o backend conecta como `weediario_app`, que só lê e escreve linhas (sem DDL, sem
+  `COPY` para arquivo ou programa, sem ler `pg_authid`) e tem tempo máximo por comando (30 s). As migrations rodam
+  como `weediario_owner`, dono do schema e sem superusuário; o superusuário da imagem fica só para manutenção e
+  backup. O serviço `db-roles` do compose (`deploy/postgres/roles.sql`) cria e confere os papéis a cada `up`, e corrige
+  sozinho instalações antigas e bancos restaurados.
+- **Cotas por conta** (nunca por IP) em ações que dão para abusar, numa tabela com incremento atômico e chave HMAC de
+  (ação, conta): 429 com `Retry-After` ao passar do limite. Hoje: 10 denúncias por dia.
 - Limite por IP **só em memória** no nginx para entrar, cadastrar e recuperar (20/min por IP, com folga). O IP vira
   chave de um contador que some sozinho: não vai para log nem para o backend. Atrás do Caddy, o IP chega ao nginx num
   cabeçalho próprio que o Caddy sobrescreve.
@@ -170,7 +178,9 @@ versão antiga continua lendo, baixando e apagando dados, mas não publica até 
   passam (mais de 80 frases reais de grower nos testes). Vale para comentários e respostas, diários e updates
   públicos, reviews, receitas e bio. Nomes do catálogo são só bloqueados.
 - **Denúncias** em qualquer conteúdo público, com motivo e de forma anônima (pseudônimo HMAC por conteúdo). Com 3
-  denúncias distintas o conteúdo sai do ar até a moderação decidir.
+  denúncias distintas de contas com histórico (7 dias de conta e um update publicado ou e-mail confirmado) o conteúdo
+  sai do ar até a moderação decidir. Denúncia de conta nova vai para a fila do mesmo jeito, mas não oculta nada:
+  contas criadas em série não censuram ninguém. Até 10 denúncias por conta por dia.
 - **Painel `/moderacao`** (papel `MODERATOR` ou `ADMIN`): fila unificada, manter/remover, suspender ou banir, reativar
   conta. Cada decisão vai para `moderation_log` (só inserção, 5 anos), sem IP, sem quem denunciou e sem o conteúdo, só
   o SHA-256 do texto removido. `ADMIN` exporta o log em CSV para atender ordem judicial.

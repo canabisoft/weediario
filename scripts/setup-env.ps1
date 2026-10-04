@@ -20,6 +20,14 @@ if (Test-Path $envFile) {
             $added = $true
         }
     }
+    foreach ($name in @('WEEDIARIO_DB_OWNER_PASSWORD', 'WEEDIARIO_DB_APP_PASSWORD')) {
+        if (-not (Select-String -Path $envFile -Pattern "^$name=" -Quiet)) {
+            $line = "$name=$(([System.BitConverter]::ToString((New-RandomBytes 24))) -replace '-', '')"
+            [System.IO.File]::AppendAllText($envFile, $line + "`n", (New-Object System.Text.UTF8Encoding $false))
+            Write-Output "$name acrescentada ao .env."
+            $added = $true
+        }
+    }
     if (-not $added) {
         Write-Output '.env já existe; nada foi alterado.'
     }
@@ -29,6 +37,8 @@ if (Test-Path $envFile) {
 $lines = @(
     'WEEDIARIO_DB_USER=weediario'
     "WEEDIARIO_DB_PASSWORD=$(([System.BitConverter]::ToString((New-RandomBytes 24))) -replace '-', '')"
+    "WEEDIARIO_DB_OWNER_PASSWORD=$(([System.BitConverter]::ToString((New-RandomBytes 24))) -replace '-', '')"
+    "WEEDIARIO_DB_APP_PASSWORD=$(([System.BitConverter]::ToString((New-RandomBytes 24))) -replace '-', '')"
     "WEEDIARIO_JWT_SECRET=$([Convert]::ToBase64String((New-RandomBytes 48)))"
     "WEEDIARIO_PSEUDONYM_KEY=$([Convert]::ToBase64String((New-RandomBytes 48)))"
     "WEEDIARIO_HEALTH_KEY=$([Convert]::ToBase64String((New-RandomBytes 32)))"

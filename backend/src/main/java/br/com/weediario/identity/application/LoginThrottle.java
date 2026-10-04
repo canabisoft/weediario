@@ -33,27 +33,41 @@ public final class LoginThrottle {
         this.clock = clock;
     }
 
-    /** Lança {@link LoginThrottledException} se o apelido está bloqueado. */
+    /**
+     * Reserva uma tentativa antes de conferir a senha: ela já conta como falha e só é desfeita por
+     * {@link #succeeded}. A leitura trava a linha do apelido, então tentativas simultâneas entram em fila e cada uma
+     * conta; quando o limite é atingido, as seguintes recebem {@link LoginThrottledException} sem nem rodar o Argon2.
+     */
     public Attempt begin(String scope, String rawUsername) {
         String key = keyHasher.keyOf(scope + (rawUsername == null ? "" : rawUsername.strip().toLowerCase(Locale.ROOT)));
         Instant now = clock.instant();
-        LoginAttempts current = unitOfWork.execute(() -> attempts.find(key)).orElse(LoginAttempts.none(now));
-        current.lockRemaining(now).ifPresent(remaining -> {
-            throw new LoginThrottledException(remaining);
+        unitOfWork.run(() -> {
+            LoginAttempts current = attempts.findForUpdate(key, now);
+            current.lockRemaining(now).ifPresent(remaining -> {
+                throw new LoginThrottledException(remaining);
+            });
+            attempts.save(key, current.registerFailure(now));
         });
-        return new Attempt(key, current);
+        return new Attempt(key);
     }
 
-    /** Gravado em transação própria: a falha precisa contar mesmo com a requisição terminando em erro. */
-    public void failed(Attempt attempt) {
-        unitOfWork.run(() -> attempts.save(attempt.key(), attempt.current().registerFailure(clock.instant())));
+    /** A senha nem foi conferida (teto de Argon2 simultâneos): a tentativa não conta. */
+    public void released(Attempt attempt) {
+        unitOfWork.run(() -> {
+            LoginAttempts refunded = attempts.findForUpdate(attempt.key(), clock.instant()).refund();
+            if (refunded.isClean()) {
+                attempts.delete(attempt.key());
+            } else {
+                attempts.save(attempt.key(), refunded);
+            }
+        });
     }
 
-    /** Chamado dentro da transação do sucesso. */
+    /** Senha certa: zera a contagem do apelido. Chamado dentro da transação do sucesso. */
     public void succeeded(Attempt attempt) {
         attempts.delete(attempt.key());
     }
 
-    public record Attempt(String key, LoginAttempts current) {
+    public record Attempt(String key) {
     }
 }

@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -73,6 +74,20 @@ public abstract class IntegrationTestSupport {
                 .andReturn();
         JsonNode response = body(registered);
         return new Session(username, response.get("accessToken").asText(), PASSWORD);
+    }
+
+    /**
+     * Conta com histórico: criada há 8 dias e com um update publicado (num diário privado, para não mexer no feed).
+     * A denúncia dela conta para tirar conteúdo do ar sozinha; a de uma conta recém-criada, não.
+     */
+    protected Session trustedGrower() throws Exception {
+        Session session = newGrower();
+        UUID diaryId = createDiary(session, "Histórico", "PRIVATE", LocalDate.now().toString());
+        mvc.perform(authed(post("/api/v1/diaries/{id}/updates", diaryId), session).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stage\":\"VEGETATIVE\",\"note\":\"update\"}"))
+                .andExpect(status().isCreated());
+        jdbc.update("update users set created_at = created_at - interval '8 days' where username = ?", session.username());
+        return session;
     }
 
     /** Grower promovido a moderador; o novo login traz o papel no access token. */

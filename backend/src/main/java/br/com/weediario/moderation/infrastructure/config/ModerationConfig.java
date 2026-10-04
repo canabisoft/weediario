@@ -3,6 +3,7 @@ package br.com.weediario.moderation.infrastructure.config;
 import br.com.weediario.moderation.application.port.ModeratedAccounts;
 import br.com.weediario.moderation.application.port.ModeratedContent;
 import br.com.weediario.moderation.application.port.ReporterPseudonyms;
+import br.com.weediario.moderation.application.port.ReporterStandings;
 import br.com.weediario.moderation.application.query.ModerationQueries;
 import br.com.weediario.moderation.application.query.PlatformMetrics;
 import br.com.weediario.moderation.application.usecase.AdminMetricsUseCase;
@@ -13,6 +14,7 @@ import br.com.weediario.moderation.application.usecase.ModerationQueueUseCase;
 import br.com.weediario.moderation.application.usecase.ReportContentUseCase;
 import br.com.weediario.moderation.domain.model.ModerationLogEntry;
 import br.com.weediario.moderation.domain.repository.ModerationRepository;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.UnitOfWork;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,8 +30,9 @@ public class ModerationConfig {
     @Bean
     ReportContentUseCase reportContentUseCase(ModerationRepository repository, ModeratedContent content,
                                               ReporterPseudonyms pseudonyms, ModeratedAccounts accounts,
+                                              ReporterStandings standings, ActionQuota quota,
                                               UnitOfWork unitOfWork, Clock clock) {
-        return new ReportContentUseCase(repository, content, pseudonyms, accounts, unitOfWork, clock);
+        return new ReportContentUseCase(repository, content, pseudonyms, accounts, standings, quota, unitOfWork, clock);
     }
 
     @Bean

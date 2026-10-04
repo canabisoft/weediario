@@ -30,6 +30,19 @@ public record LoginAttempts(int failures, Instant windowStartedAt, Instant locke
                 : Optional.empty();
     }
 
+    /**
+     * Devolve uma tentativa reservada que nem chegou a conferir a senha (servidor ocupado). Se foi justamente ela que
+     * disparou a espera, a espera fica: o desconto é só na contagem.
+     */
+    public LoginAttempts refund() {
+        return failures > 0 ? new LoginAttempts(failures - 1, windowStartedAt, lockedUntil, lockCount) : this;
+    }
+
+    /** Nada a lembrar: a linha pode sumir. */
+    public boolean isClean() {
+        return failures == 0 && lockedUntil == null && lockCount == 0;
+    }
+
     public LoginAttempts registerFailure(Instant now) {
         boolean windowExpired = now.isAfter(windowStartedAt.plus(WINDOW));
         int currentFailures = (windowExpired ? 0 : failures) + 1;

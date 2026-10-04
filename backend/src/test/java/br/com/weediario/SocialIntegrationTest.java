@@ -109,13 +109,13 @@ class SocialIntegrationTest extends IntegrationTestSupport {
         String commentId = comment(author, diaryId, "conteúdo abusivo");
 
         report(author, "COMMENT", commentId, "SPAM").andExpect(status().isUnprocessableEntity()); // o próprio autor não
-        Session reporter = newGrower();
+        Session reporter = trustedGrower();
         report(reporter, diaryId, commentId);
         report(reporter, diaryId, commentId); // repetida: não conta
-        report(newGrower(), diaryId, commentId);
+        report(trustedGrower(), diaryId, commentId);
         assertThat(commentCount(diaryId)).isEqualTo(1);
 
-        report(newGrower(), diaryId, commentId);
+        report(trustedGrower(), diaryId, commentId);
         assertThat(commentCount(diaryId)).isZero();
 
     }
