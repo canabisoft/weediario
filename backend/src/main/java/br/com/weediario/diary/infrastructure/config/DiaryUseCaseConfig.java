@@ -20,6 +20,7 @@ import br.com.weediario.diary.application.usecase.PublishDiaryUpdateUseCase;
 import br.com.weediario.diary.domain.repository.DiaryUpdateRepository;
 import br.com.weediario.diary.domain.repository.GrowDiaryRepository;
 import br.com.weediario.diary.domain.repository.GrowSetupRepository;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.UnitOfWork;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,8 +43,9 @@ public class DiaryUseCaseConfig {
     @Bean
     CreateGrowDiaryUseCase createGrowDiaryUseCase(GrowDiaryRepository diaries, GrowSetupRepository setups,
                                                   CatalogLookup catalog, GrowerDirectory growers,
-                                                  DiaryModeration moderation, UnitOfWork unitOfWork, Clock clock) {
-        return new CreateGrowDiaryUseCase(diaries, setups, catalog, growers, moderation, unitOfWork, clock);
+                                                  DiaryModeration moderation,
+                                                  ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
+        return new CreateGrowDiaryUseCase(diaries, setups, catalog, growers, moderation, quota, unitOfWork, clock);
     }
 
     @Bean
@@ -69,8 +71,9 @@ public class DiaryUseCaseConfig {
     PublishDiaryUpdateUseCase publishDiaryUpdateUseCase(DiaryAccess access, GrowDiaryRepository diaries,
                                                         DiaryUpdateRepository updates, PhotoLibrary photos,
                                                         UpdateNotifier notifier, DiaryModeration moderation,
-                                                        UnitOfWork unitOfWork, Clock clock) {
-        return new PublishDiaryUpdateUseCase(access, diaries, updates, photos, notifier, moderation, unitOfWork, clock);
+                                                        ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
+        return new PublishDiaryUpdateUseCase(access, diaries, updates, photos, notifier, moderation,
+                quota, unitOfWork, clock);
     }
 
     @Bean

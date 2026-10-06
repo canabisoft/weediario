@@ -80,12 +80,13 @@ import { ReportButton } from '../shared/report-button';
           </div>
         }
 
-        <dl class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <dl class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-6">
           <div class="wd-card p-3 text-center"><dd class="text-xl font-bold tabular-nums">{{ int(p.diaries) }}</dd><dt class="text-xs text-fg-muted">Diários</dt></div>
           <div class="wd-card p-3 text-center"><dd class="text-xl font-bold tabular-nums">{{ int(p.harvests) }}</dd><dt class="text-xs text-fg-muted">Colheitas</dt></div>
           <div class="wd-card p-3 text-center"><dd class="text-xl font-bold tabular-nums">{{ p.gramsPerPlant != null ? dec(p.gramsPerPlant) : '—' }}</dd><dt class="text-xs text-fg-muted">g/planta (média)</dt></div>
           <div class="wd-card p-3 text-center"><dd class="text-xl font-bold tabular-nums">{{ int(p.likes) }}</dd><dt class="text-xs text-fg-muted">Curtidas</dt></div>
-          <div class="wd-card col-span-2 p-3 text-center sm:col-span-1"><dd class="text-xl font-bold tabular-nums">{{ int(p.followers) }}</dd><dt class="text-xs text-fg-muted">Seguidores</dt></div>
+          <div class="wd-card p-3 text-center"><dd class="text-xl font-bold tabular-nums">{{ int(p.reviews) }}</dd><dt class="text-xs text-fg-muted">Avaliações</dt></div>
+          <div class="wd-card p-3 text-center"><dd class="text-xl font-bold tabular-nums">{{ int(p.followers) }}</dd><dt class="text-xs text-fg-muted">Seguidores</dt></div>
         </dl>
 
         <h2 class="mt-8 text-lg font-semibold">Diários públicos</h2>

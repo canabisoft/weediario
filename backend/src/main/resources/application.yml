@@ -74,6 +74,11 @@ weediario:
       # 0 = automático: max(2, núcleos / 2). Cada cálculo usa ~19 MiB de memória.
       max-concurrent: ${WEEDIARIO_HASH_MAX_CONCURRENT:0}
       max-wait: ${WEEDIARIO_HASH_MAX_WAIT:2s}
+    # Desafio anti-robô do cadastro (prova de trabalho no navegador, sem terceiros nem IP). O navegador testa em média
+    # metade de max-number hashes: 150 mil ≈ 1 s num celular. Sobe o custo de quem cria contas em série.
+    register-challenge:
+      max-number: ${WEEDIARIO_REGISTER_CHALLENGE_MAX:150000}
+      ttl: 10m
     # E-mail opcional das contas (recuperar a senha e avisos de segurança). SMTP: variáveis SPRING_MAIL_HOST, _PORT,
     # _USERNAME e _PASSWORD. Sem SMTP (ou sem remetente), o envio fica desligado.
     mail:

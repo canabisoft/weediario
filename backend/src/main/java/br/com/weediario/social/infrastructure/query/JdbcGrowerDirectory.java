@@ -16,6 +16,8 @@ import java.util.UUID;
 /**
  * Estatísticas por grower calculadas só sobre diários públicos de contas ativas.
  * "Gramas por planta" é a soma do peso seco dividida pela soma de plantas das colheitas registradas.
+ * Avaliações contam todas as publicadas (e não retidas pela moderação): elas já são públicas na página da strain,
+ * mesmo quando o diário de origem é privado.
  */
 @Component
 public class JdbcGrowerDirectory implements GrowerDirectory {
@@ -33,7 +35,8 @@ public class JdbcGrowerDirectory implements GrowerDirectory {
                    (select round(sum(d.harvest_dry_grams)::numeric / nullif(sum(d.harvest_plants), 0), 1)
                       from grow_diaries d
                      where d.owner_id = u.id and d.visibility = 'PUBLIC' and d.harvest_dry_grams is not null)
-                       as grams_per_plant
+                       as grams_per_plant,
+                   (select count(*) from reviews r where r.author_id = u.id and not r.hidden) as reviews
               from users u
              where u.status = 'ACTIVE'
             """;
@@ -42,7 +45,8 @@ public class JdbcGrowerDirectory implements GrowerDirectory {
     private static final Map<RankingSort, String> METRIC = Map.of(
             RankingSort.DIARIES, "diaries",
             RankingSort.LIKES, "likes",
-            RankingSort.GRAMS_PER_PLANT, "grams_per_plant");
+            RankingSort.GRAMS_PER_PLANT, "grams_per_plant",
+            RankingSort.REVIEWS, "reviews");
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -54,11 +58,12 @@ public class JdbcGrowerDirectory implements GrowerDirectory {
     public PageResult<RankedGrower> ranking(RankingSort sort, String usernameQuery, PageQuery page) {
         String metric = METRIC.get(sort);
         // A posição é calculada sobre todos os growers antes do filtro por nome: "#7" continua 7º na busca.
+        // No ranking de avaliações entra quem avaliou, mesmo sem diário público (os diários podem ser privados).
         String ranked = """
                 select s.*, rank() over (order by %s desc nulls last) as position
                   from (%s) s
-                 where s.diaries > 0
-                """.formatted(metric, STATS);
+                 where %s > 0
+                """.formatted(metric, STATS, sort == RankingSort.REVIEWS ? "s.reviews" : "s.diaries");
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("limit", page.size())
                 .addValue("offset", page.offset());
@@ -77,7 +82,8 @@ public class JdbcGrowerDirectory implements GrowerDirectory {
                         rs.getBoolean("has_avatar"),
                         rs.getLong("diaries"),
                         rs.getLong("likes"),
-                        rs.getBigDecimal("grams_per_plant")));
+                        rs.getBigDecimal("grams_per_plant"),
+                        rs.getLong("reviews")));
         return PageResult.of(items, page, total == null ? 0 : total);
     }
 
@@ -102,6 +108,7 @@ public class JdbcGrowerDirectory implements GrowerDirectory {
                         rs.getLong("likes"),
                         rs.getLong("harvests"),
                         rs.getBigDecimal("grams_per_plant"),
+                        rs.getLong("reviews"),
                         rs.getLong("followers"),
                         rs.getBoolean("followed_by_viewer"),
                         rs.getBoolean("is_viewer"))).stream().findFirst();

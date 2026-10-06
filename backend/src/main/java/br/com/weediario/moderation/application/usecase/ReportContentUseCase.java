@@ -11,13 +11,13 @@ import br.com.weediario.moderation.domain.model.ModerationVocabulary.HoldCause;
 import br.com.weediario.moderation.domain.model.ModerationVocabulary.ReportReason;
 import br.com.weediario.moderation.domain.model.ModerationVocabulary.TargetType;
 import br.com.weediario.moderation.domain.repository.ModerationRepository;
+import br.com.weediario.shared.application.ActionLimits;
 import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -26,13 +26,11 @@ import java.util.UUID;
  * aparece para ninguém, nem para a moderação. Com {@link #HIDE_AFTER_REPORTS} denúncias distintas de contas com
  * histórico ({@link ReporterStanding}), o conteúdo sai do público e espera a decisão da moderação. Denúncia de conta
  * nova entra na fila do mesmo jeito, mas não oculta nada: assim, contas criadas em série não censuram ninguém.
- * Cada conta faz no máximo {@link #REPORTS_PER_DAY} denúncias por dia.
+ * Cada conta tem uma cota diária de denúncias ({@link ActionLimits#REPORTS}).
  */
 public final class ReportContentUseCase {
 
     public static final int HIDE_AFTER_REPORTS = 3;
-    public static final int REPORTS_PER_DAY = 10;
-    static final ActionQuota.Limit DAILY_REPORTS = new ActionQuota.Limit("report", REPORTS_PER_DAY, Duration.ofDays(1));
 
     private final ModerationRepository repository;
     private final ModeratedContent content;
@@ -77,7 +75,7 @@ public final class ReportContentUseCase {
             if (reporterId.equals(info.authorId())) {
                 throw new DomainException("Não dá para denunciar o próprio conteúdo");
             }
-            quota.consume(reporterId, DAILY_REPORTS);
+            quota.consume(reporterId, ActionLimits.REPORTS);
             Instant now = clock.instant();
             boolean counts = standings.of(reporterId).map(standing -> standing.countsTowardHiding(now)).orElse(false);
             long reports = repository.addReport(ref, pseudonyms.of(reporterId, ref), reason, counts, now);

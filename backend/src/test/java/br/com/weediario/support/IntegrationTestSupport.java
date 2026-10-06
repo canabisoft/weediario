@@ -15,9 +15,13 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDate;
+import java.util.HexFormat;
 import java.util.UUID;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,7 +37,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "weediario.treatment.encryption-key=dGVzdC1rZXktZm9yLWhlYWx0aC1kYXRhLTMyYnl0ZXM=",
         "weediario.identity.mail.email-key=ZW1haWwta2V5LWZvci10ZXN0cy1vbmx5LTMyYnl0ZXM=",
         "spring.datasource.username=",
-        "spring.datasource.password="
+        "spring.datasource.password=",
+        // Desafio anti-robô fácil: os testes cadastram centenas de contas.
+        "weediario.identity.register-challenge.max-number=20"
 })
 @AutoConfigureMockMvc
 @Import({EmbeddedPostgresConfig.class, RecordingAccountMailer.Config.class})
@@ -111,15 +117,37 @@ public abstract class IntegrationTestSupport {
                 {"login":"%s","password":"%s"}""".formatted(username, password);
     }
 
-    /** Cadastro mínimo: apelido, senha, derivado da frase de recuperação e aceite dos termos (sem e-mail). */
-    protected static String registerJson(String username) {
+    /**
+     * Cadastro mínimo: apelido, senha, derivado da frase de recuperação, aceite dos termos (sem e-mail) e a solução de
+     * um desafio anti-robô de verdade.
+     */
+    protected String registerJson(String username) throws Exception {
         return registerJson(username, null);
     }
 
-    protected static String registerJson(String username, String email) {
+    protected String registerJson(String username, String email) throws Exception {
         return """
-                {"username":"%s","password":"%s","email":%s,"recoveryVerifier":"%s","acceptedTermsVersion":"%s"}"""
-                .formatted(username, PASSWORD, email == null ? "null" : "\"" + email + "\"", VERIFIER, TERMS);
+                {"username":"%s","password":"%s","email":%s,"recoveryVerifier":"%s","acceptedTermsVersion":"%s",
+                 "challenge":%s}"""
+                .formatted(username, PASSWORD, email == null ? "null" : "\"" + email + "\"", VERIFIER, TERMS,
+                        challengeJson());
+    }
+
+    /** Pede um desafio e resolve como o navegador faria (nos testes, a dificuldade é baixa). */
+    protected String challengeJson() throws Exception {
+        JsonNode issued = body(mvc.perform(get("/api/v1/auth/register-challenge")).andExpect(status().isOk()).andReturn());
+        String salt = issued.get("salt").asText();
+        String challenge = issued.get("challenge").asText();
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+        for (long number = 0; number <= issued.get("maxNumber").asLong(); number++) {
+            String hash = HexFormat.of().formatHex(sha256.digest((salt + number).getBytes(StandardCharsets.UTF_8)));
+            if (hash.equals(challenge)) {
+                return """
+                        {"challenge":"%s","salt":"%s","number":%d,"signature":"%s"}"""
+                        .formatted(challenge, salt, number, issued.get("signature").asText());
+            }
+        }
+        throw new IllegalStateException("Desafio sem solução");
     }
 
     protected UUID createDiary(Session session, String strain, String visibility, String startedOn) throws Exception {

@@ -11,6 +11,8 @@ import br.com.weediario.shared.application.QuotaExceededException;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.treatment.application.ConsentRequiredException;
 import br.com.weediario.shared.domain.DomainException;
+import br.com.weediario.shared.infrastructure.observability.SecuritySignals;
+import br.com.weediario.shared.infrastructure.observability.SecuritySignals.Signal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,6 +39,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    private final SecuritySignals signals;
+
+    public GlobalExceptionHandler(SecuritySignals signals) {
+        this.signals = signals;
+    }
+
     @ExceptionHandler(DomainException.class)
     ProblemDetail handleDomain(DomainException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
@@ -44,6 +52,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(InvalidImageException.class)
     ProblemDetail handleInvalidImage(InvalidImageException ex) {
+        signals.record(Signal.IMAGES_REJECTED);
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
     }
 
@@ -54,6 +63,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(LoginThrottledException.class)
     ResponseEntity<ProblemDetail> handleThrottled(LoginThrottledException ex) {
+        signals.record(Signal.LOGIN_THROTTLED);
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.retryAfter().toSeconds())))
                 .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
@@ -62,6 +72,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     /** Cota da conta para a ação esgotada na janela atual (denúncias, exportação...). */
     @ExceptionHandler(QuotaExceededException.class)
     ResponseEntity<ProblemDetail> handleQuotaExceeded(QuotaExceededException ex) {
+        signals.record(Signal.QUOTA_EXCEEDED);
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.retryAfter().toSeconds())))
                 .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
@@ -70,6 +81,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     /** Teto global de Argon2 simultâneos atingido: falha rápida, sem contar como tentativa errada. */
     @ExceptionHandler(HashingBusyException.class)
     ResponseEntity<ProblemDetail> handleHashingBusy(HashingBusyException ex) {
+        signals.record(Signal.HASHING_SATURATED);
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.retryAfter().toSeconds())))
                 .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()));
@@ -77,6 +89,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(InvalidCredentialsException.class)
     ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
+        signals.record(Signal.LOGIN_FAILED);
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 

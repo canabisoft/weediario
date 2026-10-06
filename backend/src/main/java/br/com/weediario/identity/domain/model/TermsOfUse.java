@@ -4,7 +4,7 @@ import br.com.weediario.shared.domain.DomainException;
 
 
 /**
- * Versão vigente dos Termos de Uso. O texto de cada versão fica no código aberto (página /termos), então o
+ * Versão vigente dos Termos de Uso. O texto de cada versão fica no código (página /termos), então o
  * histórico do repositório prova exatamente o que cada pessoa aceitou; no banco vai só a versão e a data/hora.
  * Mudou o texto, mudou a versão: todo mundo aceita de novo antes de publicar.
  */

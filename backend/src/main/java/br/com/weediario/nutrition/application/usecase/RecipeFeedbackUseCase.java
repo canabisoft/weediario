@@ -3,6 +3,8 @@ package br.com.weediario.nutrition.application.usecase;
 import br.com.weediario.nutrition.application.port.CommentReactorPseudonyms;
 import br.com.weediario.nutrition.application.port.RecipeModeration;
 import br.com.weediario.nutrition.application.port.RecipeReplyNotifier;
+import br.com.weediario.shared.application.ActionLimits;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.domain.CommerceFilter;
 import br.com.weediario.shared.domain.CommerceFilter.Verdict;
 import br.com.weediario.nutrition.application.query.RecipeReadModel;
@@ -52,18 +54,21 @@ public final class RecipeFeedbackUseCase {
     private final RecipeModeration moderation;
     private final RecipeReplyNotifier replyNotifier;
     private final CommentReactorPseudonyms reactors;
+    private final ActionQuota quota;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public RecipeFeedbackUseCase(RecipeRepository recipes, RecipeFeedbackRepository feedback, RecipeReadModel readModel,
                                  RecipeModeration moderation, RecipeReplyNotifier replyNotifier,
-                                 CommentReactorPseudonyms reactors, UnitOfWork unitOfWork, Clock clock) {
+                                 CommentReactorPseudonyms reactors,
+                                 ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
         this.moderation = moderation;
         this.recipes = recipes;
         this.feedback = feedback;
         this.readModel = readModel;
         this.replyNotifier = replyNotifier;
         this.reactors = reactors;
+        this.quota = quota;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -75,6 +80,7 @@ public final class RecipeFeedbackUseCase {
         unitOfWork.run(() -> {
             Recipe recipe = visible(recipeId, Optional.of(raterId));
             recipe.checkCanBeRatedBy(raterId);
+            quota.consume(raterId, ActionLimits.REACTIONS);
             feedback.rate(recipe.id(), raterId, stars, clock.instant());
         });
         return rating(recipeId, Optional.of(raterId));
@@ -183,6 +189,7 @@ public final class RecipeFeedbackUseCase {
     public CommentReactions react(UUID recipeId, UUID commentId, UUID userId, CommentReaction type) {
         return unitOfWork.execute(() -> {
             RecipeComment comment = visibleComment(visible(recipeId, Optional.of(userId)), commentId, userId);
+            quota.consume(userId, ActionLimits.REACTIONS);
             feedback.addCommentReaction(comment.id(), reactors.of(userId, comment.id()), type);
             return reactionsOf(comment.id(), userId);
         });

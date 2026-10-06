@@ -1,5 +1,7 @@
 package br.com.weediario.social.application.usecase;
 
+import br.com.weediario.shared.application.ActionLimits;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
 import br.com.weediario.shared.application.ResourceNotFoundException;
@@ -30,15 +32,17 @@ public final class GrowersUseCase {
     private final GrowerLookup growers;
     private final FollowRepository follows;
     private final InteractionNotifier notifier;
+    private final ActionQuota quota;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public GrowersUseCase(GrowerDirectory directory, GrowerLookup growers, FollowRepository follows,
-                          InteractionNotifier notifier, UnitOfWork unitOfWork, Clock clock) {
+                          InteractionNotifier notifier, ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
         this.directory = directory;
         this.growers = growers;
         this.follows = follows;
         this.notifier = notifier;
+        this.quota = quota;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -66,6 +70,7 @@ public final class GrowersUseCase {
             if (follows.countFollowing(followerId) >= MAX_FOLLOWING) {
                 throw new DomainException("Limite de " + MAX_FOLLOWING + " growers seguidos atingido");
             }
+            quota.consume(followerId, ActionLimits.FOLLOWS);
             if (follows.follow(followerId, followee, clock.instant())) {
                 notifier.followed(followee, followerId);
             }

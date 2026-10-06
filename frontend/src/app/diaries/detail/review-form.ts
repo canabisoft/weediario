@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ProductSnapshot } from '../../core/api/api.models';
@@ -102,6 +102,8 @@ export class ReviewForm {
   readonly breeder = input<string | undefined>();
   /** Produtos do catálogo usados no cultivo (setup do diário). */
   readonly products = input<readonly ProductSnapshot[]>([]);
+  /** Avaliação publicada (com o id da strain). */
+  readonly submitted = output<string>();
 
   protected readonly vigor = signal<number | null>(null);
   protected readonly pestResistance = signal<number | null>(null);
@@ -167,7 +169,10 @@ export class ReviewForm {
         report: this.report.trim(),
       })
       .subscribe({
-        next: (result) => this.sentStrainId.set(result.strainId),
+        next: (result) => {
+          this.sentStrainId.set(result.strainId);
+          this.submitted.emit(result.strainId);
+        },
         error: (error) => {
           this.error.set(problemMessage(error));
           this.busy.set(false);

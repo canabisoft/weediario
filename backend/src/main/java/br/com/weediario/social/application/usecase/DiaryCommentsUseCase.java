@@ -1,5 +1,7 @@
 package br.com.weediario.social.application.usecase;
 
+import br.com.weediario.shared.application.ActionLimits;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
 import br.com.weediario.shared.application.ResourceNotFoundException;
@@ -56,12 +58,13 @@ public final class DiaryCommentsUseCase {
     private final CommentModeration moderation;
     private final InteractionNotifier notifier;
     private final Pseudonymizer pseudonymizer;
+    private final ActionQuota quota;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public DiaryCommentsUseCase(DiaryAudience diaries, CommentRepository comments, CommentReactionRepository reactions,
                                 CommentReadModel readModel, CommentModeration moderation, InteractionNotifier notifier,
-                                Pseudonymizer pseudonymizer, UnitOfWork unitOfWork, Clock clock) {
+                                Pseudonymizer pseudonymizer, ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
         this.diaries = diaries;
         this.comments = comments;
         this.reactions = reactions;
@@ -69,6 +72,7 @@ public final class DiaryCommentsUseCase {
         this.moderation = moderation;
         this.notifier = notifier;
         this.pseudonymizer = pseudonymizer;
+        this.quota = quota;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -156,6 +160,7 @@ public final class DiaryCommentsUseCase {
     public CommentReactions react(UUID diaryId, UUID commentId, UUID userId, ReactionType type) {
         return unitOfWork.execute(() -> {
             Comment comment = visibleComment(visibleDiary(diaryId, Optional.of(userId)), commentId, userId);
+            quota.consume(userId, ActionLimits.REACTIONS);
             reactions.add(comment.id(), reactorOf(userId, comment.id()), type);
             return reactionsOf(comment.id(), userId);
         });

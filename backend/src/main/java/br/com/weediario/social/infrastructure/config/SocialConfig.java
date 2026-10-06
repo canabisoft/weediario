@@ -1,5 +1,6 @@
 package br.com.weediario.social.infrastructure.config;
 
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.social.application.port.DiaryAudience;
 import br.com.weediario.social.application.port.CommentModeration;
@@ -27,21 +28,22 @@ public class SocialConfig {
     DiaryCommentsUseCase diaryCommentsUseCase(DiaryAudience diaries, CommentRepository comments,
                                               CommentReactionRepository reactions, CommentReadModel readModel,
                                               CommentModeration moderation, InteractionNotifier notifier,
-                                              Pseudonymizer pseudonymizer, UnitOfWork unitOfWork, Clock clock) {
+                                              Pseudonymizer pseudonymizer,
+                                              ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
         return new DiaryCommentsUseCase(diaries, comments, reactions, readModel, moderation, notifier, pseudonymizer,
-                unitOfWork, clock);
+                quota, unitOfWork, clock);
     }
 
     @Bean
     GrowersUseCase growersUseCase(GrowerDirectory directory, GrowerLookup growers, FollowRepository follows,
-                                  InteractionNotifier notifier, UnitOfWork unitOfWork, Clock clock) {
-        return new GrowersUseCase(directory, growers, follows, notifier, unitOfWork, clock);
+                                  InteractionNotifier notifier, ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
+        return new GrowersUseCase(directory, growers, follows, notifier, quota, unitOfWork, clock);
     }
 
     @Bean
     DiaryReactionsUseCase diaryReactionsUseCase(DiaryAudience diaries, ReactionRepository reactions,
                                                 Pseudonymizer pseudonymizer, InteractionNotifier notifier,
-                                                UnitOfWork unitOfWork, Clock clock) {
-        return new DiaryReactionsUseCase(diaries, reactions, pseudonymizer, notifier, unitOfWork, clock);
+                                                ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
+        return new DiaryReactionsUseCase(diaries, reactions, pseudonymizer, notifier, quota, unitOfWork, clock);
     }
 }

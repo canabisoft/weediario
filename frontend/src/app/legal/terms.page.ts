@@ -5,7 +5,6 @@ import { Router, RouterLink } from '@angular/router';
 import { catchError, map, of } from 'rxjs';
 import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
-import { REPOSITORY_URL } from '../manifesto/manifesto.page';
 
 /** Versão vigente. Mudou o texto, muda a versão (e o backend também): todo mundo aceita de novo antes de publicar. */
 export const TERMS_VERSION = '1.0';
@@ -26,8 +25,8 @@ interface Clause {
 }
 
 /**
- * Texto dos Termos de Uso. Fica no código aberto: o histórico do repositório prova exatamente o que cada versão
- * dizia; no banco vai só a versão aceita e a data/hora do aceite.
+ * Texto dos Termos de Uso. Fica no código: o histórico do repositório prova exatamente o que cada versão dizia; no
+ * banco vai só a versão aceita e a data/hora do aceite.
  */
 export const CLAUSES: readonly Clause[] = [
   {
@@ -59,10 +58,12 @@ export const CLAUSES: readonly Clause[] = [
         'e você pode removê-lo quando quiser. Para entregar esses e-mails usamos um provedor de envio, que recebe o ' +
         'endereço e a mensagem. Sem e-mail cadastrado, se você esquecer a senha e perder a frase, a conta não pode ser ' +
         'recuperada.',
-      'Não guardamos logs de acesso nem o endereço IP de quem usa o app. Para frear tentativas de adivinhar senhas, o ' +
-        'servidor conta pedidos de login por IP só na memória, por poucos minutos, sem gravar. Mudanças sensíveis na ' +
-        'conta (senha, e-mail, frase) ficam registradas por 90 dias só com o tipo e a data, para você conferir no perfil. ' +
-        'Do aceite destes termos, guardamos só a versão e a data e hora. Os textos do acompanhamento de tratamento ficam cifrados. Os detalhes estão no Manifesto.',
+      'Como exige o Marco Civil da Internet (Lei nº 12.965/2014, art. 15), guardamos os registros de acesso ao app ' +
+        '(endereço IP, data e hora) por 6 meses, sob sigilo, e depois os apagamos. Eles só são fornecidos mediante ' +
+        'ordem judicial.',
+      'Mudanças sensíveis na conta (senha, e-mail, frase) ficam registradas por 90 dias só com o tipo e a data, para ' +
+        'você conferir no perfil. Do aceite destes termos, guardamos só a versão e a data e hora. Os textos do ' +
+        'acompanhamento de tratamento ficam cifrados. Os detalhes estão no Manifesto.',
       'No seu perfil você pode baixar todos os seus dados (um .zip com os dados e as fotos) e apagar a conta quando ' +
         'quiser; os dois pedem a sua senha. Ao apagar, somem a conta, os diários, as fotos, as receitas, as avaliações, ' +
         'os comentários e o tratamento. Ficam, sem vínculo com você: os itens que você cadastrou no catálogo aberto, os ' +
@@ -71,8 +72,20 @@ export const CLAUSES: readonly Clause[] = [
     ],
   },
   {
+    id: 'cookies',
+    title: '4. Cookies, estatísticas e anúncios',
+    paragraphs: [
+      'O weediário exibe anúncios e mede o uso do site com o Google Analytics, ambos fornecidos pelo Google. Para isso, ' +
+        'o Google usa cookies e recebe dados do seu navegador, como endereço IP, aparelho, páginas visitadas e ' +
+        'interações com os anúncios, e pode tratá-los fora do Brasil, conforme a política de privacidade dele ' +
+        '(policies.google.com/privacy).',
+      'Esses cookies só são ativados se você aceitar no aviso de cookies. Você pode recusar ou mudar a escolha a ' +
+        'qualquer momento, sem perder acesso a nenhuma função do app.',
+    ],
+  },
+  {
     id: 'sem-comercio',
-    title: '4. Proibição absoluta de comércio e anúncios',
+    title: '5. Proibição absoluta de comércio entre usuários',
     highlight: true,
     paragraphs: [
       'É estritamente proibido usar o weediário para ofertar, negociar, vender, comprar, trocar, doar, intermediar ou ' +
@@ -85,7 +98,7 @@ export const CLAUSES: readonly Clause[] = [
   },
   {
     id: 'responsabilidade',
-    title: '5. Responsabilidade pelo conteúdo',
+    title: '6. Responsabilidade pelo conteúdo',
     paragraphs: [
       'O weediário opera como provedor de aplicação de internet, nos termos da Lei nº 12.965/2014 (Marco Civil da Internet). ' +
         'Todo conteúdo, nota ou publicação inserida na plataforma é de responsabilidade civil e criminal exclusiva de quem o criou.',
@@ -93,7 +106,7 @@ export const CLAUSES: readonly Clause[] = [
   },
   {
     id: 'moderacao',
-    title: '6. Moderação, suspensão e banimento',
+    title: '7. Moderação, suspensão e banimento',
     paragraphs: [
       'A plataforma pode remover conteúdos e suspender ou encerrar definitivamente contas que violarem estes termos, sem ' +
         'aviso prévio e sem indenização, a partir de constatação automatizada ou de denúncia.',
@@ -105,17 +118,17 @@ export const CLAUSES: readonly Clause[] = [
   },
   {
     id: 'autoridades',
-    title: '7. Cooperação com autoridades',
+    title: '8. Cooperação com autoridades',
     paragraphs: [
       'O weediário colabora com as autoridades judiciais e policiais mediante ordem judicial fundamentada, nos termos da ' +
         'legislação brasileira vigente.',
-      'Nesse caso, entregamos os dados que de fato mantemos: apelido, conteúdos publicados e o registro de ' +
-        'moderação. Como não mantemos registros de IP nem de acesso, esses dados não existem para serem fornecidos.',
+      'Nesse caso, entregamos os dados que a ordem pedir, entre os que de fato mantemos: apelido, conteúdos ' +
+        'publicados, registro de moderação e os registros de acesso dos últimos 6 meses.',
     ],
   },
   {
     id: 'saude',
-    title: '8. Acompanhamento de tratamento',
+    title: '9. Acompanhamento de tratamento',
     paragraphs: [
       'A área de tratamento só registra o que você usou e como se sentiu. O weediário não indica dose, horário nem produto, ' +
         'e não substitui a orientação do profissional que acompanha o tratamento.',
@@ -123,18 +136,10 @@ export const CLAUSES: readonly Clause[] = [
   },
   {
     id: 'mudancas',
-    title: '9. Mudanças nestes termos',
+    title: '10. Mudanças nestes termos',
     paragraphs: [
       'Se o texto mudar, a versão muda junto, e você precisa ler e aceitar a nova versão antes de voltar a publicar. ' +
         'Enquanto isso, sua conta continua podendo ler, baixar e apagar seus dados.',
-    ],
-  },
-  {
-    id: 'codigo-aberto',
-    title: '10. Código aberto',
-    paragraphs: [
-      'O weediário é software livre (AGPL-3.0). O código, incluindo o histórico de todas as versões destes termos, fica ' +
-        'público no repositório do projeto.',
     ],
   },
 ];
@@ -179,8 +184,7 @@ export const CLAUSES: readonly Clause[] = [
       }
 
       <p class="mt-6 text-sm text-fg-muted">
-        Veja também o <a routerLink="/manifesto" class="text-accent">Manifesto</a> e o
-        <a [href]="repository" target="_blank" rel="noopener noreferrer" class="text-accent">código no GitHub</a>.
+        Veja também o <a routerLink="/manifesto" class="text-accent">Manifesto</a>.
       </p>
 
       @if (auth.needsTermsAcceptance()) {
@@ -213,7 +217,6 @@ export class TermsPage {
     ),
     { initialValue: null },
   );
-  protected readonly repository = REPOSITORY_URL;
   protected readonly agreed = signal(false);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);

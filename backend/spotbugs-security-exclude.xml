@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Falsos positivos revisados um a um. Cada exclusão diz por que o achado não se aplica; ao acrescentar uma, revise
+     o código e escreva o motivo. -->
+<FindBugsFilter>
+    <!-- Informativo: marca cada endpoint como superfície de ataque. Autorização é testada nos testes de integração. -->
+    <Match>
+        <Bug pattern="SPRING_ENDPOINT"/>
+    </Match>
+
+    <!-- Logs: só valores do servidor (assunto fixo do e-mail, UUID, host/porta do SMTP, caminho da configuração, nome
+         de classe de exceção). Texto de usuário nunca vai para log, por desenho. -->
+    <Match>
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
+        <Or>
+            <Class name="br.com.weediario.catalog.infrastructure.dataset.CatalogImportRunner"/>
+            <Class name="br.com.weediario.identity.infrastructure.mail.MailStartupCheck"/>
+            <Class name="~br\.com\.weediario\.identity\.infrastructure\.mail\.SpringAccountMailer.*"/>
+            <Class name="br.com.weediario.media.infrastructure.imaging.ImageEncoder"/>
+            <Class name="br.com.weediario.review.infrastructure.catalog.CatalogStrainTesting"/>
+            <Class name="br.com.weediario.shared.presentation.GlobalExceptionHandler"/>
+            <!-- Resumo de sinais: rótulos fixos do enum e contagens. -->
+            <Class name="br.com.weediario.shared.infrastructure.observability.SecuritySignals"/>
+        </Or>
+    </Match>
+
+    <!-- Os filtros escrevem corpos JSON constantes (401/403), sem nada vindo da requisição. -->
+    <Match>
+        <Bug pattern="XSS_SERVLET"/>
+        <Or>
+            <Class name="br.com.weediario.identity.infrastructure.security.AccountStatusFilter"/>
+            <Class name="br.com.weediario.identity.infrastructure.security.TermsAcceptanceFilter"/>
+        </Or>
+    </Match>
+
+    <!-- Leitura do cookie do refresh token (HttpOnly, Secure, SameSite=Strict): é o uso esperado. -->
+    <Match>
+        <Bug pattern="COOKIE_USAGE"/>
+        <Class name="br.com.weediario.identity.presentation.rest.AuthController"/>
+    </Match>
+
+    <!-- Normalização intencional para comparar textos (chave do catálogo, filtro anti-comércio, importação) e a
+         confirmação do apelido ao apagar a conta, que já exige a senha. Nenhuma decide autorização. -->
+    <Match>
+        <Bug pattern="IMPROPER_UNICODE"/>
+        <Or>
+            <Class name="br.com.weediario.catalog.domain.model.CatalogKey"/>
+            <Class name="br.com.weediario.catalog.infrastructure.dataset.DatasetCsvReader"/>
+            <Class name="br.com.weediario.identity.application.usecase.AccountDataUseCase"/>
+            <Class name="br.com.weediario.media.infrastructure.imaging.ImageEncoder"/>
+            <Class name="br.com.weediario.shared.domain.CommerceFilter"/>
+        </Or>
+    </Match>
+
+    <!-- DIGIT_RUN usa só quantificadores possessivos (sem backtracking). Coberto por
+         CommerceFilterTest.adversarialInputDoesNotHangTheFilter. -->
+    <Match>
+        <Bug pattern="REDOS"/>
+        <Class name="br.com.weediario.shared.domain.CommerceFilter"/>
+    </Match>
+</FindBugsFilter>

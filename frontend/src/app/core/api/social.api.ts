@@ -13,7 +13,7 @@ import {
   ReactionType,
 } from './api.models';
 
-export type RankingSortDto = 'DIARIES' | 'LIKES' | 'GRAMS_PER_PLANT';
+export type RankingSortDto = 'DIARIES' | 'LIKES' | 'GRAMS_PER_PLANT' | 'REVIEWS';
 
 @Injectable({ providedIn: 'root' })
 export class SocialApi {

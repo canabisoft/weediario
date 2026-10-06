@@ -1,12 +1,14 @@
 package br.com.weediario.review.application.query;
 
 import br.com.weediario.review.application.query.StrainCatalog.AuthoredReview;
+import br.com.weediario.review.application.query.StrainCatalog.OwnGrow;
 import br.com.weediario.review.application.query.StrainCatalog.ReviewView;
 import br.com.weediario.review.application.query.StrainCatalog.StrainSummary;
 import br.com.weediario.shared.application.PageQuery;
 import br.com.weediario.shared.application.PageResult;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 
+import java.util.List;
 import java.util.UUID;
 
 public final class BrowseStrainsUseCase {
@@ -27,6 +29,11 @@ public final class BrowseStrainsUseCase {
 
     public PageResult<AuthoredReview> reviewsBy(String username, PageQuery page) {
         return catalog.reviewsBy(username, page);
+    }
+
+    /** O que a pessoa pode fazer na página da strain: avaliar um cultivo concluído ou esperar o atual terminar. */
+    public List<OwnGrow> growsOf(UUID strainId, UUID viewerId) {
+        return catalog.growsOf(strainId, viewerId);
     }
 
     /** Lista vazia para strains do catálogo que ainda não receberam review. */

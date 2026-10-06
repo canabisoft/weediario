@@ -1,5 +1,7 @@
 package br.com.weediario.social.application.usecase;
 
+import br.com.weediario.shared.application.ActionLimits;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.ResourceNotFoundException;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.social.application.port.DiaryAudience;
@@ -26,15 +28,17 @@ public final class DiaryReactionsUseCase {
     private final ReactionRepository reactions;
     private final Pseudonymizer pseudonymizer;
     private final InteractionNotifier notifier;
+    private final ActionQuota quota;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public DiaryReactionsUseCase(DiaryAudience diaries, ReactionRepository reactions, Pseudonymizer pseudonymizer,
-                                 InteractionNotifier notifier, UnitOfWork unitOfWork, Clock clock) {
+                                 InteractionNotifier notifier, ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
         this.diaries = diaries;
         this.reactions = reactions;
         this.pseudonymizer = pseudonymizer;
         this.notifier = notifier;
+        this.quota = quota;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -49,6 +53,7 @@ public final class DiaryReactionsUseCase {
     public ReactionSummary react(UUID diaryId, UUID userId, ReactionType type) {
         return unitOfWork.execute(() -> {
             CommentableDiary diary = visibleDiary(diaryId, Optional.of(userId));
+            quota.consume(userId, ActionLimits.REACTIONS);
             if (reactions.add(diary.diaryId(), pseudonymizer.pseudonymOf(userId, diary.diaryId()), type, clock.instant())) {
                 notifier.reactionAdded(diary, userId);
             }

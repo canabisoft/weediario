@@ -42,7 +42,7 @@
     @if (query()) {
       {{ total() }} {{ total() === 1 ? 'grower' : 'growers' }} para "{{ query() }}"
     } @else {
-      {{ total() }} {{ total() === 1 ? 'grower' : 'growers' }} com diários públicos
+      {{ total() }} {{ total() === 1 ? 'grower' : 'growers' }} {{ sort() === 'reviews' ? 'com strains avaliadas' : 'com diários públicos' }}
     }
   }
 </p>
@@ -86,7 +86,7 @@
           </div>
         </div>
 
-        <dl class="grid grid-cols-3 gap-2 sm:w-auto sm:shrink-0">
+        <dl class="grid grid-cols-2 gap-2 sm:w-auto sm:shrink-0 sm:grid-cols-4">
           @for (metric of metrics; track metric.sort) {
             <div
               class="flex min-w-20 flex-col items-center rounded-xl border px-3 py-2"

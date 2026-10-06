@@ -7,6 +7,7 @@ import br.com.weediario.media.application.usecase.PurgeOrphanImagesUseCase;
 import br.com.weediario.media.application.usecase.SweepImagesUseCase;
 import br.com.weediario.media.application.usecase.UploadImageUseCase;
 import br.com.weediario.media.domain.repository.ImageRepository;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.UnitOfWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,8 +26,8 @@ public class MediaConfig {
 
     @Bean
     UploadImageUseCase uploadImageUseCase(ImageSanitizer sanitizer, ImageStorage storage, ImageRepository images,
-                                          UnitOfWork unitOfWork, Clock clock) {
-        return new UploadImageUseCase(sanitizer, storage, images, unitOfWork, clock);
+                                          ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
+        return new UploadImageUseCase(sanitizer, storage, images, quota, unitOfWork, clock);
     }
 
     @Bean

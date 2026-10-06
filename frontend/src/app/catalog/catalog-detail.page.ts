@@ -21,6 +21,7 @@ import { formatCompact, formatDecimal } from '../shared/decimal';
 import { Icon } from '../shared/icon';
 import { RatingBar } from '../shared/rating';
 import { SeedbankShowcase } from './seedbank-showcase';
+import { StrainReviewPanel } from './strain-review-panel';
 import { TestingStrains } from './testing-strains';
 import { BREEDER_KIND_LABEL, DOMINANCE_LABEL, formatDate, GENERATION_LABEL, options, SEED_KIND_LABEL, SOURCE_LABEL, SPEED_LABEL } from '../shared/labels';
 import { TestingProgressBar } from '../shared/testing-progress';
@@ -73,7 +74,7 @@ import { ReportButton } from '../shared/report-button';
 @Component({
   selector: 'app-catalog-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker, SeedbankShowcase, TestingStrains, TestingProgressBar, ReportButton],
+  imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker, SeedbankShowcase, TestingStrains, TestingProgressBar, ReportButton, StrainReviewPanel],
   template: `
     <a routerLink="/strains" [queryParams]="kind() === 'seedbank' ? { aba: 'bancos' } : {}" class="text-sm text-fg-muted">
       ← {{ kind() === 'strain' ? 'Strains' : 'Bancos e breeders' }}
@@ -116,11 +117,18 @@ import { ReportButton } from '../shared/report-button';
               <p class="mt-1 text-xs text-fg-muted">Entrou no banco oficial em {{ date(d.promotedAt) }}, depois do teste da comunidade.</p>
             }
           </div>
-          @if (d.overall != null) {
-            <p class="inline-flex items-center gap-1 text-3xl font-bold tabular-nums">
-              <app-icon name="star" class="size-6 text-accent" [filled]="true" />{{ num(d.overall) }}
-            </p>
-          }
+          <div class="flex shrink-0 flex-col items-end gap-2">
+            @if (d.overall != null) {
+              <p class="inline-flex items-center gap-1 text-3xl font-bold tabular-nums">
+                <app-icon name="star" class="size-6 text-accent" [filled]="true" />{{ num(d.overall) }}
+              </p>
+            }
+            @if (kind() === 'strain') {
+              <button type="button" class="wd-button" (click)="scrollToRating()">
+                <app-icon name="star" class="size-5" /> Avaliar
+              </button>
+            }
+          </div>
         </header>
 
         @if (d.testing; as progress) {
@@ -261,6 +269,10 @@ import { ReportButton } from '../shared/report-button';
           </section>
         }
 
+        @if (kind() === 'strain') {
+          <app-strain-review-panel [strainId]="d.id" [strainName]="d.name" (reviewed)="reload$.next()" />
+        }
+
         @if (d.criteria.length) {
           <section class="wd-card mt-4 grid gap-2" aria-label="Médias por critério">
             <p class="text-sm text-fg-muted">{{ d.reviewCount }} {{ d.reviewCount === 1 ? 'avaliação' : 'avaliações' }}</p>
@@ -294,7 +306,9 @@ import { ReportButton } from '../shared/report-button';
               <p class="mt-2 whitespace-pre-line break-words">{{ review.report }}</p>
             </li>
           } @empty {
-            <li class="wd-card text-sm text-fg-muted">Ainda sem avaliações. Elas chegam quando alguém conclui um cultivo e publica a review.</li>
+            <li class="wd-card text-sm text-fg-muted">
+              Ainda sem avaliações.{{ kind() === 'strain' ? ' Cultivou esta strain? Seja a primeira pessoa a avaliar.' : ' Elas chegam quando alguém conclui um cultivo e publica a review.' }}
+            </li>
           }
         </ul>
       } @else {
@@ -326,7 +340,7 @@ export class CatalogDetailPage {
   protected draft: StrainTraits = {};
   protected flavorsText = '';
   protected effectsText = '';
-  private readonly reload$ = new BehaviorSubject<void>(undefined);
+  protected readonly reload$ = new BehaviorSubject<void>(undefined);
 
   protected readonly detail = toSignal(
     combineLatest([toObservable(computed(() => ({ id: this.id(), kind: this.kind() }))), this.reload$]).pipe(
@@ -381,6 +395,10 @@ export class CatalogDetailPage {
       next: () => this.router.navigate(['/strains'], { queryParams: { aba: 'teste' } }),
       error: (error) => this.modMessage.set(problemMessage(error)),
     });
+  }
+
+  protected scrollToRating(): void {
+    document.getElementById('avaliar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   protected date(iso: string): string {

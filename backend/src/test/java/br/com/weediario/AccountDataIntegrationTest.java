@@ -131,6 +131,20 @@ class AccountDataIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isNoContent());
     }
 
+    @Test
+    void exportingHasADailyQuotaPerAccount() throws Exception {
+        Session grower = newGrower();
+        for (int i = 0; i < 3; i++) {
+            assertThat(unzip(export(grower))).containsKey("dados.json");
+        }
+        mvc.perform(authed(post("/api/v1/me/export"), grower)
+                        .contentType(MediaType.APPLICATION_JSON).content(passwordJson(PASSWORD)))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
+        // A cota é da conta, não do servidor.
+        assertThat(unzip(export(newGrower()))).containsKey("dados.json");
+    }
+
     private Session growerWithEmail() throws Exception {
         String username = "g_" + randomLetters(12);
         MvcResult registered = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)

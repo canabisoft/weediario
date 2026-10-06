@@ -226,6 +226,8 @@ export interface GrowerProfile {
   /** Colheitas registradas em diários públicos. */
   readonly harvests: number;
   readonly gramsPerPlant?: number;
+  /** Avaliações de genéticas publicadas. */
+  readonly reviews: number;
   readonly followers: number;
   readonly followedByViewer: boolean;
   readonly isViewer: boolean;
@@ -238,6 +240,7 @@ export interface RankedGrowerDto {
   readonly diaries: number;
   readonly likes: number;
   readonly gramsPerPlant?: number;
+  readonly reviews: number;
 }
 
 export interface FollowedGrower {

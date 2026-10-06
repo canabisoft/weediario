@@ -34,7 +34,9 @@ Este projeto foi arquitetado sob premissas rígidas de segurança digital:
 - **Histórico de segurança:** trocas de senha, e-mail e frase ficam 90 dias no perfil, só com tipo e data (sem IP nem
   aparelho), e o e-mail confirmado recebe um aviso. Mudanças com a sessão aberta exigem a senha atual.
 - **Boas práticas OWASP:** Argon2id (senha e frase), tokens JWT de curta duração (10 min) com refresh token em cookie
-  `HttpOnly`, `Secure` e `SameSite=Strict`, e payloads validados estritamente.
+  `HttpOnly`, `Secure` e `SameSite=Strict`, e payloads validados estritamente. Trocar ou redefinir a senha,
+  recuperar a conta, suspender ou banir encerra também os access tokens já emitidos, na hora (geração de sessões no
+  token, conferida a cada requisição).
 
 ### Privacidade na infraestrutura
 
@@ -54,7 +56,19 @@ Este projeto foi arquitetado sob premissas rígidas de segurança digital:
   backup. O serviço `db-roles` do compose (`deploy/postgres/roles.sql`) cria e confere os papéis a cada `up`, e corrige
   sozinho instalações antigas e bancos restaurados.
 - **Cotas por conta** (nunca por IP) em ações que dão para abusar, numa tabela com incremento atômico e chave HMAC de
-  (ação, conta): 429 com `Retry-After` ao passar do limite. Hoje: 10 denúncias por dia.
+  (ação, conta): 429 com `Retry-After` ao passar do limite. Por dia: 10 denúncias, 3 pacotes de dados, 5 trocas de
+  e-mail, 20 receitas, 30 diários, 60 updates e 200 fotos; por hora: 100 follows e 300 reações. Todos em
+  `ActionLimits`. No máximo 2 pacotes de dados são montados ao mesmo tempo; os demais esperam a vez.
+- **Cadastro com prova de trabalho** (protocolo do ALTCHA, sem terceiros, sem cookie e sem IP): o navegador resolve um
+  desafio assinado (cerca de 1 s) e a solução vale para um cadastro só. Conferida antes do Argon2, encarece a criação
+  de contas em série. Dificuldade em `WEEDIARIO_REGISTER_CHALLENGE_MAX`.
+- **Sinais de segurança agregados:** contadores em memória por tipo de evento (senha errada, bloqueios, cadastros,
+  cotas estouradas, denúncias, ocultações, tokens de sessão encerrada...), sem IP nem conta. Um resumo por hora vai
+  para o log e vira aviso quando algum sinal passa do normal: `docker compose logs backend | grep "Sinais de segurança"`.
+- **Backup cifrado** com a chave pública do age: o servidor só cifra; a chave privada fica fora dele. Checksums,
+  cópia opcional para fora (rclone) e restore que confere checksum e chave antes de apagar qualquer coisa.
+- **CI de segurança** (GitHub Actions, actions e imagens fixadas por SHA/digest): testes + FindSecBugs no
+  `mvn verify`, `npm audit`, gitleaks, Semgrep, OSV-Scanner e Trivy; Dependabot com espera de 5 dias por versão nova.
 - Limite por IP **só em memória** no nginx para entrar, cadastrar e recuperar (20/min por IP, com folga). O IP vira
   chave de um contador que some sozinho: não vai para log nem para o backend. Atrás do Caddy, o IP chega ao nginx num
   cabeçalho próprio que o Caddy sobrescreve.

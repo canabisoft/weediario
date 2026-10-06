@@ -4,6 +4,8 @@ import br.com.weediario.diary.application.DiaryAccess;
 import br.com.weediario.diary.application.DiaryUpdateView;
 import br.com.weediario.diary.application.port.DiaryModeration;
 import br.com.weediario.diary.application.port.PhotoLibrary;
+import br.com.weediario.shared.application.ActionLimits;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.domain.CommerceFilter;
 import br.com.weediario.shared.domain.CommerceFilter.Verdict;
 import br.com.weediario.diary.application.port.UpdateNotifier;
@@ -35,12 +37,13 @@ public final class PublishDiaryUpdateUseCase {
     private final PhotoLibrary photos;
     private final UpdateNotifier notifier;
     private final DiaryModeration moderation;
+    private final ActionQuota quota;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public PublishDiaryUpdateUseCase(DiaryAccess access, GrowDiaryRepository diaries, DiaryUpdateRepository updates,
                                      PhotoLibrary photos, UpdateNotifier notifier, DiaryModeration moderation,
-                                     UnitOfWork unitOfWork,
+                                     ActionQuota quota, UnitOfWork unitOfWork,
                                      Clock clock) {
         this.access = access;
         this.diaries = diaries;
@@ -48,6 +51,7 @@ public final class PublishDiaryUpdateUseCase {
         this.photos = photos;
         this.notifier = notifier;
         this.moderation = moderation;
+        this.quota = quota;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -56,6 +60,7 @@ public final class PublishDiaryUpdateUseCase {
         GrowerId author = new GrowerId(command.authorId());
         return unitOfWork.execute(() -> {
             GrowDiary diary = access.ownedBy(command.diaryId(), command.authorId());
+            quota.consume(command.authorId(), ActionLimits.DIARY_UPDATES);
             DiaryUpdate update = DiaryUpdate.publish(
                     diary,
                     author,

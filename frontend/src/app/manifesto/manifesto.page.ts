@@ -8,8 +8,6 @@ interface Principle {
   readonly points: readonly string[];
 }
 
-export const REPOSITORY_URL = 'https://github.com/canabisoft/weediario';
-
 /**
  * O que o weediário promete e por quê. Cada frase aqui corresponde a algo que o código realmente faz;
  * mudar o comportamento do app exige mudar esta página junto.
@@ -27,17 +25,19 @@ const PRINCIPLES: readonly Principle[] = [
         'Elas são geradas no seu navegador e nunca chegam ao servidor: a gente guarda só um hash de um código derivado delas. ' +
         'Com elas você cria uma senha nova (e ganha uma frase nova). O outro lado disso: sem e-mail, se você perder a senha e as palavras, ninguém consegue devolver a conta.',
       'Um limite honesto: como em todo site, o código que gera a frase no seu navegador é entregue pelo nosso servidor. ' +
-        'Por isso o código é aberto, cada arquivo vai com uma assinatura de integridade (SRI) e o build é reproduzível: ' +
-        'qualquer pessoa pode compilar o repositório e conferir se os arquivos servidos são os mesmos.',
+        'Por isso cada arquivo do app vai com uma assinatura de integridade (SRI).',
     ],
   },
   {
     icon: 'eyeOff',
-    title: 'Zero logs, zero rastro',
+    title: 'Pouco rastro, e só o que a lei exige',
     points: [
-      'Não guardamos logs de acesso. Nosso sistema não grava o IP de quem entra, nem o navegador ou o aparelho.',
-      'Não registramos o que você abre ou clica. Não existe tabela de "visitas" nem de comportamento.',
-      'Nada de analytics, pixel, anúncio ou script de terceiros: o app só carrega código dele mesmo.',
+      'O único registro de acesso que guardamos é o que o Marco Civil da Internet exige: IP, data e hora, por 6 meses, ' +
+        'sob sigilo. Ele só sai daqui com ordem judicial e depois é apagado.',
+      'No nosso banco não existe tabela de "visitas" nem de comportamento: não registramos o que você abre ou clica.',
+      'O site se mantém com anúncios e usa o Google Analytics pra entender o uso. Os dois só ligam se você aceitar ' +
+        'os cookies; recusou, o app funciona igual.',
+      'A área de tratamento não mostra anúncio e não envia nada ao analytics.',
       'Toda foto passa por uma faxina antes de ir pro ar: GPS, data e modelo do celular saem dos metadados.',
       'Reações e novos seguidores são anônimos, até pra quem recebe. Notificações somem sozinhas em 90 dias.',
     ],
@@ -64,7 +64,7 @@ const PRINCIPLES: readonly Principle[] = [
   },
 ];
 
-/** Manifesto: o que acreditamos sobre privacidade e por que o código é aberto. */
+/** Manifesto: o que acreditamos sobre privacidade e como o app foi construído pra isso. */
 @Component({
   selector: 'app-manifesto-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -99,36 +99,17 @@ const PRINCIPLES: readonly Principle[] = [
         </section>
       }
 
-      <section class="wd-card mt-6 border-accent/50" aria-labelledby="open-source">
-        <h2 id="open-source" class="flex items-center gap-3 text-xl font-semibold">
-          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent">
-            <app-icon name="tools" class="size-5" />
-          </span>
-          Código aberto, de verdade
-        </h2>
-        <p class="mt-4">
-          O weediário é open source, sob a licença AGPL-3.0. Não precisa acreditar na nossa palavra: qualquer pessoa pode
-          ler o código, conferir se o que está escrito aqui é verdade, apontar problemas e sugerir melhorias.
-        </p>
-        <p class="mt-3">
-          As regras completas estão nos <a routerLink="/termos" class="font-semibold text-accent">Termos de Uso</a>.
-        </p>
-        <p class="mt-3">
-          E qualquer um pode contribuir: código, tradução, design, teste ou uma ideia nova. A única regra que não muda é a
-          deste manifesto: nenhuma contribuição entra se coletar dado pessoal, rastrear quem usa ou adicionar telemetria.
-        </p>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <a class="wd-button" [href]="repository" target="_blank" rel="noopener noreferrer">Ver o código no GitHub</a>
-          <a class="wd-button bg-surface-raised text-fg" [href]="contributing" target="_blank" rel="noopener noreferrer">Como contribuir</a>
-        </div>
-      </section>
+      <p class="mt-6">
+        As regras completas estão nos <a routerLink="/termos" class="font-semibold text-accent">Termos de Uso</a>.
+      </p>
 
       <section class="mt-6 rounded-2xl border border-line p-5 text-sm text-fg-muted" aria-labelledby="honesty">
         <h2 id="honesty" class="font-semibold text-fg">Sendo honestos</h2>
         <p class="mt-2">
           Como em qualquer site, a sua operadora de internet e a empresa que hospeda o servidor enxergam as conexões
-          passando. O que depende da gente é não guardar nada disso, e é isso que fazemos. Se algum dia algo neste
-          manifesto deixar de ser verdade, ele muda antes, e você fica sabendo por aqui.
+          passando, e, se você aceitar os cookies, o Google também vê as suas visitas. O que depende da gente é guardar
+          só o que a lei obriga, pelo tempo que ela obriga. Se algum dia algo neste manifesto deixar de ser verdade, ele
+          muda antes, e você fica sabendo por aqui.
         </p>
       </section>
 
@@ -140,6 +121,4 @@ const PRINCIPLES: readonly Principle[] = [
 })
 export class ManifestoPage {
   protected readonly principles = PRINCIPLES;
-  protected readonly repository = REPOSITORY_URL;
-  protected readonly contributing = `${REPOSITORY_URL}/blob/main/CONTRIBUTING.md`;
 }

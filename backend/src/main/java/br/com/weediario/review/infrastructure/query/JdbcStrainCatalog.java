@@ -127,6 +127,22 @@ public class JdbcStrainCatalog implements StrainCatalog {
         return PageResult.of(items, page, total == null ? 0 : total);
     }
 
+    @Override
+    public List<OwnGrow> growsOf(UUID strainId, UUID ownerId) {
+        return jdbc.query("""
+                select d.id, d.title, d.status = 'COMPLETED' as completed,
+                       exists(select 1 from reviews r where r.diary_id = d.id) as reviewed
+                  from grow_diaries d
+                 where d.strain_id = :strainId and d.owner_id = :ownerId and d.status <> 'CANCELLED'
+                 order by d.started_on desc, d.id""",
+                new MapSqlParameterSource("strainId", strainId).addValue("ownerId", ownerId),
+                (rs, rowNum) -> new OwnGrow(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("title"),
+                        rs.getBoolean("completed"),
+                        rs.getBoolean("reviewed")));
+    }
+
     private static String escapeLike(String raw) {
         return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }

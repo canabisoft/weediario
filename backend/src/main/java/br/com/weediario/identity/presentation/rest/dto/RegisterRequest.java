@@ -4,6 +4,7 @@ import br.com.weediario.identity.domain.model.EmailAddress;
 import br.com.weediario.identity.domain.model.RecoveryVerifier;
 import br.com.weediario.identity.domain.model.Username;
 import br.com.weediario.identity.domain.service.PasswordPolicy;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -29,7 +30,15 @@ public record RegisterRequest(
         String recoveryVerifier,
         /** Versão dos Termos de Uso aceita (caixa marcada no cadastro). Sem ela, não há cadastro. */
         @NotBlank @Size(max = 10)
-        String acceptedTermsVersion) {
+        String acceptedTermsVersion,
+        /** Solução do desafio anti-robô de {@code GET /api/v1/auth/register-challenge}. */
+        @Valid
+        Challenge challenge) {
+
+    /** Tamanhos fixos do protocolo: hex de 64 caracteres e o salt com o prazo. */
+    public record Challenge(@Size(max = 64) String challenge, @Size(max = 64) String salt, long number,
+                            @Size(max = 64) String signature) {
+    }
 
     @Override
     public String toString() {

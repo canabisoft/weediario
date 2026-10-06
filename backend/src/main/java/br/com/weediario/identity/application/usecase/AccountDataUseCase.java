@@ -11,6 +11,8 @@ import br.com.weediario.identity.domain.model.UserId;
 import br.com.weediario.identity.domain.repository.AccountEmailRepository;
 import br.com.weediario.identity.domain.repository.SecurityEventRepository;
 import br.com.weediario.identity.domain.repository.UserRepository;
+import br.com.weediario.shared.application.ActionLimits;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.ForbiddenActionException;
 import br.com.weediario.shared.application.PersonalDataSection;
 import br.com.weediario.shared.application.UnitOfWork;
@@ -41,18 +43,20 @@ public final class AccountDataUseCase {
     private final List<PersonalDataSection> sections;
     private final CredentialCheck credentials;
     private final AccountMailer mailer;
+    private final ActionQuota quota;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public AccountDataUseCase(UserRepository users, AccountEmailRepository emails, SecurityEventRepository events,
                               List<PersonalDataSection> sections, CredentialCheck credentials, AccountMailer mailer,
-                              UnitOfWork unitOfWork, Clock clock) {
+                              ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
         this.users = users;
         this.emails = emails;
         this.events = events;
         this.sections = List.copyOf(sections);
         this.credentials = credentials;
         this.mailer = mailer;
+        this.quota = quota;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -61,6 +65,7 @@ public final class AccountDataUseCase {
     public Export export(UUID userId, String currentPassword) {
         User user = load(userId);
         credentials.require(user, currentPassword);
+        unitOfWork.run(() -> quota.consume(userId, ActionLimits.DATA_EXPORTS));
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("gerado_em", clock.instant().toString());
         data.put("conta", unitOfWork.execute(() -> account(user)));

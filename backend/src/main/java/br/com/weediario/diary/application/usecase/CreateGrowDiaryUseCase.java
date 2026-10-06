@@ -4,6 +4,8 @@ import br.com.weediario.diary.application.GrowDiaryView;
 import br.com.weediario.diary.application.exception.GrowerNotAllowedException;
 import br.com.weediario.diary.application.port.CatalogLookup;
 import br.com.weediario.diary.application.port.DiaryModeration;
+import br.com.weediario.shared.application.ActionLimits;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.domain.CommerceFilter;
 import br.com.weediario.shared.domain.CommerceFilter.Verdict;
 import br.com.weediario.diary.application.port.CatalogLookup.CatalogStrainRef;
@@ -48,17 +50,20 @@ public final class CreateGrowDiaryUseCase {
     private final CatalogLookup catalog;
     private final GrowerDirectory growers;
     private final DiaryModeration moderation;
+    private final ActionQuota quota;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public CreateGrowDiaryUseCase(GrowDiaryRepository diaries, GrowSetupRepository setups, CatalogLookup catalog,
-                                  GrowerDirectory growers, DiaryModeration moderation, UnitOfWork unitOfWork,
+                                  GrowerDirectory growers, DiaryModeration moderation,
+                                  ActionQuota quota, UnitOfWork unitOfWork,
                                   Clock clock) {
         this.diaries = diaries;
         this.setups = setups;
         this.catalog = catalog;
         this.growers = growers;
         this.moderation = moderation;
+        this.quota = quota;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -72,6 +77,7 @@ public final class CreateGrowDiaryUseCase {
 
         return unitOfWork.execute(() -> {
             ensureCanOpenNewDiary(owner);
+            quota.consume(command.ownerId(), ActionLimits.DIARIES);
             Strain strain = strainOf(command);
             SetupSnapshot setup = command.setupId() == null ? null : ownedSetup(owner, command.setupId());
             GrowMedium medium = command.medium() != null ? command.medium()

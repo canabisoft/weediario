@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, finalize, firstValueFrom, map, of, shareReplay, tap } from 'rxjs';
 import { MyProfile } from '../api/api.models';
+import { RegistrationChallenge, solveChallenge } from './registration-challenge';
 
 interface AccessTokenResponse {
   readonly accessToken: string;
@@ -73,8 +74,19 @@ export class AuthService {
     recoveryVerifier: string,
     acceptedTermsVersion: string,
   ): Promise<void> {
+    // Desafio anti-robô: pedido e resolvido a cada tentativa (cada solução vale para um cadastro só).
+    const challenge = await solveChallenge(
+      await firstValueFrom(this.http.get<RegistrationChallenge>(`${AUTH}/register-challenge`)),
+    );
     await this.session(
-      this.http.post<AccessTokenResponse>(`${AUTH}/register`, { username, password, email, recoveryVerifier, acceptedTermsVersion }),
+      this.http.post<AccessTokenResponse>(`${AUTH}/register`, {
+        username,
+        password,
+        email,
+        recoveryVerifier,
+        acceptedTermsVersion,
+        challenge,
+      }),
     );
   }
 

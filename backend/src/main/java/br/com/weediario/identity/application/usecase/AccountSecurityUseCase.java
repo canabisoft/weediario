@@ -19,6 +19,8 @@ import br.com.weediario.identity.domain.repository.SecurityEventRepository;
 import br.com.weediario.identity.domain.repository.UserRepository;
 import br.com.weediario.identity.domain.service.PasswordHasher;
 import br.com.weediario.identity.domain.service.PasswordPolicy;
+import br.com.weediario.shared.application.ActionLimits;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
 
@@ -47,13 +49,15 @@ public final class AccountSecurityUseCase {
     private final SessionIssuer sessionIssuer;
     private final AccountMailer mailer;
     private final SecurityNotifier security;
+    private final ActionQuota quota;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public AccountSecurityUseCase(UserRepository users, AccountEmailRepository emails, AccountTokenRepository tokens,
                                   SecurityEventRepository events, RefreshTokenRepository refreshTokens,
                                   PasswordHasher hasher, CredentialCheck credentials, SessionIssuer sessionIssuer,
-                                  AccountMailer mailer, SecurityNotifier security, UnitOfWork unitOfWork,
+                                  AccountMailer mailer, SecurityNotifier security,
+                                  ActionQuota quota, UnitOfWork unitOfWork,
                                   Clock clock) {
         this.users = users;
         this.emails = emails;
@@ -65,6 +69,7 @@ public final class AccountSecurityUseCase {
         this.sessionIssuer = sessionIssuer;
         this.mailer = mailer;
         this.security = security;
+        this.quota = quota;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -123,6 +128,7 @@ public final class AccountSecurityUseCase {
             return overview(userId);
         }
         Optional<AccountToken.Issued> verification = unitOfWork.execute(() -> {
+            quota.consume(userId, ActionLimits.EMAIL_CHANGES);
             tokens.deletePending(user.id(), AccountToken.Purpose.VERIFY_EMAIL);
             tokens.deletePending(user.id(), AccountToken.Purpose.RESET_PASSWORD);
             if (requested.isEmpty()) {

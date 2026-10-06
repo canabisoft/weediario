@@ -26,26 +26,69 @@ final class SpelledNumbers {
             "oitenta", "8", "noventa", "9");
 
     private static final String WORD = "(?:" + String.join("|", WORDS.keySet()) + "|" + String.join("|", TENS.keySet()) + ")";
-    /** Sequência de palavras-número, separadas por espaço, vírgula, hífen ou "e". */
-    private static final Pattern RUN = Pattern.compile(
-            "\\b" + WORD + "(?:(?:\\s*[,;\\-]?\\s+|\\s+e\\s+)" + WORD + "){3,}\\b");
     private static final Pattern TOKEN = Pattern.compile(WORD);
+    private static final Pattern WHOLE_WORD = Pattern.compile("\\b" + WORD + "\\b");
+    private static final int MIN_WORDS = 4;
 
     private SpelledNumbers() {
     }
 
+    /**
+     * Varredura linear palavra a palavra. Uma regex única para a sequência inteira (palavra, separador, palavra...)
+     * recursa a cada repetição no motor do Java e estoura a pilha com um texto longo de números por extenso: virava um
+     * jeito de derrubar a requisição com um comentário.
+     */
     static String toDigits(String text) {
         if (text.isEmpty()) {
             return text;
         }
-        Matcher run = RUN.matcher(text);
-        StringBuilder out = new StringBuilder();
-        while (run.find()) {
-            String digits = digitsOf(run.group());
-            run.appendReplacement(out, Matcher.quoteReplacement(digits.length() >= MIN_DIGITS ? digits : run.group()));
+        StringBuilder out = new StringBuilder(text.length());
+        Matcher word = WHOLE_WORD.matcher(text);
+        int copied = 0;
+        int runStart = -1;
+        int runEnd = -1;
+        int words = 0;
+        while (word.find()) {
+            boolean continues = runStart >= 0 && isSeparator(text.substring(runEnd, word.start()));
+            if (!continues) {
+                copied = flush(text, out, copied, runStart, runEnd, words);
+                runStart = word.start();
+                words = 0;
+            }
+            runEnd = word.end();
+            words++;
         }
-        run.appendTail(out);
-        return out.toString();
+        copied = flush(text, out, copied, runStart, runEnd, words);
+        return out.append(text, copied, text.length()).toString();
+    }
+
+    /**
+     * O que separa duas palavras-número da mesma sequência: espaço; vírgula, ponto e vírgula ou hífen seguido de
+     * espaço; ou "e" entre espaços. Conferido sem regex, em tempo linear mesmo num vão enorme.
+     */
+    private static boolean isSeparator(String gap) {
+        String core = gap.strip();
+        if (gap.isEmpty() || !Character.isWhitespace(gap.charAt(gap.length() - 1))) {
+            return false;
+        }
+        if (core.isEmpty()) {
+            return true;
+        }
+        if (core.equals("e")) {
+            return Character.isWhitespace(gap.charAt(0));
+        }
+        return core.length() == 1 && ",;-".indexOf(core.charAt(0)) >= 0;
+    }
+
+    /** Fecha a sequência [start, end): troca por dígitos se for longa o bastante. Devolve até onde o texto foi copiado. */
+    private static int flush(String text, StringBuilder out, int copied, int start, int end, int words) {
+        if (start < 0 || words < MIN_WORDS) {
+            return copied;
+        }
+        String run = text.substring(start, end);
+        String digits = digitsOf(run);
+        out.append(text, copied, start).append(digits.length() >= MIN_DIGITS ? digits : run);
+        return end;
     }
 
     /** "vinte e um" vira "21"; "vinte" sozinho vira "20"; os demais, o próprio valor. */

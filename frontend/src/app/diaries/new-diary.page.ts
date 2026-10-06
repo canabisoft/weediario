@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { CatalogItem } from '../core/api/catalog-db.api';
+import { CatalogDbApi, CatalogItem } from '../core/api/catalog-db.api';
 import { CatalogPicker } from '../shared/catalog-picker';
 import { catchError, of } from 'rxjs';
 import { FloweringType, GrowMedium, GrowSetup, SeedSex, Visibility } from '../core/api/api.models';
@@ -109,9 +109,13 @@ import { FLOWERING_LABEL, MEDIUM_LABEL, SEED_SEX_LABEL, options, today } from '.
     </section>
   `,
 })
-export class NewDiaryPage {
+export class NewDiaryPage implements OnInit {
   private readonly api = inject(DiariesApi);
+  private readonly catalog = inject(CatalogDbApi);
   private readonly router = inject(Router);
+
+  /** Query param vindo da página da strain ("Iniciar diário com esta strain"). */
+  readonly strainId = input<string | undefined>();
 
   protected readonly todayIso = today();
   protected readonly floweringOptions = options(FLOWERING_LABEL);
@@ -134,6 +138,24 @@ export class NewDiaryPage {
   protected readonly strain = signal<CatalogItem | null>(null);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  ngOnInit(): void {
+    const id = this.strainId();
+    if (!id) {
+      return;
+    }
+    // Strain inexistente ou removida: o campo só fica vazio, como sem o parâmetro.
+    this.catalog.strain(id).subscribe({
+      next: (strain) => {
+        this.strain.set({ id: strain.id, name: strain.name, parentId: strain.breederId, parentName: strain.breeder,
+          status: strain.status, source: strain.source });
+        if (strain.floweringType) {
+          this.form.controls.floweringType.setValue(strain.floweringType);
+        }
+      },
+      error: () => undefined,
+    });
+  }
 
   protected submit(): void {
     const value = this.form.getRawValue();

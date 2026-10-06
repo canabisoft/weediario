@@ -87,6 +87,44 @@ class ReviewIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    void strainPageTellsWhichOfMyGrowsCanBeReviewedAndReviewsCountInTheRanking() throws Exception {
+        String strain = "Page Kush " + UUID.randomUUID().toString().substring(0, 6);
+        Session grower = newGrower();
+        UUID done = createDiary(grower, strain, "PRIVATE", LocalDate.now().minusDays(120).toString());
+        UUID growing = createDiary(grower, strain, "PRIVATE", LocalDate.now().minusDays(10).toString());
+        complete(grower, done);
+        String strainId = jdbc.queryForObject("select strain_id from grow_diaries where id = ?", String.class, done);
+
+        // A página da strain é pública, mas "meus cultivos" exige conta.
+        mvc.perform(get("/api/v1/me/strains/{id}/grows", strainId)).andExpect(status().isUnauthorized());
+        JsonNode grows = body(mvc.perform(authed(get("/api/v1/me/strains/{id}/grows", strainId), grower))
+                .andExpect(status().isOk()).andReturn());
+        assertThat(grows).hasSize(2);
+        assertThat(grows.get(0).get("diaryId").asText()).isEqualTo(growing.toString());
+        assertThat(grows.get(0).get("completed").asBoolean()).isFalse();
+        assertThat(grows.get(1).get("completed").asBoolean()).isTrue();
+        assertThat(grows.get(1).get("reviewed").asBoolean()).isFalse();
+        // Quem não cultivou a strain não vê nada.
+        mvc.perform(authed(get("/api/v1/me/strains/{id}/grows", strainId), newGrower()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+
+        mvc.perform(authed(post("/api/v1/diaries/{id}/review", done), grower)
+                        .contentType(MediaType.APPLICATION_JSON).content(REVIEW.formatted(4, 4)))
+                .andExpect(status().isCreated());
+        mvc.perform(authed(get("/api/v1/me/strains/{id}/grows", strainId), grower))
+                .andExpect(jsonPath("$[1].reviewed").value(true));
+
+        // Diários privados não aparecem no ranking de diários, mas a avaliação (que é pública) conta.
+        JsonNode ranking = body(mvc.perform(get("/api/v1/growers/ranking?sort=REVIEWS&q=" + grower.username()))
+                .andExpect(status().isOk()).andReturn());
+        assertThat(ranking.get("items").get(0).get("username").asText()).isEqualTo(grower.username());
+        assertThat(ranking.get("items").get(0).get("reviews").asInt()).isEqualTo(1);
+        assertThat(ranking.get("items").get(0).get("diaries").asInt()).isZero();
+        mvc.perform(get("/api/v1/growers/{u}", grower.username())).andExpect(jsonPath("$.reviews").value(1));
+    }
+
+    @Test
     void ratingsOutOfRangeAreRejected() throws Exception {
         Session owner = newGrower();
         UUID diaryId = createDiary(owner, "Range", "PUBLIC", LocalDate.now().minusDays(80).toString());

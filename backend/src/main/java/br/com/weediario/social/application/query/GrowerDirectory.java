@@ -25,20 +25,26 @@ public interface GrowerDirectory {
     enum RankingSort {
         DIARIES,
         LIKES,
-        GRAMS_PER_PLANT
+        GRAMS_PER_PLANT,
+        REVIEWS
     }
 
+    /**
+     * @param reviews avaliações de genéticas publicadas (já são públicas na página de cada strain)
+     */
     record RankedGrower(long position, String username, boolean hasAvatar, long diaries, long likes,
-                        BigDecimal gramsPerPlant) {
+                        BigDecimal gramsPerPlant, long reviews) {
     }
 
     /**
      * @param harvests         colheitas registradas em diários públicos
+     * @param reviews          avaliações de genéticas publicadas
      * @param followedByViewer se quem está vendo segue este grower (falso para visitantes)
      * @param isViewer         se é o próprio perfil de quem está vendo
      */
     record GrowerProfile(String username, String bio, boolean hasAvatar, long diaries, long likes, long harvests,
-                         BigDecimal gramsPerPlant, long followers, boolean followedByViewer, boolean isViewer) {
+                         BigDecimal gramsPerPlant, long reviews, long followers, boolean followedByViewer,
+                         boolean isViewer) {
     }
 
     record FollowedGrower(String username, boolean hasAvatar) {

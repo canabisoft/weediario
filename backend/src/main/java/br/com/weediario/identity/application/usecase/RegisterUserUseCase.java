@@ -3,6 +3,7 @@ package br.com.weediario.identity.application.usecase;
 import br.com.weediario.identity.application.AuthenticatedSession;
 import br.com.weediario.identity.application.SessionIssuer;
 import br.com.weediario.identity.application.port.AccountMailer;
+import br.com.weediario.identity.application.port.RegistrationChallenge;
 import br.com.weediario.identity.domain.model.AccountEmail;
 import br.com.weediario.identity.domain.model.AccountToken;
 import br.com.weediario.identity.domain.model.EmailAddress;
@@ -41,18 +42,20 @@ public final class RegisterUserUseCase {
     private final PasswordHasher hasher;
     private final SessionIssuer sessionIssuer;
     private final AccountMailer mailer;
+    private final RegistrationChallenge challenges;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public RegisterUserUseCase(UserRepository users, AccountEmailRepository emails, AccountTokenRepository tokens,
                                PasswordHasher hasher, SessionIssuer sessionIssuer, AccountMailer mailer,
-                               UnitOfWork unitOfWork, Clock clock) {
+                               RegistrationChallenge challenges, UnitOfWork unitOfWork, Clock clock) {
         this.users = users;
         this.emails = emails;
         this.tokens = tokens;
         this.hasher = hasher;
         this.sessionIssuer = sessionIssuer;
         this.mailer = mailer;
+        this.challenges = challenges;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -67,6 +70,9 @@ public final class RegisterUserUseCase {
                 : Optional.of(new EmailAddress(command.email()));
         RecoveryVerifier verifier = new RecoveryVerifier(command.recoveryVerifier());
         TermsOfUse.requireCurrent(command.acceptedTermsVersion());
+        // Prova de trabalho depois das validações baratas e antes do Argon2: cadastro em série paga a CPU dele, não a
+        // nossa.
+        challenges.redeem(command.challenge());
 
         // Argon2 fora da transação: é deliberadamente lento e não deve segurar conexão com o banco.
         var passwordHash = hasher.hash(password);
@@ -97,9 +103,10 @@ public final class RegisterUserUseCase {
      * @param email                opcional (nulo ou vazio = sem e-mail)
      * @param recoveryVerifier     derivado da frase de recuperação (as palavras ficam só com a pessoa)
      * @param acceptedTermsVersion versão dos Termos de Uso que a pessoa marcou como lida e aceita no cadastro
+     * @param challenge            solução do desafio anti-robô ({@link RegistrationChallenge})
      */
     public record Command(String username, String password, String email, String recoveryVerifier,
-                          String acceptedTermsVersion) {
+                          String acceptedTermsVersion, RegistrationChallenge.Solution challenge) {
 
         @Override
         public String toString() {

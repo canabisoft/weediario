@@ -13,7 +13,7 @@
 
     <groupId>br.com.weediario</groupId>
     <artifactId>weediario-backend</artifactId>
-    <version>0.34.0</version>
+    <version>0.36.0</version>
     <name>weediario-backend</name>
     <description>Diários de cultivo e reviews com foco em privacidade</description>
 
@@ -25,6 +25,8 @@
         <webp-imageio.version>0.10.2</webp-imageio.version>
         <metadata-extractor.version>2.19.0</metadata-extractor.version>
         <commons-imaging.version>1.0.0-alpha6</commons-imaging.version>
+        <spotbugs-plugin.version>4.10.4.1</spotbugs-plugin.version>
+        <findsecbugs.version>1.14.0</findsecbugs.version>
     </properties>
 
     <dependencies>
@@ -148,6 +150,34 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!-- Análise estática de segurança (FindSecBugs) no "mvn verify": só a categoria SECURITY, para o CI parar
+                 em injeção, criptografia fraca, caminho de arquivo controlado pelo usuário etc. O build do Docker
+                 ("package") não roda. -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs-plugin.version}</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <includeFilterFile>spotbugs-security.xml</includeFilterFile>
+                    <excludeFilterFile>spotbugs-security-exclude.xml</excludeFilterFile>
+                    <plugins>
+                        <plugin>
+                            <groupId>com.h3xstream.findsecbugs</groupId>
+                            <artifactId>findsecbugs-plugin</artifactId>
+                            <version>${findsecbugs.version}</version>
+                        </plugin>
+                    </plugins>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

@@ -1,5 +1,6 @@
 package br.com.weediario.identity.infrastructure.security;
 
+import br.com.weediario.shared.infrastructure.observability.SecuritySignals;
 import br.com.weediario.shared.infrastructure.security.SecurityConfig;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -32,6 +33,9 @@ import java.util.UUID;
  *   renovação também falha e o app sai da conta.</li>
  *   <li>Papel diferente do que está no token (promovido ou tirado da equipe): 401 {@code SESSION_OUTDATED}; o app
  *   renova a sessão e recebe um token com o papel atual.</li>
+ *   <li>Token de uma geração de sessões já encerrada (troca ou redefinição de senha, recuperação): 401
+ *   {@code SESSION_REVOKED}. A renovação também falha, porque as sessões foram revogadas, e o app sai da conta;
+ *   quem roubou o token perde o acesso na hora, não dez minutos depois.</li>
  * </ul>
  * Custa uma consulta pela chave primária por requisição. Antes do filtro de Termos de Uso.
  */
@@ -41,13 +45,17 @@ public class AccountStatusFilter extends OncePerRequestFilter {
 
     private static final String DISABLED = """
             {"status":401,"code":"ACCOUNT_DISABLED","detail":"Esta conta está suspensa ou banida."}""";
+    private static final String REVOKED = """
+            {"status":401,"code":"SESSION_REVOKED","detail":"A sessão foi encerrada. Entre de novo."}""";
     private static final String OUTDATED = """
             {"status":401,"code":"SESSION_OUTDATED","detail":"As permissões da conta mudaram. Renove a sessão."}""";
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final SecuritySignals signals;
 
-    public AccountStatusFilter(NamedParameterJdbcTemplate jdbc) {
+    public AccountStatusFilter(NamedParameterJdbcTemplate jdbc, SecuritySignals signals) {
         this.jdbc = jdbc;
+        this.signals = signals;
     }
 
     @Override
@@ -67,6 +75,11 @@ public class AccountStatusFilter extends OncePerRequestFilter {
                 reject(response, DISABLED);
                 return;
             }
+            if (epochOf(jwt) < current.get().sessionEpoch()) {
+                signals.record(SecuritySignals.Signal.SESSION_REVOKED);
+                reject(response, REVOKED);
+                return;
+            }
             List<String> roles = jwt.getClaimAsStringList(SecurityConfig.ROLES_CLAIM);
             if (roles == null || !roles.equals(List.of(current.get().role()))) {
                 reject(response, OUTDATED);
@@ -83,8 +96,16 @@ public class AccountStatusFilter extends OncePerRequestFilter {
         } catch (IllegalArgumentException | NullPointerException invalid) {
             return Optional.empty();
         }
-        return jdbc.query("select status, role from users where id = :id", new MapSqlParameterSource("id", id),
-                (rs, n) -> new Current(rs.getString("status"), rs.getString("role"))).stream().findFirst();
+        return jdbc.query("select status, role, session_epoch from users where id = :id",
+                new MapSqlParameterSource("id", id),
+                (rs, n) -> new Current(rs.getString("status"), rs.getString("role"), rs.getInt("session_epoch")))
+                .stream().findFirst();
+    }
+
+    /** Tokens emitidos antes da geração existir valem como geração 0. */
+    private static long epochOf(Jwt jwt) {
+        Object epoch = jwt.getClaim(JwtAccessTokenIssuer.SESSION_EPOCH_CLAIM);
+        return epoch instanceof Number number ? number.longValue() : 0;
     }
 
     private static void reject(HttpServletResponse response, String body) throws IOException {
@@ -95,6 +116,6 @@ public class AccountStatusFilter extends OncePerRequestFilter {
         response.getWriter().write(body);
     }
 
-    private record Current(String status, String role) {
+    private record Current(String status, String role, int sessionEpoch) {
     }
 }

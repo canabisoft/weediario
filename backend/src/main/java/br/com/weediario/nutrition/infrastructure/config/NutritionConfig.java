@@ -13,6 +13,7 @@ import br.com.weediario.nutrition.application.usecase.RecipeFeedbackUseCase;
 import br.com.weediario.nutrition.application.usecase.RecommendRecipesUseCase;
 import br.com.weediario.nutrition.domain.repository.RecipeFeedbackRepository;
 import br.com.weediario.nutrition.domain.repository.RecipeRepository;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.UnitOfWork;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,8 +26,8 @@ public class NutritionConfig {
     @Bean
     ManageRecipesUseCase manageRecipesUseCase(RecipeRepository recipes, RecipeReadModel readModel,
                                               ProductCatalog catalog, RecipeModeration moderation,
-                                              UnitOfWork unitOfWork, Clock clock) {
-        return new ManageRecipesUseCase(recipes, readModel, catalog, moderation, unitOfWork, clock);
+                                              ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
+        return new ManageRecipesUseCase(recipes, readModel, catalog, moderation, quota, unitOfWork, clock);
     }
 
     @Bean
@@ -44,8 +45,9 @@ public class NutritionConfig {
     RecipeFeedbackUseCase recipeFeedbackUseCase(RecipeRepository recipes, RecipeFeedbackRepository feedback,
                                                 RecipeReadModel readModel, RecipeModeration moderation,
                                                 RecipeReplyNotifier replyNotifier, CommentReactorPseudonyms reactors,
-                                                UnitOfWork unitOfWork, Clock clock) {
-        return new RecipeFeedbackUseCase(recipes, feedback, readModel, moderation, replyNotifier, reactors, unitOfWork,
+                                                ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
+        return new RecipeFeedbackUseCase(recipes, feedback, readModel, moderation, replyNotifier, reactors,
+                quota, unitOfWork,
                 clock);
     }
 

@@ -49,7 +49,12 @@ rastreamento.
   limite por IP só em memória no nginx. Tentativas simultâneas contam uma a uma. A recuperação pela frase ou pelo e-mail nunca é bloqueada. Apelido
   inexistente e senha errada recebem a mesma resposta, no mesmo tempo.
 - **Sessão:** token de acesso de 10 min só em memória e refresh token em cookie `HttpOnly`/`Secure`/`SameSite=Strict`,
-  com rotação e tolerância a recarregar a página no meio de uma renovação.
+  com rotação e tolerância a recarregar a página no meio de uma renovação. Trocar a senha ou recuperar a conta
+  derruba na hora as outras sessões, inclusive o token de acesso que ainda estava valendo.
+- **Limites de uso por conta** (sem IP), bem acima do uso normal: denúncias, baixar os dados, trocar o e-mail,
+  seguir, reagir, criar receitas e diários, publicar updates e enviar fotos.
+- **Cadastro anti-robô** sem captcha de terceiros: o navegador resolve um desafio em cerca de um segundo enquanto a
+  conta é criada; quem tenta criar contas em série paga esse custo em cada uma.
 
 ## Diários de cultivo
 

@@ -12,14 +12,17 @@ export interface RankedGrower {
   readonly likes: number;
   /** Gramas secas por planta nas colheitas registradas; null se ainda não há colheita. */
   readonly gramsPerPlant: number | null;
+  /** Avaliações de genéticas publicadas (cada uma vem de um cultivo concluído). */
+  readonly reviews: number;
 }
 
-export type RankingSort = 'diaries' | 'likes' | 'gramsPerPlant';
+export type RankingSort = 'diaries' | 'likes' | 'gramsPerPlant' | 'reviews';
 
 export const RANKING_SORTS: readonly { id: RankingSort; label: string }[] = [
   { id: 'diaries', label: 'Diários' },
   { id: 'likes', label: 'Curtidas' },
   { id: 'gramsPerPlant', label: 'Gramas por planta' },
+  { id: 'reviews', label: 'Avaliações de strains' },
 ];
 
 export interface GrowerLevel {

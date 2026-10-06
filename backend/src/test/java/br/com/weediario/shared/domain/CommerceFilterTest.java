@@ -7,10 +7,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class CommerceFilterTest {
 
@@ -434,6 +436,19 @@ class CommerceFilterTest {
 
     private static void assertDecision(String text, Decision expected) {
         assertDecision(new String[] {text}, expected);
+    }
+
+    /**
+     * O filtro roda sobre todo texto livre, então uma entrada maliciosa não pode prender a CPU (ReDoS). Entradas bem
+     * maiores que o limite de qualquer campo, montadas para forçar backtracking nas regras de telefone, chave PIX e
+     * números por extenso.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"1 ", "1-", "1 (", "9.", "0123456789abcdef-", "a1 ", "um dois tres ", "pix ", "@a. ",
+            "wa.me/", "1\t", "((((1", "a ", "vinte e um ", "um,  dois - "})
+    void adversarialInputDoesNotHangTheFilter(String unit) {
+        String hostile = unit.repeat(50_000 / unit.length()) + "!x";
+        assertTimeoutPreemptively(Duration.ofSeconds(3), () -> CommerceFilter.check(hostile));
     }
 
     private static void assertDecision(String[] texts, Decision expected) {

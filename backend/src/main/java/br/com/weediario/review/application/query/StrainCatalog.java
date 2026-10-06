@@ -5,6 +5,7 @@ import br.com.weediario.shared.application.PageResult;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,6 +23,9 @@ public interface StrainCatalog {
 
     /** Reviews publicados por um grower (perfil público), mais recentes primeiro. */
     PageResult<AuthoredReview> reviewsBy(String username, PageQuery page);
+
+    /** Cultivos (não cancelados) da pessoa com esta strain, mais recentes primeiro: dizem se ela já pode avaliar. */
+    List<OwnGrow> growsOf(UUID strainId, UUID ownerId);
 
     record StrainSummary(
             UUID id,
@@ -49,6 +53,13 @@ public interface StrainCatalog {
             BigDecimal overall,
             String report,
             Instant createdAt) {
+    }
+
+    /**
+     * @param completed cultivo concluído (só esses podem ser avaliados)
+     * @param reviewed  o cultivo já tem avaliação publicada
+     */
+    record OwnGrow(UUID diaryId, String title, boolean completed, boolean reviewed) {
     }
 
     /**

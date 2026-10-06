@@ -8,9 +8,9 @@ import { GrowersRankingPage } from './growers-ranking.page';
 
 describe('GrowersRankingPage', () => {
   const growers: RankedGrower[] = [
-    { username: 'verdejante', hasAvatar: false, diaries: 64, likes: 100, gramsPerPlant: 142 },
-    { username: 'kaya', hasAvatar: true, diaries: 27, likes: 500, gramsPerPlant: 210 },
-    { username: 'broto_novo', hasAvatar: false, diaries: 1, likes: 900, gramsPerPlant: null },
+    { username: 'verdejante', hasAvatar: false, diaries: 64, likes: 100, gramsPerPlant: 142, reviews: 3 },
+    { username: 'kaya', hasAvatar: true, diaries: 27, likes: 500, gramsPerPlant: 210, reviews: 12 },
+    { username: 'broto_novo', hasAvatar: false, diaries: 1, likes: 900, gramsPerPlant: null, reviews: 0 },
   ];
   const calls: { sort: RankingSort; query: string }[] = [];
 

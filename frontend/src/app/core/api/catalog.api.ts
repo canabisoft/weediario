@@ -18,6 +18,14 @@ export interface NewReview {
   readonly report: string;
 }
 
+/** Cultivo da própria pessoa com uma strain: só os concluídos e ainda sem nota podem ser avaliados. */
+export interface OwnGrow {
+  readonly diaryId: string;
+  readonly title: string;
+  readonly completed: boolean;
+  readonly reviewed: boolean;
+}
+
 /** Catálogo de strains e bancos de sementes, e envio de reviews. */
 @Injectable({ providedIn: 'root' })
 export class CatalogApi {
@@ -33,6 +41,11 @@ export class CatalogApi {
 
   strainReviews(id: string, page = 0): Observable<Page<StrainReview>> {
     return this.http.get<Page<StrainReview>>(`/api/v1/strains/${id}/reviews`, { params: { page, size: 20 } });
+  }
+
+  /** Exige conta: diz, na página da strain, se quem está vendo tem cultivo dela para avaliar. */
+  myStrainGrows(strainId: string): Observable<OwnGrow[]> {
+    return this.http.get<OwnGrow[]>(`/api/v1/me/strains/${strainId}/grows`);
   }
 
   seedbanks(query: string, page = 0): Observable<Page<SeedbankSummary>> {

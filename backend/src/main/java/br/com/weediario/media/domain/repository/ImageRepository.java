@@ -20,6 +20,9 @@ public interface ImageRepository {
 
     long countPendingByOwner(UUID ownerId);
 
+    /** Põe em fila, até o fim da transação, os envios de imagem da mesma conta. */
+    void lockUploadsOf(UUID ownerId);
+
     List<Image> findPendingCreatedBefore(Instant cutoff, int limit);
 
     void deleteAll(Collection<ImageId> ids);

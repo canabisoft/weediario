@@ -33,8 +33,9 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content(base.formatted(username, VERIFIER, ",\"acceptedTermsVersion\":\"0.9\"")))
                 .andExpect(status().isUnprocessableEntity());
+        String accepted = ",\"acceptedTermsVersion\":\"" + TERMS + "\",\"challenge\":" + challengeJson();
         String token = body(mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(base.formatted(username, VERIFIER, ",\"acceptedTermsVersion\":\"" + TERMS + "\"")))
+                        .content(base.formatted(username, VERIFIER, accepted)))
                 .andExpect(status().isCreated())
                 .andReturn()).get("accessToken").asText();
         mvc.perform(get("/api/v1/me").header("Authorization", "Bearer " + token))

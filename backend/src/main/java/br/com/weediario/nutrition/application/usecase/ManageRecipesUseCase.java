@@ -2,6 +2,8 @@ package br.com.weediario.nutrition.application.usecase;
 
 import br.com.weediario.nutrition.application.port.RecipeModeration;
 import br.com.weediario.nutrition.domain.model.RecipeVisibility;
+import br.com.weediario.shared.application.ActionLimits;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.domain.CommerceFilter;
 import br.com.weediario.shared.domain.CommerceFilter.Verdict;
 import br.com.weediario.nutrition.application.port.ProductCatalog;
@@ -45,15 +47,17 @@ public final class ManageRecipesUseCase {
     private final RecipeReadModel readModel;
     private final ProductCatalog catalog;
     private final RecipeModeration moderation;
+    private final ActionQuota quota;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public ManageRecipesUseCase(RecipeRepository recipes, RecipeReadModel readModel, ProductCatalog catalog,
-                                RecipeModeration moderation, UnitOfWork unitOfWork, Clock clock) {
+                                RecipeModeration moderation, ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
         this.moderation = moderation;
         this.recipes = recipes;
         this.readModel = readModel;
         this.catalog = catalog;
+        this.quota = quota;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
@@ -65,6 +69,7 @@ public final class ManageRecipesUseCase {
             if (recipes.countByOwner(ownerId) >= MAX_RECIPES_PER_GROWER) {
                 throw new DomainException("Limite de " + MAX_RECIPES_PER_GROWER + " receitas atingido");
             }
+            quota.consume(ownerId, ActionLimits.RECIPES);
             Recipe saved = recipes.save(Recipe.create(ownerId, details, command.visibility(), clock));
             holdIfNeeded(saved, verdict);
             return saved.id().value();
@@ -99,6 +104,7 @@ public final class ManageRecipesUseCase {
             if (recipes.countByOwner(growerId) >= MAX_RECIPES_PER_GROWER) {
                 throw new DomainException("Limite de " + MAX_RECIPES_PER_GROWER + " receitas atingido");
             }
+            quota.consume(growerId, ActionLimits.RECIPES);
             return recipes.save(original.replicateFor(growerId, clock)).id().value();
         });
         return view(copyId);

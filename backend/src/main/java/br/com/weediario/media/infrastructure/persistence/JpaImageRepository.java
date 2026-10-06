@@ -4,6 +4,8 @@ import br.com.weediario.media.domain.model.Image;
 import br.com.weediario.media.domain.model.ImageId;
 import br.com.weediario.media.domain.model.ImageStatus;
 import br.com.weediario.media.domain.repository.ImageRepository;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -17,9 +19,11 @@ import java.util.UUID;
 public class JpaImageRepository implements ImageRepository {
 
     private final SpringDataImageRepository jpa;
+    private final NamedParameterJdbcTemplate jdbc;
 
-    public JpaImageRepository(SpringDataImageRepository jpa) {
+    public JpaImageRepository(SpringDataImageRepository jpa, NamedParameterJdbcTemplate jdbc) {
         this.jpa = jpa;
+        this.jdbc = jdbc;
     }
 
     @Override
@@ -45,6 +49,13 @@ public class JpaImageRepository implements ImageRepository {
     @Override
     public long countPendingByOwner(UUID ownerId) {
         return jpa.countByOwnerIdAndStatus(ownerId, ImageStatus.PENDING);
+    }
+
+    /** Advisory lock da transação: some sozinho no commit ou rollback, sem tabela de travas. */
+    @Override
+    public void lockUploadsOf(UUID ownerId) {
+        jdbc.query("select pg_advisory_xact_lock(hashtext('image-upload'), hashtext(cast(:owner as text)))",
+                new MapSqlParameterSource("owner", ownerId), rs -> null);
     }
 
     @Override

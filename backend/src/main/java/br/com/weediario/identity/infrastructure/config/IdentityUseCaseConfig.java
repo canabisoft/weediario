@@ -6,6 +6,7 @@ import br.com.weediario.identity.application.SecurityNotifier;
 import br.com.weediario.identity.application.SessionIssuer;
 import br.com.weediario.identity.application.port.AccessTokenIssuer;
 import br.com.weediario.identity.application.port.AccountMailer;
+import br.com.weediario.identity.application.port.RegistrationChallenge;
 import br.com.weediario.identity.application.port.AvatarImages;
 import br.com.weediario.identity.application.port.BackgroundTasks;
 import br.com.weediario.identity.application.port.LoginKeyHasher;
@@ -29,6 +30,7 @@ import br.com.weediario.identity.domain.repository.RefreshTokenRepository;
 import br.com.weediario.identity.domain.repository.SecurityEventRepository;
 import br.com.weediario.identity.domain.repository.UserRepository;
 import br.com.weediario.identity.domain.service.PasswordHasher;
+import br.com.weediario.shared.application.ActionQuota;
 import br.com.weediario.shared.application.PersonalDataSection;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.infrastructure.security.SecurityProperties;
@@ -74,9 +76,10 @@ public class IdentityUseCaseConfig {
     @Bean
     RegisterUserUseCase registerUserUseCase(UserRepository users, AccountEmailRepository emails,
                                             AccountTokenRepository tokens, PasswordHasher hasher,
-                                            SessionIssuer sessionIssuer, AccountMailer mailer, UnitOfWork unitOfWork,
-                                            Clock clock) {
-        return new RegisterUserUseCase(users, emails, tokens, hasher, sessionIssuer, mailer, unitOfWork, clock);
+                                            SessionIssuer sessionIssuer, AccountMailer mailer,
+                                            RegistrationChallenge challenges, UnitOfWork unitOfWork, Clock clock) {
+        return new RegisterUserUseCase(users, emails, tokens, hasher, sessionIssuer, mailer, challenges, unitOfWork,
+                clock);
     }
 
     @Bean
@@ -111,18 +114,19 @@ public class IdentityUseCaseConfig {
                                                   RefreshTokenRepository refreshTokens, PasswordHasher hasher,
                                                   CredentialCheck credentials, SessionIssuer sessionIssuer,
                                                   AccountMailer mailer, SecurityNotifier security,
-                                                  UnitOfWork unitOfWork, Clock clock) {
+                                                  ActionQuota quota, UnitOfWork unitOfWork, Clock clock) {
         return new AccountSecurityUseCase(users, emails, tokens, events, refreshTokens, hasher, credentials,
-                sessionIssuer, mailer, security, unitOfWork, clock);
+                sessionIssuer, mailer, security, quota, unitOfWork, clock);
     }
 
     /** As seções de dados pessoais de todos os contextos (cada uma é um componente na infraestrutura do seu contexto). */
     @Bean
     AccountDataUseCase accountDataUseCase(UserRepository users, AccountEmailRepository emails,
                                           SecurityEventRepository events, List<PersonalDataSection> sections,
-                                          CredentialCheck credentials, AccountMailer mailer, UnitOfWork unitOfWork,
+                                          CredentialCheck credentials, AccountMailer mailer,
+                                          ActionQuota quota, UnitOfWork unitOfWork,
                                           Clock clock) {
-        return new AccountDataUseCase(users, emails, events, sections, credentials, mailer, unitOfWork, clock);
+        return new AccountDataUseCase(users, emails, events, sections, credentials, mailer, quota, unitOfWork, clock);
     }
 
     @Bean

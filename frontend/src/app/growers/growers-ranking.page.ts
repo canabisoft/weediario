@@ -68,6 +68,7 @@ export class GrowersRankingPage {
     },
     { sort: 'diaries', icon: 'diaries', label: 'Diários', value: (entry) => formatInteger(entry.grower.diaries) },
     { sort: 'likes', icon: 'flame', label: 'Curtidas', value: (entry) => formatInteger(entry.grower.likes) },
+    { sort: 'reviews', icon: 'star', label: 'Avaliações', value: (entry) => formatInteger(entry.grower.reviews) },
   ];
 
   protected onSearch(value: string): void {

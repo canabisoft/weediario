@@ -24,6 +24,7 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Semaphore;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -46,6 +47,10 @@ public class AccountDataController {
             - reações e denúncias: são guardadas só com um pseudônimo por alvo, sem vínculo com a conta.
             """;
 
+    /** Pacotes montados ao mesmo tempo (cada um lê todas as fotos da conta); os demais esperam a vez. */
+    static final int MAX_CONCURRENT_EXPORTS = 2;
+
+    private final Semaphore exportSlots = new Semaphore(MAX_CONCURRENT_EXPORTS, true);
     private final AccountDataUseCase accountData;
     private final RefreshTokenCookieFactory cookies;
     private final ObjectMapper json;
@@ -64,10 +69,13 @@ public class AccountDataController {
         AccountDataUseCase.Export export = accountData.export(Viewer.requireId(principal), request.currentPassword());
         byte[] data = toJson(export);
         StreamingResponseBody body = out -> {
+            exportSlots.acquireUninterruptibly();
             try (ZipOutputStream zip = new ZipOutputStream(out, StandardCharsets.UTF_8)) {
                 put(zip, "LEIA-ME.txt", README.getBytes(StandardCharsets.UTF_8));
                 put(zip, "dados.json", data);
                 export.files().writeTo((path, content) -> put(zip, path, content));
+            } finally {
+                exportSlots.release();
             }
         };
         return ResponseEntity.ok()

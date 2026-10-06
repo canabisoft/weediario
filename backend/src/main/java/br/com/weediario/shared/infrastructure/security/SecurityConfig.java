@@ -56,6 +56,7 @@ public class SecurityConfig {
                         AUTH_PATH + "/refresh",
                         AUTH_PATH + "/logout")
                 .permitAll()
+                .requestMatchers(HttpMethod.GET, AUTH_PATH + "/register-challenge").permitAll()
                 .anyRequest().denyAll());
         return http.build();
     }

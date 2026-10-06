@@ -1,6 +1,7 @@
 package br.com.weediario.identity.presentation.rest;
 
 import br.com.weediario.identity.application.exception.InvalidSessionException;
+import br.com.weediario.identity.application.port.RegistrationChallenge;
 import br.com.weediario.identity.application.usecase.AccountSecurityUseCase;
 import br.com.weediario.identity.application.usecase.AuthenticateUserUseCase;
 import br.com.weediario.identity.application.usecase.LogoutUseCase;
@@ -16,14 +17,17 @@ import br.com.weediario.identity.presentation.rest.dto.PasswordResetConfirmReque
 import br.com.weediario.identity.presentation.rest.dto.PasswordResetRequest;
 import br.com.weediario.identity.presentation.rest.dto.RecoverRequest;
 import br.com.weediario.identity.presentation.rest.dto.RegisterRequest;
+import br.com.weediario.shared.infrastructure.observability.SecuritySignals;
 import br.com.weediario.shared.infrastructure.security.SecurityConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,12 +47,14 @@ public class AuthController {
     private final AccountSecurityUseCase accountSecurity;
     private final RefreshTokenCookieFactory cookies;
     private final SessionResponses sessions;
+    private final RegistrationChallenge challenges;
+    private final SecuritySignals signals;
 
     public AuthController(RegisterUserUseCase registerUser, AuthenticateUserUseCase authenticateUser,
                           RefreshSessionUseCase refreshSession, LogoutUseCase logout,
                           RecoverAccountUseCase recoverAccount, PasswordResetUseCase passwordReset,
                           AccountSecurityUseCase accountSecurity, RefreshTokenCookieFactory cookies,
-                          SessionResponses sessions) {
+                          SessionResponses sessions, RegistrationChallenge challenges, SecuritySignals signals) {
         this.registerUser = registerUser;
         this.authenticateUser = authenticateUser;
         this.refreshSession = refreshSession;
@@ -58,14 +64,26 @@ public class AuthController {
         this.accountSecurity = accountSecurity;
         this.cookies = cookies;
         this.sessions = sessions;
+        this.challenges = challenges;
+        this.signals = signals;
+    }
+
+    /** Desafio anti-robô do cadastro: o navegador resolve e manda a solução junto com o cadastro. */
+    @GetMapping("/register-challenge")
+    public ResponseEntity<RegistrationChallenge.Challenge> registerChallenge() {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(challenges.issue());
     }
 
     /** Cria a conta e já entra. Se veio e-mail, o link de confirmação é enviado a ele. */
     @PostMapping("/register")
     public ResponseEntity<AccessTokenResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return sessions.open(HttpStatus.CREATED, registerUser.execute(new RegisterUserUseCase.Command(
+        RegisterRequest.Challenge solved = request.challenge();
+        var session = registerUser.execute(new RegisterUserUseCase.Command(
                 request.username(), request.password(), request.email(), request.recoveryVerifier(),
-                request.acceptedTermsVersion())));
+                request.acceptedTermsVersion(), solved == null ? null : new RegistrationChallenge.Solution(
+                        solved.challenge(), solved.salt(), solved.number(), solved.signature())));
+        signals.record(SecuritySignals.Signal.REGISTRATIONS);
+        return sessions.open(HttpStatus.CREATED, session);
     }
 
     @PostMapping("/login")

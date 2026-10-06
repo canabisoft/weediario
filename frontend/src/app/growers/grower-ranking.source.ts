@@ -16,6 +16,7 @@ const SORT_TO_API: Record<RankingSort, RankingSortDto> = {
   diaries: 'DIARIES',
   likes: 'LIKES',
   gramsPerPlant: 'GRAMS_PER_PLANT',
+  reviews: 'REVIEWS',
 };
 
 /** Ranking do backend: {@code GET /api/v1/growers/ranking} (top 50 para o critério escolhido). */
@@ -36,6 +37,7 @@ export class HttpGrowerRankingSource implements GrowerRankingSource {
             diaries: item.diaries,
             likes: item.likes,
             gramsPerPlant: item.gramsPerPlant ?? null,
+            reviews: item.reviews,
           },
         })),
       })),
