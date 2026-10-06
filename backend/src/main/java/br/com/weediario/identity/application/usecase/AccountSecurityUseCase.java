@@ -82,7 +82,7 @@ public final class AccountSecurityUseCase {
                             clock.instant().minus(Duration.ofDays(SecurityEvent.RETENTION_DAYS))).stream()
                     .map(event -> new Event(event.kind().name(), event.kind().description(), event.occurredAt()))
                     .toList();
-            return new Overview(user.hasPassword(), user.hasRecovery(),
+            return new Overview(user.hasRecovery(),
                     email.map(found -> found.address().masked()).orElse(null),
                     email.map(AccountEmail::isVerified).orElse(false), recent);
         });
@@ -96,7 +96,6 @@ public final class AccountSecurityUseCase {
         User user = unitOfWork.execute(() -> load(userId));
         credentials.require(user, currentPassword);
         var newHash = hasher.hash(PasswordPolicy.requireAcceptable(newPassword, user.username()));
-        boolean created = !user.hasPassword();
 
         AuthenticatedSession session = unitOfWork.execute(() -> {
             User current = load(userId);
@@ -106,9 +105,7 @@ public final class AccountSecurityUseCase {
             refreshTokens.revokeAllOfUser(userId, clock.instant());
             return sessionIssuer.startSession(current);
         });
-        security.recorded(user, created
-                ? SecurityEvent.Kind.PASSWORD_CREATED_FROM_ACCESS_KEY
-                : SecurityEvent.Kind.PASSWORD_CHANGED);
+        security.recorded(user, SecurityEvent.Kind.PASSWORD_CHANGED);
         return session;
     }
 
@@ -202,7 +199,7 @@ public final class AccountSecurityUseCase {
     /**
      * @param email endereço mascarado ({@code br***@gm***.com}); o completo nunca volta para a tela
      */
-    public record Overview(boolean hasPassword, boolean hasRecoveryPhrase, String email, boolean emailVerified,
+    public record Overview(boolean hasRecoveryPhrase, String email, boolean emailVerified,
                            List<Event> events) {
     }
 

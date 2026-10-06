@@ -85,8 +85,8 @@ public class IdentityUseCaseConfig {
     @Bean
     AuthenticateUserUseCase authenticateUserUseCase(UserRepository users, PasswordHasher hasher,
                                                     SessionIssuer sessionIssuer, LoginThrottle throttle,
-                                                    SecurityNotifier security, UnitOfWork unitOfWork, Clock clock) {
-        return new AuthenticateUserUseCase(users, hasher, sessionIssuer, throttle, security, unitOfWork, clock);
+                                                    UnitOfWork unitOfWork) {
+        return new AuthenticateUserUseCase(users, hasher, sessionIssuer, throttle, unitOfWork);
     }
 
     @Bean

@@ -9,8 +9,6 @@ interface AccessTokenResponse {
   readonly expiresAt: string;
 }
 
-/** Prefixo das chaves de acesso antigas: quem digita isso no lugar da senha ainda precisa criar uma senha. */
-export const ACCESS_KEY_PREFIX = 'wd_sec_';
 /** Mesmo mínimo do backend (PasswordPolicy.MIN_LENGTH). */
 export const PASSWORD_MIN_LENGTH = 10;
 export const PASSWORD_MAX_LENGTH = 128;
@@ -53,11 +51,6 @@ export class AuthService {
 
   async login(login: string, password: string): Promise<void> {
     await this.session(this.http.post<AccessTokenResponse>(`${AUTH}/login`, { login, password }));
-  }
-
-  /** Conta que só tinha a chave de acesso antiga: entra com ela uma última vez e cria a senha. */
-  async loginWithAccessKey(login: string, accessKey: string, newPassword: string): Promise<void> {
-    await this.session(this.http.post<AccessTokenResponse>(`${AUTH}/access-key-login`, { login, accessKey, newPassword }));
   }
 
   /**

@@ -122,7 +122,6 @@ public final class AccountDataUseCase {
         account.put("criada_em", user.createdAt().toString());
         account.put("termos_versao", user.termsVersion().orElse(null));
         account.put("termos_aceitos_em", user.termsAcceptedAt().map(Instant::toString).orElse(null));
-        account.put("tem_senha", user.hasPassword());
         account.put("tem_frase_de_recuperacao", user.hasRecovery());
         Optional<AccountEmail> email = emails.find(user.id());
         account.put("email", email.map(found -> found.address().value()).orElse(null));

@@ -1,6 +1,5 @@
 package br.com.weediario;
 
-import br.com.weediario.identity.domain.model.AccessKey;
 import br.com.weediario.support.IntegrationTestSupport;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
@@ -120,40 +119,6 @@ class AuthAndDiaryFlowIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isUnauthorized()).andReturn().getResponse().getContentAsString();
 
         assertThat(json.readTree(wrong).get("detail")).isEqualTo(json.readTree(unknownUser).get("detail"));
-    }
-
-    @Test
-    void accessKeyAccountCreatesPasswordOnItsLastKeyLogin() throws Exception {
-        register("grower_chave");
-        // Conta como era na época da chave de acesso: sem senha, só o SHA-256 da chave.
-        AccessKey key = AccessKey.generate();
-        jdbc.update("update users set password_hash = null, access_key_hash = ? where username = 'grower_chave'",
-                key.hash().value());
-
-        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson("grower_chave", key.value())))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/auth/access-key-login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"login":"grower_chave","accessKey":"%s","newPassword":"curta"}""".formatted(key.value())))
-                .andExpect(status().is4xxClientError());
-        mvc.perform(post("/api/v1/auth/access-key-login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"login":"grower_chave","accessKey":"%s","newPassword":"%s"}"""
-                                .formatted(key.value(), PASSWORD)))
-                .andExpect(status().isOk());
-
-        // A chave deixou de valer; a senha nova funciona.
-        assertThat(jdbc.queryForObject("select access_key_hash from users where username = 'grower_chave'",
-                String.class)).isNull();
-        mvc.perform(post("/api/v1/auth/access-key-login").contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"login":"grower_chave","accessKey":"%s","newPassword":"%s"}"""
-                                .formatted(key.value(), PASSWORD)))
-                .andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson("grower_chave", PASSWORD)))
-                .andExpect(status().isOk());
     }
 
     @Test

@@ -72,8 +72,6 @@ Este projeto foi arquitetado sob premissas rígidas de segurança digital:
 - Limite por IP **só em memória** no nginx para entrar, cadastrar e recuperar (20/min por IP, com folga). O IP vira
   chave de um contador que some sozinho: não vai para log nem para o backend. Atrás do Caddy, o IP chega ao nginx num
   cabeçalho próprio que o Caddy sobrescreve.
-- Contas da época da chave de acesso (`wd_sec_…`) entram uma última vez com a chave e criam uma senha; a chave deixa
-  de valer.
 - **Integridade do frontend:** cada script sai com SRI (`integrity="sha384-…"`) e o build é reproduzível.
   `scripts/verify-frontend.sh https://site` compila o repositório e confere, arquivo por arquivo, se o site serve o
   mesmo código.

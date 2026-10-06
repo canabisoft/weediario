@@ -28,7 +28,6 @@ function fieldLabel(field: string): string {
     newPassword: 'Senha nova',
     currentPassword: 'Senha atual',
     email: 'E-mail',
-    accessKey: 'Chave de acesso',
     recoveryVerifier: 'Frase de recuperação',
     newRecoveryVerifier: 'Frase nova',
     title: 'Título',

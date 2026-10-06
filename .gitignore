@@ -79,3 +79,5 @@ docker-compose.override.yml
 
 # Guia de deploy em produção: fica só na máquina de quem publica
 /docs/DEPLOY.md
+FUNCIONALIDADES.md
+/FUNCIONALIDADES.md

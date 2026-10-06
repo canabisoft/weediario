@@ -48,7 +48,7 @@ export const CLAUSES: readonly Clause[] = [
     id: 'dados',
     title: '3. Sua conta e seus dados',
     paragraphs: [
-      'Pedimos um apelido (pode ser pseudônimo) e uma senha. O e-mail é opcional. Não pedimos CPF, nome completo, RG, ' +
+      'Pedimos um apelido (pode ser pseudônimo) e uma senha escolhida por você. O e-mail é opcional. Não pedimos CPF, nome completo, RG, ' +
         'endereço ou telefone.',
       'A senha é guardada só como hash (Argon2id): ninguém da equipe consegue lê-la. Para recuperar a conta, toda conta ' +
         'tem uma frase de 12 palavras, mostrada no cadastro; dela guardamos só o hash de um código derivado, então não ' +

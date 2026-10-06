@@ -37,8 +37,7 @@ rastreamento.
 - **Mudanças com a sessão aberta** (senha, e-mail, frase) pedem a senha atual. Trocar a senha encerra as outras
   sessões. Cada mudança entra no **histórico de segurança** (90 dias, só tipo e data) e gera um aviso no e-mail
   confirmado; ao trocar o e-mail, quem recebe o aviso é o endereço antigo.
-- **Contas da época da chave de acesso** (`wd_sec_…`) colam a chave no campo de senha, criam uma senha e a chave
-  deixa de valer. Quem ainda não tem frase é levado a gerar uma, e um aviso fica no topo até isso acontecer.
+- Quem ainda não tem frase de recuperação é levado a gerar uma, e um aviso fica no topo até isso acontecer.
 - **Seus dados (LGPD):** a exportação junta a parte de cada área do app (conta, e-mail, histórico de segurança,
   diários inclusive privados, fotos sem metadados, setups, receitas, avaliações, comentários, catálogo, moderação e
   tratamento). Apagar a conta pede a senha e o apelido digitado e leva tudo o que é da pessoa, inclusive os arquivos

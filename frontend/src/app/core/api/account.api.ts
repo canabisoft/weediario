@@ -12,7 +12,6 @@ export interface SetupInput extends SetupSpec {
 
 /** Configurações de segurança da conta. O e-mail volta mascarado (`br***@gm***.com`), nunca inteiro. */
 export interface AccountSecurity {
-  readonly hasPassword: boolean;
   readonly hasRecoveryPhrase: boolean;
   readonly email: string | null;
   readonly emailVerified: boolean;

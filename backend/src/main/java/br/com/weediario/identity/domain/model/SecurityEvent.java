@@ -14,7 +14,6 @@ public record SecurityEvent(UserId userId, Kind kind, Instant occurredAt) {
         PASSWORD_CHANGED("Senha alterada"),
         PASSWORD_RESET_BY_PHRASE("Senha redefinida com a frase de recuperação"),
         PASSWORD_RESET_BY_EMAIL("Senha redefinida pelo link do e-mail"),
-        PASSWORD_CREATED_FROM_ACCESS_KEY("Senha criada (a chave de acesso antiga deixou de valer)"),
         RECOVERY_PHRASE_CHANGED("Frase de recuperação trocada"),
         EMAIL_ADDED("E-mail cadastrado"),
         EMAIL_CHANGED("E-mail alterado"),

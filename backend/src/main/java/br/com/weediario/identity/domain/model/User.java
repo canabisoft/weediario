@@ -16,8 +16,7 @@ import java.util.UUID;
  * ({@link AccountEmail}), cifrado, só para recuperar a senha e receber avisos de segurança.
  * <p>
  * Entra-se com apelido + senha (Argon2id). A frase de 12 palavras recupera a conta (o servidor só conhece o hash de um
- * derivado dela). Contas criadas na época da {@link AccessKey chave de acesso} entram uma última vez com ela e criam
- * uma senha. A foto de perfil é opcional e passa pelo mesmo sanitizador de metadados das fotos dos diários.
+ * derivado dela). A foto de perfil é opcional e passa pelo mesmo sanitizador de metadados das fotos dos diários.
  */
 public final class User {
 
@@ -25,10 +24,8 @@ public final class User {
 
     private final UserId id;
     private final Username username;
-    /** Argon2id da senha; nulo só em contas da época da chave de acesso que ainda não criaram senha. */
+    /** Argon2id da senha. */
     private PasswordHash passwordHash;
-    /** Chave de acesso antiga (transição): só existe em contas que ainda não criaram senha. */
-    private AccessKeyHash accessKeyHash;
     /** Argon2 do derivado da frase de recuperação; nulo em contas anteriores à frase (geram no próximo login). */
     private PasswordHash recoveryHash;
     private Role role;
@@ -42,17 +39,12 @@ public final class User {
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private User(UserId id, Username username, PasswordHash passwordHash, AccessKeyHash accessKeyHash,
-                 PasswordHash recoveryHash,
+    private User(UserId id, Username username, PasswordHash passwordHash, PasswordHash recoveryHash,
                  Role role, AccountStatus status, String bio, UUID avatarImageId, String termsVersion,
                  Instant termsAcceptedAt, boolean profileHidden, Instant createdAt, Instant updatedAt) {
         this.id = Guard.notNull(id, "Id");
         this.username = Guard.notNull(username, "Nome de usuário");
-        if (passwordHash == null && accessKeyHash == null && recoveryHash == null) {
-            throw new DomainException("Conta sem credencial de acesso");
-        }
-        this.passwordHash = passwordHash;
-        this.accessKeyHash = accessKeyHash;
+        this.passwordHash = Guard.notNull(passwordHash, "Senha");
         this.recoveryHash = recoveryHash;
         this.role = Guard.notNull(role, "Perfil");
         this.status = Guard.notNull(status, "Status");
@@ -76,19 +68,17 @@ public final class User {
         }
         String terms = TermsOfUse.requireCurrent(acceptedTermsVersion);
         Instant now = clock.instant();
-        Guard.notNull(passwordHash, "Senha");
         Guard.notNull(recoveryHash, "Frase de recuperação");
-        return new User(UserId.newId(), username, passwordHash, null, recoveryHash, Role.GROWER, AccountStatus.ACTIVE, null, null,
+        return new User(UserId.newId(), username, passwordHash, recoveryHash, Role.GROWER, AccountStatus.ACTIVE, null, null,
                 terms, now, false, now, now);
     }
 
     /** Reconstitui um usuário já persistido; não aplica regras de criação. */
-    public static User restore(UserId id, Username username, PasswordHash passwordHash,
-                               AccessKeyHash accessKeyHash, PasswordHash recoveryHash,
+    public static User restore(UserId id, Username username, PasswordHash passwordHash, PasswordHash recoveryHash,
                                Role role, AccountStatus status, String bio, UUID avatarImageId,
                                String termsVersion, Instant termsAcceptedAt, boolean profileHidden,
                                Instant createdAt, Instant updatedAt) {
-        return new User(id, username, passwordHash, accessKeyHash, recoveryHash, role, status, bio, avatarImageId, termsVersion,
+        return new User(id, username, passwordHash, recoveryHash, role, status, bio, avatarImageId, termsVersion,
                 termsAcceptedAt, profileHidden, createdAt, updatedAt);
     }
 
@@ -96,23 +86,10 @@ public final class User {
         return status == AccountStatus.ACTIVE;
     }
 
-    /** Comparação em tempo constante; conta sem chave (já tem senha) nunca confere. */
-    public boolean accessKeyMatches(AccessKeyHash candidate) {
-        return accessKeyHash != null && accessKeyHash.matches(candidate);
-    }
-
-    /**
-     * Define a senha (troca, redefinição ou a primeira senha de uma conta da época da chave). A chave de acesso
-     * antiga, se ainda havia, deixa de valer. Quem chama já conferiu a senha atual, a frase ou o link do e-mail.
-     */
+    /** Define a senha (troca ou redefinição). Quem chama já conferiu a senha atual, a frase ou o link do e-mail. */
     public void changePassword(PasswordHash newHash, Clock clock) {
         this.passwordHash = Guard.notNull(newHash, "Senha");
-        this.accessKeyHash = null;
         this.updatedAt = clock.instant();
-    }
-
-    public boolean hasPassword() {
-        return passwordHash != null;
     }
 
     /** Define (ou troca) a frase de recuperação. Quem chama já conferiu a senha atual. */
@@ -222,12 +199,8 @@ public final class User {
         return username;
     }
 
-    public Optional<PasswordHash> passwordHash() {
-        return Optional.ofNullable(passwordHash);
-    }
-
-    public Optional<AccessKeyHash> accessKeyHash() {
-        return Optional.ofNullable(accessKeyHash);
+    public PasswordHash passwordHash() {
+        return passwordHash;
     }
 
     public Optional<PasswordHash> recoveryHash() {

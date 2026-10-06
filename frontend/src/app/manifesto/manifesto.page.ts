@@ -17,7 +17,8 @@ const PRINCIPLES: readonly Principle[] = [
     icon: 'user',
     title: 'Cadastro mínimo, pode ser pseudônimo',
     points: [
-      'Pra criar conta a gente pede um apelido, que não precisa ser o seu nome, e uma senha. No banco a senha fica só como hash: nem a gente consegue ler.',
+      'Pra criar conta a gente pede um apelido, que não precisa ser o seu nome, e uma senha que você mesmo escolhe. ' +
+        'No banco a senha fica só como hash: nem a gente consegue ler.',
       'E-mail é opcional. Se você quiser, ele serve só pra redefinir a senha e te avisar de mudanças na conta: fica cifrado, ' +
         'nunca aparece pra ninguém, não serve pra entrar e o cadastro nunca diz se um e-mail já tem conta. Dá pra remover quando quiser.',
       'Nunca pedimos CPF, nome completo, RG, endereço ou telefone. Não tem campo pra isso, nem escondido.',
@@ -30,13 +31,14 @@ const PRINCIPLES: readonly Principle[] = [
   },
   {
     icon: 'eyeOff',
-    title: 'Pouco rastro, e só o que a lei exige',
+    title: 'O que fica registrado, sem rodeio',
     points: [
-      'O único registro de acesso que guardamos é o que o Marco Civil da Internet exige: IP, data e hora, por 6 meses, ' +
-        'sob sigilo. Ele só sai daqui com ordem judicial e depois é apagado.',
-      'No nosso banco não existe tabela de "visitas" nem de comportamento: não registramos o que você abre ou clica.',
-      'O site se mantém com anúncios e usa o Google Analytics pra entender o uso. Os dois só ligam se você aceitar ' +
-        'os cookies; recusou, o app funciona igual.',
+      'Como o Marco Civil da Internet exige, guardamos o registro de acesso (IP, data e hora) por 6 meses, sob sigilo. ' +
+        'Ele só sai daqui com ordem judicial e depois é apagado.',
+      'O site se mantém com anúncios e usa o Google Analytics pra entender como ele é usado (páginas, cliques, aparelho). ' +
+        'Os dois só ligam se você aceitar os cookies; recusou, o app funciona igual.',
+      'No nosso próprio banco não guardamos histórico do que você abre ou clica: essa medição fica só no Analytics, ' +
+        'e só com o seu aceite.',
       'A área de tratamento não mostra anúncio e não envia nada ao analytics.',
       'Toda foto passa por uma faxina antes de ir pro ar: GPS, data e modelo do celular saem dos metadados.',
       'Reações e novos seguidores são anônimos, até pra quem recebe. Notificações somem sozinhas em 90 dias.',
@@ -107,9 +109,9 @@ const PRINCIPLES: readonly Principle[] = [
         <h2 id="honesty" class="font-semibold text-fg">Sendo honestos</h2>
         <p class="mt-2">
           Como em qualquer site, a sua operadora de internet e a empresa que hospeda o servidor enxergam as conexões
-          passando, e, se você aceitar os cookies, o Google também vê as suas visitas. O que depende da gente é guardar
-          só o que a lei obriga, pelo tempo que ela obriga. Se algum dia algo neste manifesto deixar de ser verdade, ele
-          muda antes, e você fica sabendo por aqui.
+          passando, e, se você aceitar os cookies, o Google também vê as suas visitas. No nosso servidor, guardamos o
+          que o app precisa pra funcionar e o que a lei obriga, pelo tempo que ela obriga. Se algum dia algo neste
+          manifesto deixar de ser verdade, ele muda antes, e você fica sabendo por aqui.
         </p>
       </section>
 

@@ -9,7 +9,6 @@ import br.com.weediario.identity.application.usecase.PasswordResetUseCase;
 import br.com.weediario.identity.application.usecase.RecoverAccountUseCase;
 import br.com.weediario.identity.application.usecase.RefreshSessionUseCase;
 import br.com.weediario.identity.application.usecase.RegisterUserUseCase;
-import br.com.weediario.identity.presentation.rest.dto.AccessKeyLoginRequest;
 import br.com.weediario.identity.presentation.rest.dto.AccessTokenResponse;
 import br.com.weediario.identity.presentation.rest.dto.EmailVerifyRequest;
 import br.com.weediario.identity.presentation.rest.dto.LoginRequest;
@@ -90,13 +89,6 @@ public class AuthController {
     public ResponseEntity<AccessTokenResponse> login(@Valid @RequestBody LoginRequest request) {
         return sessions.open(authenticateUser.execute(
                 new AuthenticateUserUseCase.Command(request.login(), request.password())));
-    }
-
-    /** Conta da época da chave de acesso: último login com a chave, criando a senha. */
-    @PostMapping("/access-key-login")
-    public ResponseEntity<AccessTokenResponse> accessKeyLogin(@Valid @RequestBody AccessKeyLoginRequest request) {
-        return sessions.open(authenticateUser.loginWithAccessKey(new AuthenticateUserUseCase.AccessKeyCommand(
-                request.login(), request.accessKey(), request.newPassword())));
     }
 
     /** Frase de recuperação: senha nova, frase nova, outras sessões encerradas, e já entra na conta. */

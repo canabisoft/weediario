@@ -33,11 +33,9 @@ type Panel = 'none' | 'password' | 'email';
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
               <dt class="font-semibold">Senha</dt>
-              <dd class="text-fg-muted">{{ s.hasPassword ? 'Definida' : 'Ainda não criada (conta da época da chave de acesso)' }}</dd>
+              <dd class="text-fg-muted">Definida</dd>
             </div>
-            <button type="button" class="text-sm font-semibold text-accent" (click)="toggle('password')">
-              {{ s.hasPassword ? 'Trocar senha' : 'Criar senha' }}
-            </button>
+            <button type="button" class="text-sm font-semibold text-accent" (click)="toggle('password')">Trocar senha</button>
           </div>
 
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -73,7 +71,7 @@ type Panel = 'none' | 'password' | 'email';
         @if (panel() === 'password') {
           <form class="grid gap-3 rounded-xl border border-line p-3" (submit)="$event.preventDefault(); changePassword()">
             <div>
-              <label class="wd-label" for="sec-current">{{ s.hasPassword ? 'Senha atual' : 'Chave de acesso antiga (wd_sec_…)' }}</label>
+              <label class="wd-label" for="sec-current">Senha atual</label>
               <input id="sec-current" name="current" type="password" class="wd-input" autocomplete="current-password"
                      [ngModel]="current()" (ngModelChange)="current.set($event)" />
             </div>

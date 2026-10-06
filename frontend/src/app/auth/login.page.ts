@@ -1,19 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { problemMessage } from '../core/api/problem';
-import { ACCESS_KEY_PREFIX, AuthService } from '../core/auth/auth.service';
-import { NewPassword } from './new-password';
+import { AuthService } from '../core/auth/auth.service';
 
-/**
- * Login com apelido + senha. Conta criada na época da chave de acesso: quem cola a chave ({@code wd_sec_...}) no
- * campo de senha cria uma senha ali mesmo, e a chave deixa de valer.
- */
+/** Login com apelido + senha. */
 @Component({
   selector: 'app-login-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, NewPassword],
+  imports: [ReactiveFormsModule, RouterLink],
   template: `
     <section class="mx-auto max-w-md">
       <h1 class="text-2xl font-bold">Entrar</h1>
@@ -45,21 +40,12 @@ import { NewPassword } from './new-password';
           />
         </div>
 
-        @if (usingAccessKey()) {
-          <div class="grid gap-3 rounded-xl border border-line p-3">
-            <p class="text-sm">
-              Isso é a chave de acesso antiga. O weediário voltou a usar senha: crie uma agora e a chave deixa de valer.
-            </p>
-            <app-new-password id="from-key" label="Senha nova" (changed)="newPassword.set($event)" />
-          </div>
-        }
-
         @if (error()) {
           <p role="alert" class="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{{ error() }}</p>
         }
 
-        <button type="submit" class="wd-button" [disabled]="form.invalid || busy() || (usingAccessKey() && !newPassword())">
-          {{ busy() ? 'Entrando…' : usingAccessKey() ? 'Criar senha e entrar' : 'Entrar' }}
+        <button type="submit" class="wd-button" [disabled]="form.invalid || busy()">
+          {{ busy() ? 'Entrando…' : 'Entrar' }}
         </button>
       </form>
 
@@ -83,9 +69,6 @@ export class LoginPage {
     login: ['', Validators.required],
     password: ['', Validators.required],
   });
-  private readonly typedPassword = toSignal(this.form.controls.password.valueChanges, { initialValue: '' });
-  protected readonly usingAccessKey = computed(() => this.typedPassword().trim().startsWith(ACCESS_KEY_PREFIX));
-  protected readonly newPassword = signal<string | null>(null);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -96,14 +79,7 @@ export class LoginPage {
     this.busy.set(true);
     this.error.set(null);
     try {
-      const login = this.form.controls.login.value.trim();
-      const secret = this.form.controls.password.value;
-      const newPassword = this.newPassword();
-      if (this.usingAccessKey() && newPassword) {
-        await this.auth.loginWithAccessKey(login, secret.trim(), newPassword);
-      } else {
-        await this.auth.login(login, secret);
-      }
+      await this.auth.login(this.form.controls.login.value.trim(), this.form.controls.password.value);
       this.form.controls.password.reset();
       // Conta criada antes da frase de recuperação: gera a frase antes de seguir.
       await this.router.navigateByUrl(this.auth.needsRecoveryPhrase() ? '/frase-de-recuperacao' : safeReturnUrl(this.voltar()));
