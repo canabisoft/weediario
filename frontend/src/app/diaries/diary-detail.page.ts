@@ -115,7 +115,7 @@ import { ReportButton } from '../shared/report-button';
 
           @if (isOwner()) {
             <app-diary-owner-panel [diary]="d" (changed)="reload()" />
-            @if (d.status === 'COMPLETED') {
+            @if (d.status === 'COMPLETED' && !d.reviewed) {
               <app-review-form [diaryId]="d.id" [strain]="d.strainName" [breeder]="d.breeder" [products]="d.setup?.products ?? []" />
             }
           }

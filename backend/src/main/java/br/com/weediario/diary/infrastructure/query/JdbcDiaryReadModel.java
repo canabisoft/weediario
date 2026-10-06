@@ -49,6 +49,7 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
                      where dc.diary_id = d.id and not dc.hidden
                        and (dc.parent_id is null or (not pc.hidden and pu.status = 'ACTIVE'))) as comments_count,
                    (select count(*) from diary_reactions dr where dr.diary_id = d.id) as reactions_count,
+                   exists (select 1 from reviews r where r.diary_id = d.id) as reviewed,
                    %s as setup_snapshot,
                    (select p.image_id
                       from diary_update_photos p
@@ -177,7 +178,8 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
             rs.getLong("reactions_count"),
             rs.getObject("cover_photo_id", UUID.class),
             parseSetup(rs.getString("setup_snapshot")),
-            rs.getBoolean("moderation_hold"));
+            rs.getBoolean("moderation_hold"),
+            rs.getBoolean("reviewed"));
     }
 
     @Override

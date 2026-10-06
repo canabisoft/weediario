@@ -91,6 +91,8 @@ export interface DiaryCard {
   readonly coverThumbnailUrl?: string;
   /** Retido pela moderação: privado e travado até a decisão (só o dono vê). */
   readonly moderationHold?: boolean;
+  /** O cultivo já tem avaliação publicada (cada diário avalia uma vez só). */
+  readonly reviewed?: boolean;
 }
 
 /** Resposta das operações de escrita em diários. */

@@ -13,7 +13,7 @@
 
     <groupId>br.com.weediario</groupId>
     <artifactId>weediario-backend</artifactId>
-    <version>0.36.0</version>
+    <version>0.36.1</version>
     <name>weediario-backend</name>
     <description>Diários de cultivo e reviews com foco em privacidade</description>
 
