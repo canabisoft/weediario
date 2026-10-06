@@ -156,7 +156,7 @@ services:
   # Banco acessível no host só quando pedido, para rodar o backend fora do Docker (mvn spring-boot:run):
   #   docker compose --profile dev up -d
   postgres-port:
-    image: alpine/socat:1.8.0.3@sha256:beb4a68d9e4fe6b0f21ea774a0fde6c31f580dde6368939ed70100c5385b015e
+    image: alpine/socat:1.8.1.1@sha256:7f9a06753033f2b7de18edc2353f2c15153413d95a039163c6db270fc7a6c3b0
     profiles: ["dev"]
     depends_on:
       postgres:
