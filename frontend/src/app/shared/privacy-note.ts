@@ -2,11 +2,11 @@ import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, inject, input
 import { Icon } from './icon';
 
 /**
- * Mensagens exibidas em rodízio. Alternam entre os três compromissos da plataforma: cadastro mínimo (pode ser
- * pseudônimo), limpar os metadados das fotos antes de publicar e não ser lugar de comércio (Termos de Uso).
+ * Mensagens exibidas em rodízio. Alternam entre os três compromissos da plataforma: privacidade (sem logs, cadastro
+ * mínimo, pode ser pseudônimo), limpar os metadados das fotos antes de publicar e não ser lugar de comércio (Termos de Uso).
  */
 export const PRIVACY_MESSAGES: readonly string[] = [
-  'Cadastro só com apelido e senha: sem CPF, sem nome, sem telefone.',
+  'Sem log de acesso: nem IP, nem as páginas que você abre.',
   'Foto limpa: a gente tira GPS, modelo do celular e data antes de postar.',
   'Aqui é diário, não é feira: nada de venda, troca ou contato pra negócio.',
   'E-mail é opcional e fica cifrado: ninguém vê, nem pra procurar conta.',

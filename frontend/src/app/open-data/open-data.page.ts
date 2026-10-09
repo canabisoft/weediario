@@ -38,8 +38,12 @@ const FIELDS: readonly { json: string; csv: string; meaning: string }[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Icon],
   template: `
-    <h1 class="text-2xl font-bold">Dados abertos</h1>
-    <p class="text-fg-muted">O banco de strains do weediário é público e aberto: baixe, estude, cruze com outros dados e construa em cima.</p>
+    <p class="text-sm font-semibold uppercase tracking-wider text-accent">Feito pela comunidade, para a comunidade</p>
+    <h1 class="mt-1 text-2xl font-bold">Banco aberto de strains</h1>
+    <p class="text-fg-muted">
+      Cada diário, avaliação e strain cadastrada por quem cultiva melhora este banco, e ele é de todo mundo: baixe,
+      estude, cruze com outros dados e construa em cima. Sem cadastro, sem custo.
+    </p>
 
     <div class="mt-4 flex flex-wrap gap-2">
       <a class="wd-button" [href]="csvUrl" download="weediario-strains.csv">

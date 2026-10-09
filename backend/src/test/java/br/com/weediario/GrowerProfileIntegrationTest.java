@@ -47,7 +47,7 @@ class GrowerProfileIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.gramsPerPlant").value(150.0));
 
         // Só aparece o setup já visível em diário público, uma vez só, com a contagem de diários.
-        JsonNode setups = body(mvc.perform(get("/api/v1/growers/{u}/setups", grower.username()))
+        JsonNode setups = body(mvc.perform(signedIn(get("/api/v1/growers/{u}/setups", grower.username())))
                 .andExpect(status().isOk()).andReturn());
         assertThat(setups).hasSize(1);
         assertThat(setups.get(0).get("setup").get("name").asText()).isEqualTo("Tenda da sala");
@@ -63,7 +63,7 @@ class GrowerProfileIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void unknownGrowerHasNoSetupsOrReviews() throws Exception {
-        mvc.perform(get("/api/v1/growers/{u}/setups", "ninguem_aqui")).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(signedIn(get("/api/v1/growers/{u}/setups", "ninguem_aqui"))).andExpect(jsonPath("$.length()").value(0));
         mvc.perform(get("/api/v1/growers/{u}/reviews", "ninguem_aqui")).andExpect(jsonPath("$.totalItems").value(0));
     }
 

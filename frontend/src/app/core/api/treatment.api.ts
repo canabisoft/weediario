@@ -276,6 +276,11 @@ export class TreatmentApi {
     return this.http.post<{ id: string }>(`${BASE}/patients/${patientId}/medicines`, compact(input));
   }
 
+  /** Edita o rótulo. Forma e quantidade inicial não mudam no servidor (correções de estoque viram ajustes). */
+  updateMedicine(patientId: string, batchId: string, input: MedicineInput): Observable<void> {
+    return this.http.put<void>(`${BASE}/patients/${patientId}/medicines/${batchId}`, compact(input));
+  }
+
   archiveMedicine(patientId: string, batchId: string, archived: boolean): Observable<void> {
     return this.http.patch<void>(`${BASE}/patients/${patientId}/medicines/${batchId}`, { archived });
   }

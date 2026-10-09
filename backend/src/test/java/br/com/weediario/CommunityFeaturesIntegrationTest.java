@@ -57,7 +57,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.harvest.dryGrams").value(450));
 
-        JsonNode ranking = body(mvc.perform(get("/api/v1/growers/ranking?sort=GRAMS_PER_PLANT&q=" + grower.username()))
+        JsonNode ranking = body(mvc.perform(signedIn(get("/api/v1/growers/ranking?sort=GRAMS_PER_PLANT&q=" + grower.username())))
                 .andExpect(status().isOk()).andReturn());
         JsonNode entry = ranking.get("items").get(0);
         assertThat(entry.get("username").asText()).isEqualTo(grower.username());

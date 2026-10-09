@@ -109,9 +109,12 @@ import { ReportButton } from '../shared/report-button';
             </section>
           }
 
-          <section class="wd-card">
-            <app-diary-recipes [diaryId]="d.id" [medium]="d.medium" [isOwner]="isOwner()" />
-          </section>
+          <!-- Receitas são só para quem tem conta. -->
+          @if (auth.isLoggedIn()) {
+            <section class="wd-card">
+              <app-diary-recipes [diaryId]="d.id" [medium]="d.medium" [isOwner]="isOwner()" />
+            </section>
+          }
 
           @if (isOwner()) {
             <app-diary-owner-panel [diary]="d" (changed)="reload()" />

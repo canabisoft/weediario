@@ -1,5 +1,5 @@
 import { Medicine } from '../core/api/treatment.api';
-import { concentration, previewMg } from './treatment-text';
+import { acceptsPercent, concentration, decimalInput, homemadeMgPerMl, percentToMg, previewMg } from './treatment-text';
 
 const oil: Medicine = {
   id: 'b1',
@@ -31,5 +31,36 @@ describe('treatment text', () => {
   it('describes the label concentration', () => {
     expect(concentration(oil)).toBe('THC 1 mg/ml · CBD 20 mg/ml');
     expect(concentration({ ...oil, thc: undefined, cbd: undefined })).toBe('Concentração não informada');
+  });
+});
+
+describe('concentration in percent', () => {
+  it('accepts percent only where the label unit is mg per ml or per g', () => {
+    expect(acceptsPercent('OIL')).toBe(true);
+    expect(acceptsPercent('TINCTURE')).toBe(true);
+    expect(acceptsPercent('TOPICAL')).toBe(true);
+    expect(acceptsPercent('FLOWER')).toBe(false); // já é em %
+    expect(acceptsPercent('GUMMY')).toBe(false);
+    expect(acceptsPercent('CAPSULE')).toBe(false);
+  });
+
+  it('converts 1% to 10 mg/ml', () => {
+    expect(percentToMg(3)).toBe(30);
+    expect(percentToMg(0.2)).toBe(2);
+  });
+
+  it('estimates homemade oil from the flower', () => {
+    // 10 g de flor a 15% = 1500 mg de THC em 30 ml de óleo.
+    expect(homemadeMgPerMl(10, 15, 30)).toBe(50);
+    expect(homemadeMgPerMl(10, 5, 30)).toBe(16.667);
+    expect(homemadeMgPerMl(0, 15, 30)).toBeNull();
+    expect(homemadeMgPerMl(10, 15, 0)).toBeNull();
+    expect(homemadeMgPerMl(10, 120, 30)).toBeNull();
+  });
+
+  it('writes numbers for inputs without thousands separator', () => {
+    expect(decimalInput(1500)).toBe('1500');
+    expect(decimalInput(16.6666)).toBe('16,667');
+    expect(decimalInput(undefined)).toBe('');
   });
 });

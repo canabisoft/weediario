@@ -17,6 +17,8 @@ interface NavItem {
   readonly label: string;
   readonly icon: IconName;
   readonly exact?: boolean;
+  /** Linha curta abaixo do rótulo (só nos itens em destaque). */
+  readonly hint?: string;
 }
 
 /** Largura a partir da qual o menu lateral fica fixo na tela (breakpoint lg do Tailwind). */
@@ -60,9 +62,14 @@ export class MainLayout {
   /** Só aparece para moderadores (o backend também exige o papel). */
   protected readonly moderationNav: NavItem = { path: '/moderacao', label: 'Moderação', icon: 'shield' };
 
+  /** Em destaque no menu: o que a comunidade constrói junto. */
+  protected readonly communityNav: readonly NavItem[] = [
+    { path: '/dados-abertos', label: 'Banco aberto', icon: 'database', hint: 'Strains livres para baixar e usar' },
+    { path: '/breeders/programa', label: 'Programa de breeders', icon: 'sprout', hint: 'Suas genéticas validadas por quem cultiva' },
+  ];
+
   protected readonly secondaryNav: readonly NavItem[] = [
     { path: '/ferramentas', label: 'Ferramentas', icon: 'tools' },
-    { path: '/dados-abertos', label: 'Dados abertos', icon: 'database' },
     { path: '/ajustes', label: 'Ajustes', icon: 'settings' },
     { path: '/manifesto', label: 'Manifesto', icon: 'shield' },
     { path: '/termos', label: 'Termos de Uso', icon: 'diaries' },

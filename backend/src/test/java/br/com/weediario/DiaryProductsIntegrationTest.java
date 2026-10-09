@@ -82,7 +82,7 @@ class DiaryProductsIntegrationTest extends IntegrationTestSupport {
     }
 
     private JsonNode rankingRow(String productId) throws Exception {
-        JsonNode items = body(mvc.perform(get("/api/v1/catalog/rankings/PRODUCTS?size=100")).andReturn()).get("items");
+        JsonNode items = body(mvc.perform(signedIn(get("/api/v1/catalog/rankings/PRODUCTS?size=100"))).andReturn()).get("items");
         for (JsonNode row : items) {
             if (row.get("id").asText().equals(productId)) {
                 return row;

@@ -33,12 +33,12 @@ class RecipeFeedbackIntegrationTest extends IntegrationTestSupport {
         rate(author, id, 5).andExpect(status().isUnprocessableEntity());
         rate(fan, id, 6).andExpect(status().isBadRequest());
 
-        mvc.perform(get("/api/v1/recipes/{id}/rating", id))
+        mvc.perform(signedIn(get("/api/v1/recipes/{id}/rating", id)))
                 .andExpect(jsonPath("$.average").value(3.5))
                 .andExpect(jsonPath("$.count").value(2))
-                .andExpect(jsonPath("$.canRate").value(false));
+                .andExpect(jsonPath("$.canRate").value(true)); // outro grower ainda pode dar a nota dele
         mvc.perform(authed(get("/api/v1/recipes/{id}/rating", id), author)).andExpect(jsonPath("$.canRate").value(false));
-        mvc.perform(get("/api/v1/recipes/{id}", id)).andExpect(jsonPath("$.recipe.ratingCount").value(2));
+        mvc.perform(signedIn(get("/api/v1/recipes/{id}", id))).andExpect(jsonPath("$.recipe.ratingCount").value(2));
 
         mvc.perform(authed(delete("/api/v1/recipes/{id}/rating", id), critic))
                 .andExpect(jsonPath("$.count").value(1)).andExpect(jsonPath("$.mine").doesNotExist());
@@ -59,7 +59,7 @@ class RecipeFeedbackIntegrationTest extends IntegrationTestSupport {
         }
 
         // Uma nota 5 isolada não passa na frente de quatro notas 5.
-        JsonNode page = body(mvc.perform(get("/api/v1/recipes?q={q}&sort=TOP_RATED", tag)).andReturn());
+        JsonNode page = body(mvc.perform(signedIn(get("/api/v1/recipes?q={q}&sort=TOP_RATED", tag))).andReturn());
         assertThat(ids(page.get("items"))).containsExactly(solid, lucky);
         assertThat(page.get("items").get(0).get("rating").asDouble()).isEqualTo(5.0);
         assertThat(page.get("items").get(0).get("ratingCount").asInt()).isEqualTo(4);
@@ -78,7 +78,7 @@ class RecipeFeedbackIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.canDelete").value(true))
                 .andExpect(jsonPath("$.canReport").value(false))
                 .andReturn()).get("id").asText();
-        mvc.perform(get("/api/v1/recipes/{id}/comments", id))
+        mvc.perform(signedIn(get("/api/v1/recipes/{id}/comments", id)))
                 .andExpect(jsonPath("$.items[0].body").value("Funciona em coco?"))
                 .andExpect(jsonPath("$.items[0].canDelete").value(false))
                 .andExpect(jsonPath("$.items[0].authorId").doesNotExist());
@@ -88,7 +88,7 @@ class RecipeFeedbackIntegrationTest extends IntegrationTestSupport {
         for (int i = 0; i < 3; i++) {
             report(trustedGrower(), "RECIPE_COMMENT", commentId, "INAPPROPRIATE").andExpect(status().isOk());
         }
-        mvc.perform(get("/api/v1/recipes/{id}/comments", id)).andExpect(jsonPath("$.totalItems").value(0));
+        mvc.perform(signedIn(get("/api/v1/recipes/{id}/comments", id))).andExpect(jsonPath("$.totalItems").value(0));
         mvc.perform(authed(get("/api/v1/recipes/{id}/comments", id), moderator()))
                 .andExpect(jsonPath("$.items[0].hidden").value(true));
 
@@ -134,7 +134,7 @@ class RecipeFeedbackIntegrationTest extends IntegrationTestSupport {
 
         // Cultivo de outra pessoa não serve de base para sugestões.
         mvc.perform(authed(get("/api/v1/recipes/recommended?diaryId={d}", diaryId), community)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/recipes/recommended")).andExpect(status().isOk());
+        mvc.perform(signedIn(get("/api/v1/recipes/recommended"))).andExpect(status().isOk());
     }
 
     private org.springframework.test.web.servlet.ResultActions rate(Session session, String id, int stars) throws Exception {

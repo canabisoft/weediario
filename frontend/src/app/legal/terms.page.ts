@@ -53,14 +53,14 @@ export const CLAUSES: readonly Clause[] = [
       'A senha é guardada só como hash (Argon2id): ninguém da equipe consegue lê-la. Para recuperar a conta, toda conta ' +
         'tem uma frase de 12 palavras, mostrada no cadastro; dela guardamos só o hash de um código derivado, então não ' +
         'temos como ver ou reenviar a frase.',
-      'Se você cadastrar um e-mail, ele é usado só para confirmar o endereço, redefinir a senha e avisar de mudanças ' +
+      'Se você cadastrar um e-mail, ele serve para recuperar a conta: é usado só para confirmar o endereço, redefinir a senha e avisar de mudanças ' +
         'sensíveis na conta. Ele fica cifrado, nunca aparece para ninguém, não serve para entrar nem para procurar contas, ' +
         'e você pode removê-lo quando quiser. Para entregar esses e-mails usamos um provedor de envio, que recebe o ' +
         'endereço e a mensagem. Sem e-mail cadastrado, se você esquecer a senha e perder a frase, a conta não pode ser ' +
         'recuperada.',
-      'Como exige o Marco Civil da Internet (Lei nº 12.965/2014, art. 15), guardamos os registros de acesso ao app ' +
-        '(endereço IP, data e hora) por 6 meses, sob sigilo, e depois os apagamos. Eles só são fornecidos mediante ' +
-        'ordem judicial.',
+      'Não guardamos registros de acesso: nem endereço IP, nem aparelho, nem as páginas que você abre.',
+      'Diários privados só são vistos por você. Diários públicos podem ser lidos por qualquer pessoa; rankings, ' +
+        'receitas, equipamentos e o acompanhamento de tratamento só ficam disponíveis para quem tem conta.',
       'Mudanças sensíveis na conta (senha, e-mail, frase) ficam registradas por 90 dias só com o tipo e a data, para ' +
         'você conferir no perfil. Do aceite destes termos, guardamos só a versão e a data e hora. Os textos do ' +
         'acompanhamento de tratamento ficam cifrados. Os detalhes estão no Manifesto.',
@@ -73,14 +73,10 @@ export const CLAUSES: readonly Clause[] = [
   },
   {
     id: 'cookies',
-    title: '4. Cookies, estatísticas e anúncios',
+    title: '4. Cookies',
     paragraphs: [
-      'O weediário exibe anúncios e mede o uso do site com o Google Analytics, ambos fornecidos pelo Google. Para isso, ' +
-        'o Google usa cookies e recebe dados do seu navegador, como endereço IP, aparelho, páginas visitadas e ' +
-        'interações com os anúncios, e pode tratá-los fora do Brasil, conforme a política de privacidade dele ' +
-        '(policies.google.com/privacy).',
-      'Esses cookies só são ativados se você aceitar no aviso de cookies. Você pode recusar ou mudar a escolha a ' +
-        'qualquer momento, sem perder acesso a nenhuma função do app.',
+      'O weediário usa um único cookie, necessário para manter você logado: ele é só deste site e não pode ser lido por ' +
+        'scripts da página. Não usamos cookies de terceiros, ferramentas de estatística ou rastreadores.',
     ],
   },
   {
@@ -123,7 +119,7 @@ export const CLAUSES: readonly Clause[] = [
       'O weediário colabora com as autoridades judiciais e policiais mediante ordem judicial fundamentada, nos termos da ' +
         'legislação brasileira vigente.',
       'Nesse caso, entregamos os dados que a ordem pedir, entre os que de fato mantemos: apelido, conteúdos ' +
-        'publicados, registro de moderação e os registros de acesso dos últimos 6 meses.',
+        'publicados e registro de moderação. Registros de acesso não existem, porque não os guardamos.',
     ],
   },
   {

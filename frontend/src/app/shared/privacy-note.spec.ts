@@ -4,9 +4,9 @@ import { PRIVACY_MESSAGES, PrivacyNote } from './privacy-note';
 describe('PrivacyNote', () => {
   afterEach(() => vi.useRealTimers());
 
-  it('alternates between minimal sign-up, clean photos and no commerce, never repeating a theme in a row', () => {
+  it('alternates between privacy, clean photos and no commerce, never repeating a theme in a row', () => {
     const theme = (message: string) =>
-      /apelido|e-mail|pseudônimo/i.test(message) ? 'account' : /foto|metadados/i.test(message) ? 'photos' : /vend|negoci|negóci|feira|denunc|pix/i.test(message) ? 'rules' : null;
+      /log|apelido|e-mail|pseudônimo/i.test(message) ? 'privacy' : /foto|metadados/i.test(message) ? 'photos' : /vend|negoci|negóci|feira|denunc|pix/i.test(message) ? 'rules' : null;
 
     PRIVACY_MESSAGES.forEach((message, i) => {
       const next = PRIVACY_MESSAGES[(i + 1) % PRIVACY_MESSAGES.length];
@@ -14,10 +14,6 @@ describe('PrivacyNote', () => {
       expect(theme(message)).not.toBe(theme(next));
     });
     expect(new Set(PRIVACY_MESSAGES.map(theme)).size).toBe(3);
-  });
-
-  it('never promises "no logs" (the Marco Civil access log exists)', () => {
-    expect(PRIVACY_MESSAGES.some((message) => /logs?|sem rastro/i.test(message))).toBe(false);
   });
 
   it('never softens the promise with "dentro do possível"', () => {

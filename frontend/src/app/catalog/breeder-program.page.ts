@@ -6,6 +6,7 @@ import { Observable, catchError, map, of, switchMap } from 'rxjs';
 import { BreederProgram, BreederProgramApi, Representation } from '../core/api/breeder-program.api';
 import { CatalogItem, Dominance, FloweringSpeed, SeedKind, StrainTraits } from '../core/api/catalog-db.api';
 import { problemMessage } from '../core/api/problem';
+import { AuthService } from '../core/auth/auth.service';
 import { CatalogPicker } from '../shared/catalog-picker';
 import { Icon } from '../shared/icon';
 import {
@@ -29,6 +30,9 @@ const NOTE_MAX = 500;
  * própria). Quem é aprovado pela moderação cadastra as sementes; elas ficam "em teste" e só entram no banco oficial
  * quando 3 cultivadores de fora do breeder as cultivam e há uma avaliação pós-colheita. Quem representa um breeder
  * não aparece publicamente, a não ser que um breeder independente escolha aparecer como criador(a).
+ * <p>
+ * A apresentação é pública (é o convite para breeders conhecerem o programa); pedir para entrar, cadastrar sementes e
+ * acompanhar o teste pedem conta.
  */
 @Component({
   selector: 'app-breeder-program-page',
@@ -36,13 +40,25 @@ const NOTE_MAX = 500;
   imports: [FormsModule, RouterLink, CatalogPicker, Icon, TestingProgressBar],
   template: `
     <a routerLink="/strains" class="text-sm text-fg-muted">← Catálogo</a>
-    <h1 class="mt-2 text-2xl font-bold">Programa de breeders</h1>
-    <p class="text-fg-muted">
-      Para bancos de sementes e para breeders independentes — quem cria genéticas em casa ou em pequenos projetos —
-      colocarem suas genéticas no catálogo, validadas por quem cultiva.
-    </p>
+    <section class="relative mt-2 overflow-hidden rounded-3xl border border-accent/25 bg-linear-to-br from-accent/20 via-surface-raised to-surface p-6">
+      <app-icon name="sprout" class="pointer-events-none absolute -right-4 -top-4 size-32 text-accent/10" [strokeWidth]="1.2" />
+      <p class="text-sm font-semibold uppercase tracking-wider text-accent">Feito pela comunidade</p>
+      <h1 class="mt-1 text-2xl font-bold">Programa de breeders</h1>
+      <p class="mt-2 max-w-2xl text-fg-muted">
+        Para bancos de sementes e para breeders independentes — quem cria genéticas em casa ou em pequenos projetos —
+        colocarem suas genéticas no catálogo, validadas por quem cultiva. Sem anúncio pago e sem atalho: quem decide se a
+        semente é boa são os growers.
+      </p>
+      @if (!auth.isLoggedIn()) {
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a routerLink="/entrar" [queryParams]="{ voltar: '/breeders/programa' }" class="wd-button">Entrar e participar</a>
+          <a routerLink="/cadastro" class="wd-button bg-surface-raised text-fg">Criar conta</a>
+        </div>
+      }
+    </section>
 
-    <ol class="wd-card mt-4 grid gap-2 text-sm">
+    <h2 class="mt-6 text-lg font-semibold">Como funciona</h2>
+    <ol class="wd-card mt-3 grid gap-2 text-sm">
       <li>
         <strong>1. Peça para entrar.</strong> Se for um banco, mostre o vínculo (site oficial, rede do banco). Se for breeder
         independente, cadastre o nome do seu projeto e mostre seu trabalho (diários de polinização aqui no weediário, fotos,
@@ -56,7 +72,51 @@ const NOTE_MAX = 500;
       </li>
     </ol>
 
-    @if (program(); as state) {
+    <section class="mt-6" aria-labelledby="where-title">
+      <h2 id="where-title" class="text-lg font-semibold">Onde suas genéticas aparecem</h2>
+      <p class="text-sm text-fg-muted">Depois de validadas, elas entram em tudo que a comunidade consulta. Os números vêm de cultivos reais, não de quem vende. Rankings e receitas ficam para quem tem conta.</p>
+      <div class="mt-3 grid gap-3 sm:grid-cols-2">
+        <a routerLink="/mais-usados" class="wd-card grid gap-1 hover:border-accent/50">
+          <span class="flex items-center gap-2 font-semibold"><app-icon name="trophy" class="size-5 text-accent" /> Ranking de strains</span>
+          <span class="text-sm text-fg-muted">As genéticas mais cultivadas, pelo número de diários públicos e de growers, com a média de gramas por planta das colheitas.</span>
+        </a>
+        <a routerLink="/mais-usados" [queryParams]="{ tipo: 'BREEDERS' }" class="wd-card grid gap-1 hover:border-accent/50">
+          <span class="flex items-center gap-2 font-semibold"><app-icon name="sprout" class="size-5 text-accent" /> Ranking de breeders</span>
+          <span class="text-sm text-fg-muted">O seu banco ou projeto ao lado dos outros, pelo quanto as suas sementes são cultivadas.</span>
+        </a>
+        <a routerLink="/strains" class="wd-card grid gap-1 hover:border-accent/50">
+          <span class="flex items-center gap-2 font-semibold"><app-icon name="star" class="size-5 text-accent" /> Avaliações de quem colheu</span>
+          <span class="text-sm text-fg-muted">
+            Notas de vigor, resistência, facilidade, rendimento e aroma na página de cada strain, e de germinação,
+            estabilidade e atendimento na página do breeder. Só avalia quem concluiu o cultivo.
+          </span>
+        </a>
+        <a routerLink="/dados-abertos" class="wd-card grid gap-1 hover:border-accent/50">
+          <span class="flex items-center gap-2 font-semibold"><app-icon name="database" class="size-5 text-accent" /> Banco aberto</span>
+          <span class="text-sm text-fg-muted">As strains oficiais vão para o banco aberto de strains, livre para qualquer pessoa baixar e usar.</span>
+        </a>
+      </div>
+      <p class="mt-3 text-sm text-fg-muted">
+        O mesmo ranking vale para insumos: <a routerLink="/mais-usados" [queryParams]="{ tipo: 'BRANDS' }" class="text-accent underline">marcas</a> e
+        <a routerLink="/mais-usados" [queryParams]="{ tipo: 'PRODUCTS' }" class="text-accent underline">produtos</a>
+        (nutrientes, substratos, aditivos) entram pelo uso nos diários da comunidade. Sementes ainda em teste não entram nos
+        rankings nem nas médias.
+      </p>
+    </section>
+
+    @if (!auth.isLoggedIn()) {
+      <section class="wd-card mt-6 grid gap-2 border-accent/40" aria-labelledby="join-title">
+        <h2 id="join-title" class="text-lg font-semibold">Quer colocar suas genéticas no catálogo?</h2>
+        <p class="text-sm text-fg-muted">
+          Crie uma conta (só apelido e senha) e peça para entrar no programa. A moderação confere o vínculo com o banco ou o
+          seu trabalho como breeder, e ninguém mais vê o pedido.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <a routerLink="/entrar" [queryParams]="{ voltar: '/breeders/programa' }" class="wd-button">Entrar e participar</a>
+          <a routerLink="/cadastro" class="wd-button bg-surface-raised text-fg">Criar conta</a>
+        </div>
+      </section>
+    } @else if (program(); as state) {
       @if (state.error) {
         <p role="alert" class="wd-card mt-4 text-danger">{{ state.error }}</p>
       }
@@ -264,6 +324,7 @@ const NOTE_MAX = 500;
 })
 export class BreederProgramPage {
   private readonly api = inject(BreederProgramApi);
+  protected readonly auth = inject(AuthService);
 
   protected readonly noteMin = NOTE_MIN;
   protected readonly noteMax = NOTE_MAX;
@@ -295,10 +356,11 @@ export class BreederProgramPage {
   protected effectsText = '';
 
   private readonly reload = signal(0);
+  /** Só quem está logado consulta o próprio programa; visitantes veem apenas a apresentação. */
   protected readonly program = toSignal(
-    toObservable(this.reload).pipe(
-      switchMap(() =>
-        this.api.mine().pipe(
+    toObservable(computed(() => ({ loggedIn: this.auth.isLoggedIn(), reload: this.reload() }))).pipe(
+      switchMap(({ loggedIn }) =>
+        !loggedIn ? of(null) : this.api.mine().pipe(
           map((data) => ({ data, error: null as string | null })),
           catchError((error) => of({ data: { representations: [], strains: [] } as BreederProgram, error: problemMessage(error) })),
         ),

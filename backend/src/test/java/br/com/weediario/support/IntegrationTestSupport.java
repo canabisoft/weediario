@@ -178,6 +178,19 @@ public abstract class IntegrationTestSupport {
                         {"targetType":"%s","targetId":"%s","reason":"%s"}""".formatted(targetType, targetId, reason)));
     }
 
+    private Session reader;
+
+    /**
+     * Leitura com uma conta qualquer, sem relação com o conteúdo: rankings, receitas e setups só abrem para quem tem
+     * conta. É o "outro grower" de cada teste.
+     */
+    protected MockHttpServletRequestBuilder signedIn(MockHttpServletRequestBuilder request) throws Exception {
+        if (reader == null) {
+            reader = newGrower();
+        }
+        return authed(request, reader);
+    }
+
     protected MockHttpServletRequestBuilder authed(MockHttpServletRequestBuilder request, Session session) {
         return request.header(HttpHeaders.AUTHORIZATION, session.bearer());
     }

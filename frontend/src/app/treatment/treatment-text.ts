@@ -136,6 +136,40 @@ export function concentration(medicine: Pick<Medicine, 'thc' | 'cbd' | 'concentr
   return [part('THC', medicine.thc), part('CBD', medicine.cbd)].filter(Boolean).join(' · ');
 }
 
+/**
+ * Óleo, tintura e pomada são guardados em mg/ml (ou mg/g), mas podem ser digitados em %. A conversão usa a
+ * aproximação de rótulo 1% = 10 mg/ml (10 mg/g): 3% de CBD = 30 mg/ml. Flor e extrato já são em %; goma e cápsula
+ * são por unidade e não têm %.
+ */
+export function acceptsPercent(form: MedicineForm): boolean {
+  const unit = FORM_UNITS[form].concentration;
+  return unit === 'MG_PER_ML' || unit === 'MG_PER_G';
+}
+
+export function percentToMg(percent: number): number {
+  return round3(percent * 10);
+}
+
+/**
+ * Óleo feito em casa com a própria flor: teor total da flor dividido pelo volume de óleo, como se tudo passasse
+ * para o óleo. É o teto da conta (a extração perde parte); um laudo do óleo pronto é sempre mais preciso.
+ */
+export function homemadeMgPerMl(flowerGrams: number, flowerPercent: number, oilMl: number): number | null {
+  if (!(flowerGrams > 0) || !(oilMl > 0) || !(flowerPercent >= 0) || flowerPercent > 100) {
+    return null;
+  }
+  return round3((flowerGrams * flowerPercent * 10) / oilMl);
+}
+
+/** Número para campo de texto em pt-BR, sem separador de milhar (que o parseDecimal leria como decimal). */
+export function decimalInput(value: number | null | undefined): string {
+  return value == null ? '' : String(round3(value)).replace('.', ',');
+}
+
+function round3(value: number): number {
+  return Math.round(value * 1000) / 1000;
+}
+
 /** Data local "yyyy-MM-dd" a partir de um Date. */
 export function isoDay(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');

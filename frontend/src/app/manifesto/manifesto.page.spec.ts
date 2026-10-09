@@ -11,7 +11,9 @@ describe('ManifestoPage', () => {
     const text = root.textContent!.replace(/\s+/g, ' ');
 
     expect(text).toContain('Nunca pedimos CPF, nome completo, RG, endereço ou telefone');
-    expect(text).toContain('só ligam se você aceitar os cookies');
+    expect(text).toContain('Não guardamos registro de acesso');
+    expect(text).toContain('sempre com a etiqueta de anúncio');
+    expect(text).not.toContain('Google Analytics pra');
     expect(text).toContain('Não indicamos dose');
     expect(text).not.toContain('open source');
     expect(root.querySelector('a[href="/termos"]')).not.toBeNull();

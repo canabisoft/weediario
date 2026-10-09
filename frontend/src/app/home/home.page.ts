@@ -38,6 +38,31 @@ const PHRASES = [
       </div>
     </section>
 
+    <section class="mt-8" aria-labelledby="home-comunidade">
+      <h2 id="home-comunidade" class="text-lg font-semibold">Feito pela comunidade, para a comunidade</h2>
+      <p class="text-sm text-fg-muted">O catálogo cresce com quem cultiva, e o que a comunidade constrói volta para ela.</p>
+      <div class="mt-3 grid gap-3 sm:grid-cols-2">
+        <a routerLink="/dados-abertos" class="wd-card grid gap-2 border-accent/40 hover:border-accent">
+          <span class="grid size-10 place-items-center rounded-xl bg-accent/15 text-accent"><app-icon name="database" class="size-5" /></span>
+          <span class="font-semibold">Banco aberto de strains</span>
+          <span class="text-sm text-fg-muted">
+            Milhares de genéticas com as médias das avaliações e dos rendimentos da comunidade. Livre para baixar em CSV
+            ou JSON, sem dado pessoal de ninguém.
+          </span>
+          <span class="text-sm font-semibold text-accent">Conhecer o banco →</span>
+        </a>
+        <a routerLink="/breeders/programa" class="wd-card grid gap-2 border-accent/40 hover:border-accent">
+          <span class="grid size-10 place-items-center rounded-xl bg-accent/15 text-accent"><app-icon name="sprout" class="size-5" /></span>
+          <span class="font-semibold">Programa de breeders</span>
+          <span class="text-sm text-fg-muted">
+            Banco de sementes ou breeder independente? Cadastre suas genéticas: elas entram no catálogo quando 3 growers
+            de fora as cultivam e avaliam.
+          </span>
+          <span class="text-sm font-semibold text-accent">Conhecer o programa →</span>
+        </a>
+      </div>
+    </section>
+
     <div class="mt-8 flex items-center justify-between">
       <h2 class="text-lg font-semibold">Diários atualizados recentemente</h2>
       <a routerLink="/diarios" class="text-sm font-semibold text-accent">Ver todos →</a>

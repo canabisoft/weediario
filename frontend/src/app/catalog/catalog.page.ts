@@ -44,7 +44,7 @@ interface Row {
       <nav class="flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold text-accent" aria-label="Mais do catálogo">
         <a routerLink="/mais-usados">Mais usados →</a>
         <a routerLink="/breeders/programa">Programa de breeders →</a>
-        <a routerLink="/dados-abertos">Dados abertos →</a>
+        <a routerLink="/dados-abertos">Banco aberto →</a>
       </nav>
     </div>
 

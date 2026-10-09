@@ -21,6 +21,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RecipeIntegrationTest extends IntegrationTestSupport {
 
     @Test
+    void visitorsWithoutAccountCannotReadRankingsRecipesOrSetups() throws Exception {
+        Session grower = newGrower();
+        UUID diaryId = createDiary(grower, "Gelato", "PUBLIC", LocalDate.now().minusDays(10).toString());
+
+        for (String path : List.of("/api/v1/recipes", "/api/v1/recipes/recommended", "/api/v1/catalog/rankings/STRAINS",
+                "/api/v1/catalog/rankings/PRODUCTS", "/api/v1/growers/ranking",
+                "/api/v1/growers/" + grower.username() + "/recipes", "/api/v1/growers/" + grower.username() + "/setups",
+                "/api/v1/diaries/" + diaryId + "/recipes")) {
+            mvc.perform(get(path)).andExpect(status().isUnauthorized());
+        }
+        // O diário público e o perfil continuam abertos.
+        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/growers/{u}", grower.username())).andExpect(status().isOk());
+    }
+
+    @Test
     void mineralRecipeMixesBrandedProductsAndGenericSaltsAndCountsInProducts() throws Exception {
         Session grower = newGrower();
         String productId = newProduct(grower, "Flora Micro");
@@ -43,20 +59,20 @@ class RecipeIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.ingredients[2].brand").value("Genérico"))
                 .andReturn()).get("id").asText();
 
-        // Visitante anônimo vê a receita pública e ela aparece no perfil do autor e na busca por produto.
-        mvc.perform(get("/api/v1/recipes/{id}", id))
+        // Outro grower vê a receita pública e ela aparece no perfil do autor e na busca por produto.
+        mvc.perform(signedIn(get("/api/v1/recipes/{id}", id)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recipe.author").value(grower.username()))
                 .andExpect(jsonPath("$.recipe.targetEc").value(1.8))
                 .andExpect(jsonPath("$.ownedByViewer").value(false));
-        assertThat(ids(body(mvc.perform(get("/api/v1/growers/{u}/recipes", grower.username())).andReturn())))
+        assertThat(ids(body(mvc.perform(signedIn(get("/api/v1/growers/{u}/recipes", grower.username()))).andReturn())))
                 .containsExactly(id);
-        assertThat(ids(body(mvc.perform(get("/api/v1/recipes?productId={p}&kind=MINERAL", productId)).andReturn())))
+        assertThat(ids(body(mvc.perform(signedIn(get("/api/v1/recipes?productId={p}&kind=MINERAL", productId))).andReturn())))
                 .containsExactly(id);
-        assertThat(ids(body(mvc.perform(get("/api/v1/recipes?kind=ORGANIC&productId={p}", productId)).andReturn())))
+        assertThat(ids(body(mvc.perform(signedIn(get("/api/v1/recipes?kind=ORGANIC&productId={p}", productId))).andReturn())))
                 .isEmpty();
         assertThat(productRow(productId).get("recipes").asInt()).isEqualTo(1);
-        assertThat(body(mvc.perform(get("/api/v1/recipes/ingredients/suggest?q=nitrato")).andReturn()).toString())
+        assertThat(body(mvc.perform(signedIn(get("/api/v1/recipes/ingredients/suggest?q=nitrato"))).andReturn()).toString())
                 .contains("Nitrato de cálcio");
     }
 
@@ -67,12 +83,12 @@ class RecipeIntegrationTest extends IntegrationTestSupport {
         String productId = newProduct(owner, "Bloom");
         String id = create(owner, "Segredo", "PRIVATE", productId);
 
-        mvc.perform(get("/api/v1/recipes/{id}", id)).andExpect(status().isNotFound());
+        mvc.perform(signedIn(get("/api/v1/recipes/{id}", id))).andExpect(status().isNotFound());
         mvc.perform(authed(get("/api/v1/recipes/{id}", id), stranger)).andExpect(status().isNotFound());
         mvc.perform(authed(get("/api/v1/recipes/{id}", id), owner))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.ownedByViewer").value(true));
         mvc.perform(authed(post("/api/v1/recipes/{id}/replicate", id), stranger)).andExpect(status().isNotFound());
-        assertThat(ids(body(mvc.perform(get("/api/v1/growers/{u}/recipes", owner.username())).andReturn()))).isEmpty();
+        assertThat(ids(body(mvc.perform(signedIn(get("/api/v1/growers/{u}/recipes", owner.username()))).andReturn()))).isEmpty();
         assertThat(ids(body(mvc.perform(authed(get("/api/v1/me/recipes"), owner)).andReturn()))).containsExactly(id);
         assertThat(productRow(productId).get("recipes").asInt()).isZero();
         // Terceiros também não editam nem apagam.
@@ -94,15 +110,15 @@ class RecipeIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.ingredients[0].name").value("Húmus de minhoca"))
                 .andReturn()).get("id").asText();
         assertThat(copy).isNotEqualTo(original);
-        mvc.perform(get("/api/v1/recipes/{id}", original)).andExpect(jsonPath("$.recipe.replications").value(1));
+        mvc.perform(signedIn(get("/api/v1/recipes/{id}", original))).andExpect(jsonPath("$.recipe.replications").value(1));
 
         // A cópia é de quem replicou: pode ajustar e publicar no próprio perfil.
         mvc.perform(authed(put("/api/v1/recipes/{id}", copy), fan).contentType(MediaType.APPLICATION_JSON)
                         .content(organicBody("Meu super solo", "PUBLIC")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.name").value("Meu super solo"));
-        assertThat(ids(body(mvc.perform(get("/api/v1/growers/{u}/recipes", fan.username())).andReturn())))
+        assertThat(ids(body(mvc.perform(signedIn(get("/api/v1/growers/{u}/recipes", fan.username()))).andReturn())))
                 .containsExactly(copy);
-        mvc.perform(get("/api/v1/recipes/{id}", original)).andExpect(jsonPath("$.recipe.name").value("Super solo 100 L"));
+        mvc.perform(signedIn(get("/api/v1/recipes/{id}", original))).andExpect(jsonPath("$.recipe.name").value("Super solo 100 L"));
     }
 
     @Test
@@ -126,11 +142,11 @@ class RecipeIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.length()").value(2));
 
         // Visitante vê só a receita pública; o autor vê as duas.
-        assertThat(names(body(mvc.perform(get("/api/v1/diaries/{d}/recipes", diaryId)).andReturn())))
+        assertThat(names(body(mvc.perform(signedIn(get("/api/v1/diaries/{d}/recipes", diaryId))).andReturn())))
                 .containsExactly("Flora pública");
         assertThat(names(body(mvc.perform(authed(get("/api/v1/diaries/{d}/recipes", diaryId), grower)).andReturn())))
                 .containsExactlyInAnyOrder("Minha vega", "Flora pública");
-        mvc.perform(get("/api/v1/recipes/{id}", theirs)).andExpect(jsonPath("$.recipe.diaries").value(1));
+        mvc.perform(signedIn(get("/api/v1/recipes/{id}", theirs))).andExpect(jsonPath("$.recipe.diaries").value(1));
     }
 
     @Test
@@ -163,7 +179,7 @@ class RecipeIntegrationTest extends IntegrationTestSupport {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"targetId\":\"" + target + "\"}"))
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/api/v1/recipes/{id}", id))
+        mvc.perform(signedIn(get("/api/v1/recipes/{id}", id)))
                 .andExpect(jsonPath("$.recipe.ingredients[0].productId").value(target))
                 .andExpect(jsonPath("$.recipe.ingredients[0].name").value("Bio Grow"));
     }

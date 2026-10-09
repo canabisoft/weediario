@@ -71,10 +71,14 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
+                        // Rankings, receitas e setups são só para quem tem conta, mesmo dentro de caminhos públicos.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/catalog/rankings/**", "/api/v1/growers/ranking",
+                                "/api/v1/growers/*/recipes", "/api/v1/growers/*/setups", "/api/v1/diaries/*/recipes")
+                        .authenticated()
                         // Leitura de conteúdo público liberada para visitantes. A visibilidade de cada diário
                         // (público/privado) é decidida nos casos de uso, não aqui.
                         .requestMatchers(HttpMethod.GET, "/api/v1/feed/**", "/api/v1/diaries/**", "/api/v1/strains/**",
-                                "/api/v1/seedbanks/**", "/api/v1/growers/**", "/api/v1/catalog/**", "/api/v1/recipes/**",
+                                "/api/v1/seedbanks/**", "/api/v1/growers/**", "/api/v1/catalog/**",
                                 // Banco aberto de strains (ODbL): só leitura, só agregados.
                                 "/api/v1/open-data/**",
                                 // Versão e data dos Termos de Uso.

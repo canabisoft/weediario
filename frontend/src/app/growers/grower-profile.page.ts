@@ -229,11 +229,11 @@ export class GrowerProfilePage {
     { initialValue: emptyPage<DiaryCard>() },
   );
 
-  /** Só as receitas que o grower deixou públicas. */
+  /** Só as receitas que o grower deixou públicas, e só para quem tem conta (receitas e setups pedem login). */
   protected readonly recipes = toSignal(
-    toObservable(this.username).pipe(
+    toObservable(computed(() => (this.auth.isLoggedIn() ? this.username() : null))).pipe(
       switchMap((username) =>
-        this.recipesApi.ofGrower(username).pipe(
+        !username ? of<RecipeSummary[]>([]) : this.recipesApi.ofGrower(username).pipe(
           map((page) => page.items),
           catchError(() => of<RecipeSummary[]>([])),
         ),
@@ -243,8 +243,10 @@ export class GrowerProfilePage {
   );
 
   protected readonly setups = toSignal(
-    toObservable(this.username).pipe(
-      switchMap((username) => this.social.publicSetups(username).pipe(catchError(() => of<PublicSetup[]>([])))),
+    toObservable(computed(() => (this.auth.isLoggedIn() ? this.username() : null))).pipe(
+      switchMap((username) =>
+        !username ? of<PublicSetup[]>([]) : this.social.publicSetups(username).pipe(catchError(() => of<PublicSetup[]>([]))),
+      ),
     ),
     { initialValue: [] },
   );

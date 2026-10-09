@@ -285,7 +285,7 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.counts.CLAP").value(1))
                 .andExpect(jsonPath("$.mine[0]").value("CLAP"));
-        JsonNode publicView = body(mvc.perform(get("/api/v1/recipes/{id}/comments", recipeId)).andReturn());
+        JsonNode publicView = body(mvc.perform(signedIn(get("/api/v1/recipes/{id}/comments", recipeId))).andReturn());
         assertThat(publicView.get("items").get(0).get("replies").get(0).get("reactions").get("counts").get("CLAP").asInt())
                 .isEqualTo(1);
         assertThat(publicView.get("items").get(0).get("replies").get(0).get("reactions").get("mine")).isEmpty();
@@ -296,7 +296,7 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.counts.CLAP").value(0));
 
         // "Ver mais" e apagar a raiz leva as respostas junto.
-        mvc.perform(get("/api/v1/recipes/{r}/comments/{c}/replies", recipeId, rootId))
+        mvc.perform(signedIn(get("/api/v1/recipes/{r}/comments/{c}/replies", recipeId, rootId)))
                 .andExpect(jsonPath("$.totalItems").value(2));
         report(author, "RECIPE_COMMENT", replyToReply, "SPAM").andExpect(status().isOk());
         mvc.perform(authed(delete("/api/v1/recipes/{r}/comments/{c}", recipeId, rootId), author))
@@ -317,7 +317,7 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.hidden").value(true))
                 .andReturn()).get("id").asText();
 
-        JsonNode publicRoot = body(mvc.perform(get("/api/v1/recipes/{id}/comments", recipeId)).andReturn())
+        JsonNode publicRoot = body(mvc.perform(signedIn(get("/api/v1/recipes/{id}/comments", recipeId))).andReturn())
                 .get("items").get(0);
         assertThat(publicRoot.get("replyCount").asInt()).isZero();
         JsonNode sellerRoot = body(mvc.perform(authed(get("/api/v1/recipes/{id}/comments", recipeId), seller)).andReturn())

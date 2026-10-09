@@ -219,13 +219,13 @@ class CatalogIntegrationTest extends IntegrationTestSupport {
                 + "\"setupId\":\"" + setupId + "\"}");
         mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.setup.products[0].name").value("Bio Grow " + suffix));
 
-        JsonNode products = body(mvc.perform(get("/api/v1/catalog/rankings/PRODUCTS?category=NUTRIENT&size=50"))
+        JsonNode products = body(mvc.perform(signedIn(get("/api/v1/catalog/rankings/PRODUCTS?category=NUTRIENT&size=50")))
                 .andExpect(status().isOk()).andReturn());
         assertThat(products.get("items")).anyMatch(row -> row.get("id").asText().equals(productId)
                 && row.get("diaries").asInt() == 1 && row.get("parentName").asText().equals("Marca " + suffix));
-        JsonNode brands = body(mvc.perform(get("/api/v1/catalog/rankings/BRANDS?size=50")).andReturn());
+        JsonNode brands = body(mvc.perform(signedIn(get("/api/v1/catalog/rankings/BRANDS?size=50"))).andReturn());
         assertThat(brands.get("items")).anyMatch(row -> row.get("id").asText().equals(brandId));
-        JsonNode strains = body(mvc.perform(get("/api/v1/catalog/rankings/STRAINS?size=50")).andReturn());
+        JsonNode strains = body(mvc.perform(signedIn(get("/api/v1/catalog/rankings/STRAINS?size=50"))).andReturn());
         assertThat(strains.get("items")).anyMatch(row -> row.get("name").asText().equals("Bubba Kush"));
     }
 

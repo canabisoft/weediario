@@ -67,11 +67,13 @@ export const routes: Routes = [
   {
     path: 'mais-usados',
     title: 'Mais usados · weediário',
+    canActivate: [authGuard],
     loadComponent: () => import('./catalog/most-used.page').then((m) => m.MostUsedPage),
   },
   {
     path: 'receitas',
     title: 'Receitas de nutrição · weediário',
+    canActivate: [authGuard],
     loadComponent: () => import('./recipes/recipes.page').then((m) => m.RecipesPage),
   },
   {
@@ -83,6 +85,7 @@ export const routes: Routes = [
   {
     path: 'receitas/:id',
     title: 'Receita · weediário',
+    canActivate: [authGuard],
     loadComponent: () => import('./recipes/recipe-detail.page').then((m) => m.RecipeDetailPage),
   },
   {
@@ -110,12 +113,11 @@ export const routes: Routes = [
   {
     path: 'breeders/programa',
     title: 'Programa de breeders · weediário',
-    canActivate: [authGuard],
     loadComponent: () => import('./catalog/breeder-program.page').then((m) => m.BreederProgramPage),
   },
   {
     path: 'dados-abertos',
-    title: 'Dados abertos · weediário',
+    title: 'Banco aberto · weediário',
     loadComponent: () => import('./open-data/open-data.page').then((m) => m.OpenDataPage),
   },
   {
@@ -127,6 +129,7 @@ export const routes: Routes = [
   {
     path: 'growers',
     title: 'Ranking de growers · weediário',
+    canActivate: [authGuard],
     loadComponent: () => import('./growers/growers-ranking.page').then((m) => m.GrowersRankingPage),
   },
   {

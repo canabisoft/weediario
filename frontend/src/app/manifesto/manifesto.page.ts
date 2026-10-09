@@ -31,15 +31,17 @@ const PRINCIPLES: readonly Principle[] = [
   },
   {
     icon: 'eyeOff',
-    title: 'O que fica registrado, sem rodeio',
+    title: 'Sem logs, sem rastreador',
     points: [
-      'Como o Marco Civil da Internet exige, guardamos o registro de acesso (IP, data e hora) por 6 meses, sob sigilo. ' +
-        'Ele só sai daqui com ordem judicial e depois é apagado.',
-      'O site se mantém com anúncios e usa o Google Analytics pra entender como ele é usado (páginas, cliques, aparelho). ' +
-        'Os dois só ligam se você aceitar os cookies; recusou, o app funciona igual.',
-      'No nosso próprio banco não guardamos histórico do que você abre ou clica: essa medição fica só no Analytics, ' +
-        'e só com o seu aceite.',
-      'A área de tratamento não mostra anúncio e não envia nada ao analytics.',
+      'Não guardamos registro de acesso: nem IP, nem aparelho, nem as páginas que você abre. O servidor roda com o log ' +
+        'de acesso desligado, e no banco não existe tabela de visitas ou de comportamento.',
+      'Sem Google Analytics, sem pixel e sem cookie de terceiros. O único cookie é o da sua sessão, que só serve pra te manter logado.',
+      'Diário privado é privado: só você vê, e ele nunca aparece em feed, perfil, ranking ou busca. Diário público qualquer ' +
+        'pessoa lê; rankings, receitas, equipamentos e tratamento são só pra quem tem conta.',
+      'O weediário se sustenta com publicidade de um jeito só: uma marca pode pagar pra aparecer em destaque num ranking, ' +
+        'sempre com a etiqueta de anúncio. Nenhum dado seu é usado nem vendido: não tem perfil de interesse nem ' +
+        'segmentação, e todo mundo vê o mesmo ranking.',
+      'A área de tratamento não tem anúncio nenhum.',
       'Toda foto passa por uma faxina antes de ir pro ar: GPS, data e modelo do celular saem dos metadados.',
       'Reações e novos seguidores são anônimos, até pra quem recebe. Notificações somem sozinhas em 90 dias.',
     ],
@@ -109,8 +111,8 @@ const PRINCIPLES: readonly Principle[] = [
         <h2 id="honesty" class="font-semibold text-fg">Sendo honestos</h2>
         <p class="mt-2">
           Como em qualquer site, a sua operadora de internet e a empresa que hospeda o servidor enxergam as conexões
-          passando, e, se você aceitar os cookies, o Google também vê as suas visitas. No nosso servidor, guardamos o
-          que o app precisa pra funcionar e o que a lei obriga, pelo tempo que ela obriga. Se algum dia algo neste
+          passando. O que depende da gente é não guardar: no nosso servidor fica só o que o app precisa pra funcionar
+          (sua conta e o que você publica), sem log de acesso e sem rastreador de terceiros. Se algum dia algo neste
           manifesto deixar de ser verdade, ele muda antes, e você fica sabendo por aqui.
         </p>
       </section>

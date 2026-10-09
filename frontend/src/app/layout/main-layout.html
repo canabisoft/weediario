@@ -52,6 +52,17 @@
         </li>
       </ul>
     }
+    <section class="mt-5 rounded-2xl border border-accent/30 bg-accent/5 p-2" aria-labelledby="menu-comunidade">
+      <p id="menu-comunidade" class="px-2 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider text-accent">Feito pela comunidade</p>
+      <ul class="grid gap-1">
+        @for (item of communityNav; track item.path) {
+          <li>
+            <ng-container *ngTemplateOutlet="navLink; context: { $implicit: item }" />
+          </li>
+        }
+      </ul>
+    </section>
+
     <p class="mb-1 mt-6 px-3 text-xs font-semibold uppercase tracking-wider text-fg-muted">Utilitários</p>
     <ul class="grid gap-1">
       @for (item of secondaryNav; track item.path) {
@@ -74,8 +85,15 @@
     [attr.aria-current]="link.isActive ? 'page' : null"
     class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-fg-muted hover:bg-surface-raised hover:text-fg"
   >
-    <app-icon [name]="item.icon" class="size-5" />
-    {{ item.label }}
+    <app-icon [name]="item.icon" class="size-5 shrink-0" />
+    @if (item.hint) {
+      <span class="py-1.5">
+        <span class="block text-fg">{{ item.label }}</span>
+        <span class="block text-xs font-normal text-fg-muted">{{ item.hint }}</span>
+      </span>
+    } @else {
+      {{ item.label }}
+    }
   </a>
 </ng-template>
 

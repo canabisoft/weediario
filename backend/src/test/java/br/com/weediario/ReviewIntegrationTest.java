@@ -116,7 +116,7 @@ class ReviewIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$[1].reviewed").value(true));
 
         // Diários privados não aparecem no ranking de diários, mas a avaliação (que é pública) conta.
-        JsonNode ranking = body(mvc.perform(get("/api/v1/growers/ranking?sort=REVIEWS&q=" + grower.username()))
+        JsonNode ranking = body(mvc.perform(signedIn(get("/api/v1/growers/ranking?sort=REVIEWS&q=" + grower.username())))
                 .andExpect(status().isOk()).andReturn());
         assertThat(ranking.get("items").get(0).get("username").asText()).isEqualTo(grower.username());
         assertThat(ranking.get("items").get(0).get("reviews").asInt()).isEqualTo(1);

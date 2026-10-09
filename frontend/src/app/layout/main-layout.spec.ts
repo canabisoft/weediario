@@ -42,6 +42,15 @@ describe('MainLayout', () => {
     expect(root.querySelector('aside app-privacy-note')!.textContent).toContain('Sua privacidade vem primeiro');
   });
 
+  it('highlights the open database and the breeder program in the sidebar', async () => {
+    const { root } = await render();
+    const community = root.querySelector('section[aria-labelledby="menu-comunidade"]')!;
+
+    expect(community.textContent).toContain('Feito pela comunidade');
+    expect(community.querySelector('a[href="/dados-abertos"]')!.textContent).toContain('Banco aberto');
+    expect(community.querySelector('a[href="/breeders/programa"]')!.textContent).toContain('Programa de breeders');
+  });
+
   it('has a highlighted quick action to start a diary', async () => {
     const { root } = await render();
     const action = root.querySelector('header a[href="/diarios/novo"]');
@@ -65,6 +74,7 @@ describe('MainLayout', () => {
   });
 
   it('sends the global search to the growers ranking', async () => {
+    TestBed.inject(AuthService).me.set({ id: 'u1', username: 'maria', hasAvatar: false, hasRecoveryPhrase: true, role: 'GROWER', termsAccepted: true, currentTermsVersion: '1.0', profileHidden: false });
     const { fixture, root } = await render();
     const form = root.querySelector('header form[role="search"]') as HTMLFormElement;
     (form.querySelector('input[name="q"]') as HTMLInputElement).value = '  kaya ';
@@ -73,6 +83,17 @@ describe('MainLayout', () => {
     await fixture.whenStable();
 
     expect(TestBed.inject(Router).url).toBe('/growers?q=kaya');
+  });
+
+  it('asks visitors to sign in before showing the growers ranking', async () => {
+    const { fixture, root } = await render();
+    const form = root.querySelector('header form[role="search"]') as HTMLFormElement;
+    (form.querySelector('input[name="q"]') as HTMLInputElement).value = 'kaya';
+
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    await fixture.whenStable();
+
+    expect(TestBed.inject(Router).url).toBe('/entrar?voltar=%2Fgrowers%3Fq%3Dkaya');
   });
 
   it('offers login when nobody is signed in', async () => {
