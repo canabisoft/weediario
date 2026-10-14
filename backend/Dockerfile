@@ -8,7 +8,7 @@ COPY src ./src
 RUN mvn -q -B package -DskipTests
 
 # Ubuntu (glibc) e não Alpine: o encoder WebP (libwebp via JNI) é compilado para glibc e não carrega no musl.
-FROM eclipse-temurin:21-jre-noble@sha256:000fd431958bc81a24abe1e8e5f0f0fd3ae365a594bd50aadb20696805f9408c
+FROM eclipse-temurin:25-jre-noble@sha256:d9a39a23634650173f1e2bbc176227af9728587ecf0f4b62d53e9355cd7a19ab
 # uid/gid 100/101 são os que o adduser do Alpine gerava: volumes criados pela imagem antiga continuam acessíveis.
 RUN groupadd --system --gid 101 weediario \
     && useradd --system --uid 100 --gid weediario --no-create-home --shell /usr/sbin/nologin weediario \
