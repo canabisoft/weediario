@@ -8,6 +8,9 @@ describe('ThemeService', () => {
     document.head.innerHTML = '<meta name="theme-color" content="#0f1411">';
   });
 
+  // O worker dos testes é compartilhado entre arquivos: não deixar a escolha de tema vazar para outras specs.
+  afterEach(() => localStorage.clear());
+
   function create(): ThemeService {
     const service = TestBed.inject(ThemeService);
     TestBed.tick();

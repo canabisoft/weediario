@@ -1,0 +1,39 @@
+# Auto-merge dos PRs do Dependabot só para patch e minor; major fica para revisão manual.
+# O "--auto" só espera os checks marcados como obrigatórios na proteção da main (Settings → Rules). Sem eles, o merge
+# sai na hora, antes dos testes. Obrigatórios: os jobs do ci.yml (backend e frontend) e do security.yml.
+# Actions fixadas por SHA (o comentário diz a versão); o Dependabot atualiza.
+name: Dependabot auto-merge
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  dependabot:
+    name: Auto-merge (Dependabot)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # Só PRs abertos pelo Dependabot, e só neste repositório (não em forks).
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'canabisoft/weediario'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Metadados do Dependabot
+        id: metadata
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      # Atualização de digest de imagem Docker não tem update-type e também fica para revisão manual.
+      - name: Aprovar e ligar o auto-merge (patch e minor)
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: |
+          gh pr review --approve "$PR_URL"
+          gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

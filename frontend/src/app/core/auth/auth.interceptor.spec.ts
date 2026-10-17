@@ -11,6 +11,9 @@ describe('authInterceptor + AuthService', () => {
   let auth: AuthService;
 
   beforeEach(() => {
+    // Outras specs rodam no mesmo worker e podem ter deixado preferências gravadas.
+    localStorage.clear();
+    sessionStorage.clear();
     TestBed.configureTestingModule({
       providers: [provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()],
     });
