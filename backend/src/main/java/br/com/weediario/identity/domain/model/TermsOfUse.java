@@ -11,7 +11,7 @@ import br.com.weediario.shared.domain.DomainException;
 public final class TermsOfUse {
 
     /** A primeira versão pública: a contagem começa no lançamento em produção. */
-    public static final String CURRENT_VERSION = "1.0";
+    public static final String CURRENT_VERSION = "1.1";
 
     private TermsOfUse() {
     }

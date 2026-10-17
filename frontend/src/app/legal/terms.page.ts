@@ -7,7 +7,7 @@ import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
 
 /** Versão vigente. Mudou o texto, muda a versão (e o backend também): todo mundo aceita de novo antes de publicar. */
-export const TERMS_VERSION = '1.0';
+export const TERMS_VERSION = '1.1';
 
 /** "2026-11-01" → "1º de novembro de 2026". */
 function formatLongDate(iso: string): string {
@@ -48,35 +48,29 @@ export const CLAUSES: readonly Clause[] = [
     id: 'dados',
     title: '3. Sua conta e seus dados',
     paragraphs: [
-      'Pedimos um apelido (pode ser pseudônimo) e uma senha escolhida por você. O e-mail é opcional. Não pedimos CPF, nome completo, RG, ' +
+      'Pedimos um apelido (pode ser pseudônimo) e uma senha. O e-mail é opcional. Não pedimos CPF, nome completo, RG, ' +
         'endereço ou telefone.',
-      'A senha é guardada só como hash (Argon2id): ninguém da equipe consegue lê-la. Para recuperar a conta, toda conta ' +
-        'tem uma frase de 12 palavras, mostrada no cadastro; dela guardamos só o hash de um código derivado, então não ' +
-        'temos como ver ou reenviar a frase.',
-      'Se você cadastrar um e-mail, ele serve para recuperar a conta: é usado só para confirmar o endereço, redefinir a senha e avisar de mudanças ' +
-        'sensíveis na conta. Ele fica cifrado, nunca aparece para ninguém, não serve para entrar nem para procurar contas, ' +
-        'e você pode removê-lo quando quiser. Para entregar esses e-mails usamos um provedor de envio, que recebe o ' +
-        'endereço e a mensagem. Sem e-mail cadastrado, se você esquecer a senha e perder a frase, a conta não pode ser ' +
-        'recuperada.',
+      'A senha é guardada só como hash (Argon2id). Toda conta tem uma frase de 12 palavras, mostrada no cadastro, para ' +
+        'recuperar o acesso; dela guardamos só o hash de um código derivado, então não temos como ver ou reenviar a frase.',
+      'Se você cadastrar um e-mail, ele serve só para confirmar o endereço, redefinir a senha e avisar de mudanças ' +
+        'sensíveis. Fica cifrado, não serve para entrar nem para procurar contas, e pode ser removido quando quiser. ' +
+        'Sem e-mail e sem a frase, a conta não pode ser recuperada.',
       'Não guardamos registros de acesso: nem endereço IP, nem aparelho, nem as páginas que você abre.',
-      'Diários privados só são vistos por você. Diários públicos podem ser lidos por qualquer pessoa; rankings, ' +
-        'receitas, equipamentos e o acompanhamento de tratamento só ficam disponíveis para quem tem conta.',
-      'Mudanças sensíveis na conta (senha, e-mail, frase) ficam registradas por 90 dias só com o tipo e a data, para ' +
-        'você conferir no perfil. Do aceite destes termos, guardamos só a versão e a data e hora. Os textos do ' +
-        'acompanhamento de tratamento ficam cifrados. Os detalhes estão no Manifesto.',
-      'No seu perfil você pode baixar todos os seus dados (um .zip com os dados e as fotos) e apagar a conta quando ' +
-        'quiser; os dois pedem a sua senha. Ao apagar, somem a conta, os diários, as fotos, as receitas, as avaliações, ' +
-        'os comentários e o tratamento. Ficam, sem vínculo com você: os itens que você cadastrou no catálogo aberto, os ' +
-        'registros de moderação sobre a conta (guardados por 5 anos, para atender ordem judicial) e as reações e ' +
-        'denúncias, que já são anônimas.',
+      'Diários privados só são vistos por você; os públicos, por qualquer pessoa. Rankings, receitas, equipamentos e o ' +
+        'acompanhamento de tratamento só ficam disponíveis para quem tem conta.',
+      'Do aceite destes termos guardamos só a versão e a data e hora; de mudanças sensíveis na conta, só o tipo e a data ' +
+        '(90 dias). Os textos do acompanhamento de tratamento ficam cifrados.',
+      'No seu perfil você pode baixar todos os seus dados e apagar a conta; os dois pedem a sua senha. Ao apagar, somem a ' +
+        'conta, os diários, as fotos, as receitas, as avaliações, os comentários e o tratamento. Ficam, sem vínculo com ' +
+        'você: os itens que você cadastrou no catálogo aberto e os registros de moderação (5 anos, para atender ordem judicial).',
     ],
   },
   {
     id: 'cookies',
     title: '4. Cookies',
     paragraphs: [
-      'O weediário usa um único cookie, necessário para manter você logado: ele é só deste site e não pode ser lido por ' +
-        'scripts da página. Não usamos cookies de terceiros, ferramentas de estatística ou rastreadores.',
+      'O weediário usa um único cookie, necessário para manter você logado e ilegível por scripts da página. Sem cookies ' +
+        'de terceiros, ferramentas de estatística ou rastreadores.',
     ],
   },
   {
@@ -87,9 +81,9 @@ export const CLAUSES: readonly Clause[] = [
       'É estritamente proibido usar o weediário para ofertar, negociar, vender, comprar, trocar, doar, intermediar ou ' +
         'divulgar meios de contato (como links de Telegram ou WhatsApp, telefones, chaves PIX ou endereços) para o comércio ' +
         'de substâncias ilícitas, medicamentos controlados, estacas, clones, sementes ou derivados.',
-      'O weediário é uma ferramenta exclusiva de diário pessoal e de acompanhamento agronômico e medicinal.',
-      'Para ajudar a cumprir esta regra, um filtro automático bloqueia telefones, documentos, chaves PIX e links de ' +
-        'mensageiros, e segura para revisão da moderação textos com cara de anúncio.',
+      'O weediário é uma ferramenta exclusiva de diário pessoal e de acompanhamento agronômico e medicinal. Para ajudar a ' +
+        'cumprir esta regra, um filtro automático bloqueia telefones, documentos, chaves PIX e links de mensageiros, e ' +
+        'segura para revisão da moderação textos com cara de anúncio.',
     ],
   },
   {

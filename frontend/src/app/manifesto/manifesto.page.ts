@@ -17,52 +17,44 @@ const PRINCIPLES: readonly Principle[] = [
     icon: 'user',
     title: 'Cadastro mínimo, pode ser pseudônimo',
     points: [
-      'Pra criar conta a gente pede um apelido, que não precisa ser o seu nome, e uma senha que você mesmo escolhe. ' +
-        'No banco a senha fica só como hash: nem a gente consegue ler.',
-      'E-mail é opcional. Se você quiser, ele serve só pra redefinir a senha e te avisar de mudanças na conta: fica cifrado, ' +
-        'nunca aparece pra ninguém, não serve pra entrar e o cadastro nunca diz se um e-mail já tem conta. Dá pra remover quando quiser.',
-      'Nunca pedimos CPF, nome completo, RG, endereço ou telefone. Não tem campo pra isso, nem escondido.',
-      'Esqueceu a senha? Você anota 12 palavras na hora do cadastro (no padrão BIP-39, o mesmo das carteiras de cripto). ' +
-        'Elas são geradas no seu navegador e nunca chegam ao servidor: a gente guarda só um hash de um código derivado delas. ' +
-        'Com elas você cria uma senha nova (e ganha uma frase nova). O outro lado disso: sem e-mail, se você perder a senha e as palavras, ninguém consegue devolver a conta.',
-      'Um limite honesto: como em todo site, o código que gera a frase no seu navegador é entregue pelo nosso servidor. ' +
-        'Por isso cada arquivo do app vai com uma assinatura de integridade (SRI).',
+      'Pra criar conta a gente pede só um apelido, que não precisa ser o seu nome, e uma senha. No banco a senha fica ' +
+        'como hash: nem a gente consegue ler.',
+      'E-mail é opcional e serve só pra redefinir a senha e avisar de mudanças na conta. Fica cifrado, não serve pra ' +
+        'entrar e dá pra remover quando quiser.',
+      'Nunca pedimos CPF, nome completo, RG, endereço ou telefone.',
+      'Esqueceu a senha? Você anota 12 palavras no cadastro, geradas no seu navegador e nunca enviadas ao servidor, e ' +
+        'recupera a conta com elas. O outro lado: sem e-mail e sem as palavras, ninguém devolve a conta — nem a gente.',
     ],
   },
   {
     icon: 'eyeOff',
     title: 'Sem logs, sem rastreador',
     points: [
-      'Não guardamos registro de acesso: nem IP, nem aparelho, nem as páginas que você abre. O servidor roda com o log ' +
-        'de acesso desligado, e no banco não existe tabela de visitas ou de comportamento.',
-      'Sem Google Analytics, sem pixel e sem cookie de terceiros. O único cookie é o da sua sessão, que só serve pra te manter logado.',
-      'Diário privado é privado: só você vê, e ele nunca aparece em feed, perfil, ranking ou busca. Diário público qualquer ' +
-        'pessoa lê; rankings, receitas, equipamentos e tratamento são só pra quem tem conta.',
-      'O weediário se sustenta com publicidade de um jeito só: uma marca pode pagar pra aparecer em destaque num ranking, ' +
-        'sempre com a etiqueta de anúncio. Nenhum dado seu é usado nem vendido: não tem perfil de interesse nem ' +
-        'segmentação, e todo mundo vê o mesmo ranking.',
-      'A área de tratamento não tem anúncio nenhum.',
-      'Toda foto passa por uma faxina antes de ir pro ar: GPS, data e modelo do celular saem dos metadados.',
-      'Reações e novos seguidores são anônimos, até pra quem recebe. Notificações somem sozinhas em 90 dias.',
+      'Não guardamos registro de acesso: nem IP, nem aparelho, nem as páginas que você abre.',
+      'Sem rastreador e sem cookie de terceiros. O único cookie é o da sua sessão, que só serve pra te manter logado.',
+      'Diário privado é privado: só você vê, e nunca aparece em feed, perfil, ranking ou busca. Rankings, receitas, ' +
+        'equipamentos e tratamento são só pra quem tem conta.',
+      'A única publicidade: uma marca pode pagar pra aparecer em destaque num ranking, sempre com a etiqueta de anúncio. ' +
+        'Nenhum dado seu é usado ou vendido, e todo mundo vê o mesmo ranking. A área de tratamento não tem anúncio.',
+      'Toda foto perde os metadados (GPS, data, modelo do celular) antes de ir pro ar. Reações e novos seguidores são anônimos.',
     ],
   },
   {
     icon: 'flag',
     title: 'Sem comércio, só cultivo',
     points: [
-      'O weediário é pra registrar e trocar experiência. Venda, troca, doação ou contato pra negócio são proibidos, sem exceção.',
+      'O weediário é pra registrar e trocar experiência. Venda, troca, doação ou contato pra negócio são proibidos.',
       'Um filtro bloqueia telefone, CPF, chave PIX e link de grupo antes de publicar, e segura pra revisão o que tem cara de anúncio.',
       'Qualquer um pode denunciar, de forma anônima. Com 3 denúncias o conteúdo sai do ar até a moderação decidir.',
-      'Toda decisão da moderação fica registrada, sem IP e sem quem denunciou. Isso protege você e o projeto.',
     ],
   },
   {
     icon: 'pill',
     title: 'Saúde é assunto seu',
     points: [
-      'O acompanhamento de tratamento é uma área separada, com consentimento próprio, e nunca aparece em feed, ranking ou perfil.',
-      'Os textos de saúde vão pro banco cifrados.',
-      'A gente só registra o que você usou e como se sentiu. Não indicamos dose, horário nem produto: isso é com quem acompanha o seu tratamento.',
+      'O acompanhamento de tratamento é uma área separada, com consentimento próprio, e nunca aparece em feed, ranking ou ' +
+        'perfil. Os textos vão cifrados pro banco.',
+      'A gente só registra o que você usou e como se sentiu. Não indicamos dose, horário nem produto.',
       'Você pode baixar tudo ou apagar tudo quando quiser. Apagar é apagar de verdade.',
     ],
   },
@@ -110,10 +102,9 @@ const PRINCIPLES: readonly Principle[] = [
       <section class="mt-6 rounded-2xl border border-line p-5 text-sm text-fg-muted" aria-labelledby="honesty">
         <h2 id="honesty" class="font-semibold text-fg">Sendo honestos</h2>
         <p class="mt-2">
-          Como em qualquer site, a sua operadora de internet e a empresa que hospeda o servidor enxergam as conexões
-          passando. O que depende da gente é não guardar: no nosso servidor fica só o que o app precisa pra funcionar
-          (sua conta e o que você publica), sem log de acesso e sem rastreador de terceiros. Se algum dia algo neste
-          manifesto deixar de ser verdade, ele muda antes, e você fica sabendo por aqui.
+          Como em qualquer site, a sua operadora e quem hospeda o servidor enxergam as conexões passando. O que depende
+          da gente é não guardar: no servidor fica só o que o app precisa pra funcionar, sem log de acesso e sem
+          rastreador. Se algo neste manifesto deixar de ser verdade, ele muda antes, e você fica sabendo por aqui.
         </p>
       </section>
 
