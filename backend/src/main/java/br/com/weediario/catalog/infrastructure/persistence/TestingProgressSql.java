@@ -20,12 +20,23 @@ public final class TestingProgressSql {
               where td.strain_id = s.id and not td.moderation_hold
                 and %s)""".formatted(NOT_A_REPRESENTATIVE.formatted("td.owner_id"));
 
-    /** Avaliações pós-colheita publicadas (não ocultas). */
+    /** Avaliações pós-colheita publicadas (não ocultas) de fora do breeder. */
     public static final String REVIEWS = """
             (select count(*)
                from reviews tr join users tru on tru.id = tr.author_id and tru.status = 'ACTIVE'
               where tr.strain_id = s.id and not tr.hidden
                 and %s)""".formatted(NOT_A_REPRESENTATIVE.formatted("tr.author_id"));
+
+    /**
+     * O próprio breeder (um representante aprovado) já publicou a avaliação pós-colheita da genética: é a primeira
+     * nota do "que esperar", e só existe depois de ele ter cultivado e colhido a strain.
+     */
+    public static final String BREEDER_REVIEWED = """
+            exists (select 1 from reviews brv
+                      join users bru on bru.id = brv.author_id and bru.status = 'ACTIVE'
+                      join breeder_representatives brr on brr.breeder_id = s.breeder_id
+                           and brr.user_id = brv.author_id and brr.status = 'APPROVED'
+                     where brv.strain_id = s.id and not brv.hidden)""";
 
     private TestingProgressSql() {
     }

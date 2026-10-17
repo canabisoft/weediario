@@ -99,9 +99,10 @@ public final class CatalogStrain {
 
     public void verify(Clock clock) {
         if (testing()) {
-            throw new DomainException("Sementes em teste entram no banco oficial sozinhas, quando "
-                    + TestingProgress.TESTERS_REQUIRED + " cultivadores de fora do breeder as cultivam e há "
-                    + TestingProgress.REVIEWS_REQUIRED + " avaliação pós-colheita. Não dá para verificar manualmente.");
+            throw new DomainException("Sementes em teste entram no banco oficial sozinhas, quando o breeder publica a "
+                    + "avaliação pós-colheita dela, " + TestingProgress.TESTERS_REQUIRED + " cultivadores de fora do "
+                    + "breeder as cultivam e há " + TestingProgress.REVIEWS_REQUIRED + " avaliação pós-colheita de "
+                    + "fora. Não dá para verificar manualmente.");
         }
         status = Status.VERIFIED;
         updatedAt = clock.instant();

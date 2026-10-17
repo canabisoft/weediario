@@ -136,9 +136,10 @@ import { ReportButton } from '../shared/report-button';
             <div>
               <h2 id="testing-title" class="font-semibold">Semente em teste</h2>
               <p class="text-sm text-fg-muted">
-                Cadastrada pelo próprio breeder. Ela entra no banco oficial quando {{ progress.testersRequired }} cultivadores
-                de fora do breeder abrirem um diário com ela e houver {{ progress.reviewsRequired }} avaliação pós-colheita.
-                Até lá fica fora da listagem oficial, dos rankings e do banco aberto.
+                Cadastrada pelo próprio breeder. Ela entra no banco oficial quando o breeder colhe e publica a primeira
+                avaliação do que esperar, {{ progress.testersRequired }} cultivadores de fora do breeder abrem um diário
+                com ela e há {{ progress.reviewsRequired }} avaliação pós-colheita de fora. Até lá fica fora da listagem
+                oficial, dos rankings e do banco aberto.
               </p>
             </div>
             <app-testing-progress [progress]="progress" />

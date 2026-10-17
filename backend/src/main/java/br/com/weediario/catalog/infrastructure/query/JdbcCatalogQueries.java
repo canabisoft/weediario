@@ -195,9 +195,11 @@ public class JdbcCatalogQueries implements CatalogQueries {
                        (select round(sum(d.harvest_dry_grams)::numeric / nullif(sum(d.harvest_plants), 0), 1)
                           from %1$s where d.strain_id = s.id and d.harvest_dry_grams is not null) as avg_gpp,
                        case when s.status = 'TESTING' then %2$s end as testers,
-                       case when s.status = 'TESTING' then %3$s end as tester_reviews
+                       case when s.status = 'TESTING' then %3$s end as tester_reviews,
+                       case when s.status = 'TESTING' then %4$s end as breeder_reviewed
                   from strains s left join breeders b on b.id = s.breeder_id
-                """.formatted(PUBLIC_DIARIES, TestingProgressSql.TESTERS, TestingProgressSql.REVIEWS)
+                """.formatted(PUBLIC_DIARIES, TestingProgressSql.TESTERS, TestingProgressSql.REVIEWS,
+                        TestingProgressSql.BREEDER_REVIEWED)
                         + STRAIN_REVIEWS + " where s.id = :id",
                 new MapSqlParameterSource("id", id),
                 (rs, n) -> new StrainDetail(rs.getObject("id", UUID.class), rs.getString("name"),
@@ -249,9 +251,10 @@ public class JdbcCatalogQueries implements CatalogQueries {
             select s.id, s.name, b.id as breeder_id, b.name as breeder_name, s.flowering_type, s.dominance, s.genetics,
                    s.generation, s.status, s.created_at, s.promoted_at,
                    case when s.status = 'TESTING' then %s end as testers,
-                   case when s.status = 'TESTING' then %s end as tester_reviews
+                   case when s.status = 'TESTING' then %s end as tester_reviews,
+                   case when s.status = 'TESTING' then %s end as breeder_reviewed
               from strains s join breeders b on b.id = s.breeder_id
-            """.formatted(TestingProgressSql.TESTERS, TestingProgressSql.REVIEWS);
+            """.formatted(TestingProgressSql.TESTERS, TestingProgressSql.REVIEWS, TestingProgressSql.BREEDER_REVIEWED);
 
     @Override
     public PageResult<TestingStrainItem> testingStrains(String query, UUID breederId, PageQuery page) {
@@ -334,8 +337,8 @@ public class JdbcCatalogQueries implements CatalogQueries {
         if (rs.wasNull()) {
             return null;
         }
-        return new Progress(testers, TestingProgress.TESTERS_REQUIRED, rs.getLong("tester_reviews"),
-                TestingProgress.REVIEWS_REQUIRED);
+        return new Progress(rs.getBoolean("breeder_reviewed"), testers, TestingProgress.TESTERS_REQUIRED,
+                rs.getLong("tester_reviews"), TestingProgress.REVIEWS_REQUIRED);
     }
 
     // ------------------------------------------------------------------------------------ banco aberto

@@ -120,11 +120,13 @@ public class JdbcCatalogRepository implements CatalogRepository {
 
     @Override
     public TestingProgress testingProgress(UUID strainId) {
-        return jdbc.query("select %s as testers, %s as reviews from strains s where s.id = :id"
-                        .formatted(TestingProgressSql.TESTERS, TestingProgressSql.REVIEWS),
+        return jdbc.query("select %s as testers, %s as reviews, %s as breeder_reviewed from strains s where s.id = :id"
+                        .formatted(TestingProgressSql.TESTERS, TestingProgressSql.REVIEWS,
+                                TestingProgressSql.BREEDER_REVIEWED),
                 new MapSqlParameterSource("id", strainId),
-                (rs, n) -> new TestingProgress(rs.getLong("testers"), rs.getLong("reviews")))
-                .stream().findFirst().orElse(new TestingProgress(0, 0));
+                (rs, n) -> new TestingProgress(rs.getLong("testers"), rs.getLong("reviews"),
+                        rs.getBoolean("breeder_reviewed")))
+                .stream().findFirst().orElse(new TestingProgress(0, 0, false));
     }
 
     @Override

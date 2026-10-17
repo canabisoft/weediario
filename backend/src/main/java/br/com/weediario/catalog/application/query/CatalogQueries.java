@@ -136,8 +136,8 @@ public interface CatalogQueries {
                         String generation, String breederKind) {
     }
 
-    /** Andamento do teste da comunidade (cultivadores e avaliações de fora do breeder). */
-    record Progress(long testers, int testersRequired, long reviews, int reviewsRequired) {
+    /** Andamento do teste: a avaliação do próprio breeder e, de fora dele, os cultivadores e as avaliações. */
+    record Progress(boolean breederReviewed, long testers, int testersRequired, long reviews, int reviewsRequired) {
     }
 
     record TestingStrainItem(UUID id, String name, UUID breederId, String breeder, String floweringType,

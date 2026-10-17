@@ -109,8 +109,9 @@ export interface ProductReview {
   readonly createdAt: string;
 }
 
-/** Andamento do teste da comunidade (cultivadores e avaliações de fora do breeder). */
+/** Andamento do teste: a avaliação do próprio breeder e, de fora dele, os cultivadores e as avaliações. */
 export interface TestingProgress {
+  readonly breederReviewed: boolean;
   readonly testers: number;
   readonly testersRequired: number;
   readonly reviews: number;

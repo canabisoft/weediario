@@ -32,6 +32,7 @@ export class TestingProgressBar {
   protected readonly rows = computed(() => {
     const p = this.progress();
     return [
+      row('Colheita e avaliação do breeder', p.breederReviewed ? 1 : 0, 1),
       row('Cultivadores de fora do breeder', p.testers, p.testersRequired),
       row(p.reviewsRequired === 1 ? 'Avaliação pós-colheita' : 'Avaliações pós-colheita', p.reviews, p.reviewsRequired),
     ];

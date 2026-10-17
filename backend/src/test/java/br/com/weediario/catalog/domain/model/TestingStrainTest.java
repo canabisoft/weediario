@@ -31,19 +31,22 @@ class TestingStrainTest {
     }
 
     @Test
-    void needsThreeTestersAndOneReviewToBecomeOfficial() {
+    void needsBreederReviewThreeTestersAndOneReviewToBecomeOfficial() {
         CatalogStrain strain = CatalogStrain.registerForTesting("Nova Kush", BREEDER, StrainTraits.EMPTY, null, CLOCK);
 
-        assertThat(strain.promote(new TestingProgress(2, 5), CLOCK)).isFalse();
-        assertThat(strain.promote(new TestingProgress(10, 0), CLOCK)).isFalse();
+        assertThat(strain.promote(new TestingProgress(2, 5, true), CLOCK)).isFalse();
+        assertThat(strain.promote(new TestingProgress(10, 0, true), CLOCK)).isFalse();
+        // Cultivadores e avaliações de fora completos, mas o breeder ainda não colheu e avaliou: não entra.
+        assertThat(strain.promote(new TestingProgress(10, 5, false), CLOCK)).isFalse();
         assertThat(strain.testing()).isTrue();
 
-        assertThat(strain.promote(new TestingProgress(TestingProgress.TESTERS_REQUIRED, TestingProgress.REVIEWS_REQUIRED),
+        assertThat(strain.promote(
+                new TestingProgress(TestingProgress.TESTERS_REQUIRED, TestingProgress.REVIEWS_REQUIRED, true),
                 CLOCK)).isTrue();
         assertThat(strain.status()).isEqualTo(Status.VERIFIED);
         assertThat(strain.promotedAt()).isEqualTo(CLOCK.instant());
         // Já promovida: nada muda.
-        assertThat(strain.promote(new TestingProgress(9, 9), CLOCK)).isFalse();
+        assertThat(strain.promote(new TestingProgress(9, 9, true), CLOCK)).isFalse();
     }
 
     @Test
@@ -51,7 +54,7 @@ class TestingStrainTest {
         CatalogStrain community = CatalogStrain.register("Velha Kush", BREEDER, StrainTraits.EMPTY, Source.COMMUNITY,
                 null, CLOCK);
 
-        assertThat(community.promote(new TestingProgress(3, 1), CLOCK)).isFalse();
+        assertThat(community.promote(new TestingProgress(3, 1, true), CLOCK)).isFalse();
         assertThat(community.status()).isEqualTo(Status.UNVERIFIED);
         assertThat(community.promotedAt()).isNull();
     }
@@ -68,9 +71,11 @@ class TestingStrainTest {
 
     @Test
     void progressCannotBeNegative() {
-        assertThatThrownBy(() -> new TestingProgress(-1, 0)).isInstanceOf(DomainException.class);
-        assertThat(new TestingProgress(3, 1).complete()).isTrue();
-        assertThat(new TestingProgress(3, 0).complete()).isFalse();
+        assertThatThrownBy(() -> new TestingProgress(-1, 0, true)).isInstanceOf(DomainException.class);
+        assertThat(new TestingProgress(3, 1, true).complete()).isTrue();
+        assertThat(new TestingProgress(3, 0, true).complete()).isFalse();
+        // Sem a colheita/avaliação do breeder, não completa mesmo com cultivadores e avaliações de fora.
+        assertThat(new TestingProgress(3, 1, false).complete()).isFalse();
     }
 
     @Test

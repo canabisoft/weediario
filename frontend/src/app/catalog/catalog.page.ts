@@ -218,7 +218,7 @@ export class CatalogPage {
             link: ['/strains', s.id],
             name: s.name,
             subtitle: [s.breeder, s.progress
-              ? `${s.progress.testers}/${s.progress.testersRequired} cultivadores · ${s.progress.reviews}/${s.progress.reviewsRequired} avaliação`
+              ? `${s.progress.breederReviewed ? '✓' : '—'} breeder · ${s.progress.testers}/${s.progress.testersRequired} cultivadores · ${s.progress.reviews}/${s.progress.reviewsRequired} avaliação`
               : null].filter(Boolean).join(' · '),
             source: 'BREEDER' as const,
             verified: false,

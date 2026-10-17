@@ -55,8 +55,8 @@ const PHRASES = [
           <span class="grid size-10 place-items-center rounded-xl bg-accent/15 text-accent"><app-icon name="sprout" class="size-5" /></span>
           <span class="font-semibold">Programa de breeders</span>
           <span class="text-sm text-fg-muted">
-            Banco de sementes ou breeder independente? Cadastre suas genéticas: elas entram no catálogo quando 3 growers
-            de fora as cultivam e avaliam.
+            Banco de sementes ou breeder independente? Cadastre suas genéticas: elas entram no catálogo depois de
+            avaliadas pela comunidade.
           </span>
           <span class="text-sm font-semibold text-accent">Conhecer o programa →</span>
         </a>

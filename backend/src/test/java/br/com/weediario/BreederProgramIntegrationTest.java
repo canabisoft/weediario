@@ -79,22 +79,13 @@ class BreederProgramIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("Não dá para verificar")));
 
-        // 5. Dois cultivadores de fora + o próprio representante (que não conta, nem a review dele).
+        // 5. Três cultivadores de fora cultivam; um conclui e avalia, com nota a um produto do cultivo (diário
+        //    privado também conta). O representante do breeder não entra na contagem de testadores.
         Session first = newGrower();
         Session second = newGrower();
+        Session third = newGrower();
         diary(first, strainId, "PUBLIC");
         diary(second, strainId, "PUBLIC");
-        UUID repDiary = diary(rep, strainId, "PUBLIC");
-        complete(rep, repDiary);
-        review(rep, repDiary, "").andExpect(status().isCreated());
-        mvc.perform(get("/api/v1/catalog/strains/{id}", strainId))
-                .andExpect(jsonPath("$.status").value("TESTING"))
-                .andExpect(jsonPath("$.testing.testers").value(2))
-                .andExpect(jsonPath("$.testing.testersRequired").value(3))
-                .andExpect(jsonPath("$.testing.reviews").value(0));
-
-        // 6. Terceiro cultivador (diário privado conta) conclui, avalia e dá nota a um produto do cultivo.
-        Session third = newGrower();
         String productId = product(third);
         UUID thirdDiary = diary(third, strainId, "PRIVATE");
         mvc.perform(authed(put("/api/v1/diaries/{id}/products", thirdDiary), third)
@@ -105,6 +96,20 @@ class BreederProgramIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isUnprocessableEntity());
         review(third, thirdDiary, "\"products\":[{\"productId\":\"%s\",\"rating\":4}],".formatted(productId))
                 .andExpect(status().isCreated());
+
+        // Mesmo com 3 cultivadores e 1 avaliação de fora, não entra: falta a colheita e a avaliação do próprio breeder.
+        mvc.perform(get("/api/v1/catalog/strains/{id}", strainId))
+                .andExpect(jsonPath("$.status").value("TESTING"))
+                .andExpect(jsonPath("$.testing.testers").value(3))
+                .andExpect(jsonPath("$.testing.testersRequired").value(3))
+                .andExpect(jsonPath("$.testing.reviews").value(1))
+                .andExpect(jsonPath("$.testing.breederReviewed").value(false));
+
+        // 6. O breeder colhe e publica a primeira avaliação do que esperar: a review dele não conta como avaliação de
+        //    fora, mas libera a entrada no banco oficial.
+        UUID repDiary = diary(rep, strainId, "PUBLIC");
+        complete(rep, repDiary);
+        review(rep, repDiary, "").andExpect(status().isCreated());
 
         JsonNode promoted = body(mvc.perform(get("/api/v1/catalog/strains/{id}", strainId)).andReturn());
         assertThat(promoted.get("status").asText()).isEqualTo("VERIFIED");
