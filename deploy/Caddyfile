@@ -25,3 +25,9 @@
 		header_up X-Weediario-Client {remote_host}
 	}
 }
+
+# Outros nomes do site (www, outro TLD): certificado próprio e redirecionamento permanente para o domínio principal.
+# Lista separada por vírgula em WEEDIARIO_REDIRECT_DOMAINS, ex. "www.weediario.com, weediario.com.br".
+{$WEEDIARIO_REDIRECT_DOMAINS:www.localhost} {
+	redir https://{$WEEDIARIO_DOMAIN:localhost}{uri} permanent
+}
