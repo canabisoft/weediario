@@ -9,6 +9,12 @@ RUN npx ng build --configuration production
 
 # Imagem oficial do nginx que já roda sem root (usuário nginx, porta 8080).
 FROM nginxinc/nginx-unprivileged:1.29-alpine@sha256:0c79d56aee561a1d81c63f00eee5fb5fe29279560cdc55e91425133104c7fbe6
+# Atualiza os pacotes do Alpine para as correções mais recentes: a imagem base é pinada por digest e fica atrás das
+# CVEs já corrigidas no Alpine (curl, openssl, expat, pcre2...). O Dependabot volta a avançar o digest quando a base
+# for reconstruída; até lá, isto mantém o SO sem HIGH/CRITICAL com correção. Precisa de root; volta para o uid 101.
+USER root
+RUN apk upgrade --no-cache
+USER 101
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=build /build/dist/frontend/browser /usr/share/nginx/html

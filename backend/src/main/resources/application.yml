@@ -4,6 +4,10 @@ spring:
   threads:
     virtual:
       enabled: true
+  # Desligamento gracioso: ao receber SIGTERM, para de aceitar requisições novas e deixa as em andamento terminarem
+  # (até o timeout) antes de encerrar. Evita cortar upload ou resposta no meio num deploy/restart.
+  lifecycle:
+    timeout-per-shutdown-phase: 25s
   datasource:
     url: ${WEEDIARIO_DB_URL:jdbc:postgresql://localhost:5432/weediario}
     username: ${WEEDIARIO_DB_USER}
@@ -39,6 +43,8 @@ spring:
 
 server:
   port: 8080
+  # Drena as requisições em andamento no SIGTERM, dentro do timeout de spring.lifecycle.
+  shutdown: graceful
   # Sem stack trace, mensagem de exceção ou erros de binding nas respostas.
   error:
     include-stacktrace: never

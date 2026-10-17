@@ -67,6 +67,8 @@ services:
     build: ./backend
     image: weediario-backend:local
     restart: unless-stopped
+    # Deixa o desligamento gracioso do Spring (server.shutdown=graceful, 25s) drenar antes do SIGKILL.
+    stop_grace_period: 30s
     depends_on:
       db-roles:
         condition: service_completed_successfully
