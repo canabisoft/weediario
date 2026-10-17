@@ -1,0 +1,13 @@
+# Vulnerabilidades avaliadas e aceitas: o código não usa o recurso afetado. Cada uma tem prazo; ao vencer, o
+# OSV-Scanner volta a acusá-la e a avaliação precisa ser refeita. O mesmo vale para o .trivyignore.
+
+# spring-webmvc 6.2.x: correção só no Spring Framework 7 (Spring Boot 4, migração major).
+[[IgnoredVulns]]
+id = "GHSA-pc63-qcmh-9cmg" # CVE-2026-47884, XsltView: o backend é uma API REST e não usa XsltView nem views
+ignoreUntil = 2027-01-31
+reason = "Sem XsltView nem renderização de views no backend."
+
+[[IgnoredVulns]]
+id = "GHSA-j9f9-w8pj-32f8" # CVE-2026-47890, SSE com fragmentos de view: o SSE de notificações envia só JSON
+ignoreUntil = 2027-01-31
+reason = "SseEmitter envia JSON; nenhum fragmento de view é renderizado."

@@ -1,0 +1,4 @@
+# Vulnerabilidades avaliadas e aceitas (ver backend/osv-scanner.toml para o motivo de cada uma). Revisar até 2027-01-31.
+# spring-webmvc 6.2.x, correção só no Spring Framework 7 (Spring Boot 4):
+CVE-2026-47884 exp:2027-01-31
+CVE-2026-47890 exp:2027-01-31
