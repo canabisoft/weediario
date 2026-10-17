@@ -59,7 +59,7 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.81</version>
+            <version>1.85</version>
         </dependency>
 
         <!-- Imagens: leitura robusta de JPEG (CMYK, ICC) e WebP; leitura da orientação EXIF antes do descarte -->
