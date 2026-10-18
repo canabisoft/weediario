@@ -16,7 +16,7 @@ class CommentTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-01T12:00:00Z"), ZoneOffset.UTC);
     private static final UUID OWNER = UUID.randomUUID();
     private static final UUID VISITOR = UUID.randomUUID();
-    private static final CommentableDiary DIARY = new CommentableDiary(UUID.randomUUID(), OWNER, true);
+    private static final CommentableDiary DIARY = new CommentableDiary(UUID.randomUUID(), OWNER, true, false);
 
     @Test
     void replyPointsToTheRootComment() {
@@ -41,11 +41,11 @@ class CommentTest {
 
     @Test
     void cannotAnswerACommentOfAnotherDiaryOrOfAPrivateDiary() {
-        Comment elsewhere = Comment.post(new CommentableDiary(UUID.randomUUID(), OWNER, true), VISITOR, "oi", CLOCK);
+        Comment elsewhere = Comment.post(new CommentableDiary(UUID.randomUUID(), OWNER, true, false), VISITOR, "oi", CLOCK);
         assertThatThrownBy(() -> Comment.reply(DIARY, elsewhere, VISITOR, "oi", CLOCK))
                 .isInstanceOf(DomainException.class);
 
-        CommentableDiary privateDiary = new CommentableDiary(UUID.randomUUID(), OWNER, false);
+        CommentableDiary privateDiary = new CommentableDiary(UUID.randomUUID(), OWNER, false, false);
         Comment ownerNote = Comment.post(privateDiary, OWNER, "nota", CLOCK);
         assertThatThrownBy(() -> Comment.reply(privateDiary, ownerNote, VISITOR, "oi", CLOCK))
                 .isInstanceOf(DomainException.class);

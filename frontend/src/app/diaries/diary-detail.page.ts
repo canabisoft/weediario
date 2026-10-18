@@ -44,6 +44,8 @@ import { ReportButton } from '../shared/report-button';
               <span class="rounded-full bg-surface-raised px-2 py-0.5">{{ status[d.status] }}</span>
               @if (d.visibility === 'PRIVATE') {
                 <span class="inline-flex items-center gap-1 rounded-full bg-surface-raised px-2 py-0.5"><app-icon name="lock" class="size-3" /> Privado</span>
+              } @else if (d.visibility === 'COMMUNITY') {
+                <span class="inline-flex items-center gap-1 rounded-full bg-surface-raised px-2 py-0.5"><app-icon name="user" class="size-3" /> Comunidade</span>
               }
             </div>
             <h1 class="text-2xl font-bold sm:text-3xl">{{ d.title }}</h1>
@@ -62,7 +64,7 @@ import { ReportButton } from '../shared/report-button';
                 anti-comércio ou recebido denúncias. Veja os <a routerLink="/termos" class="font-semibold text-accent">Termos de Uso</a>.
               </p>
             }
-            @if (auth.isLoggedIn() && !isOwner() && d.visibility === 'PUBLIC') {
+            @if (auth.isLoggedIn() && !isOwner() && d.visibility !== 'PRIVATE') {
               <app-report-button class="mt-2" targetType="DIARY" [targetId]="d.id" label="Denunciar diário" />
             }
           </header>

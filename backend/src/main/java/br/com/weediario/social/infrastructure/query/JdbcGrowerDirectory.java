@@ -22,24 +22,27 @@ import java.util.UUID;
 @Component
 public class JdbcGrowerDirectory implements GrowerDirectory {
 
+    // :includeCommunity decide se os diários "comunidade" entram nas contagens: sempre no ranking (só logado o vê) e,
+    // no perfil (público), apenas quando quem olha está logado. Deslogado conta só PUBLIC.
+    private static final String VISIBLE = "(d.visibility = 'PUBLIC' or (d.visibility = 'COMMUNITY' and :includeCommunity))";
     private static final String STATS = """
             select u.id, u.username, case when u.profile_hidden then null else u.bio end as bio,
                    u.avatar_image_id is not null and not u.profile_hidden as has_avatar,
                    (select count(*) from grow_diaries d
-                     where d.owner_id = u.id and d.visibility = 'PUBLIC') as diaries,
+                     where d.owner_id = u.id and %1$s) as diaries,
                    (select count(*) from diary_reactions r join grow_diaries d on d.id = r.diary_id
-                     where d.owner_id = u.id and d.visibility = 'PUBLIC') as likes,
+                     where d.owner_id = u.id and %1$s) as likes,
                    (select count(*) from grow_diaries d
-                     where d.owner_id = u.id and d.visibility = 'PUBLIC' and d.harvest_dry_grams is not null)
+                     where d.owner_id = u.id and %1$s and d.harvest_dry_grams is not null)
                        as harvests,
                    (select round(sum(d.harvest_dry_grams)::numeric / nullif(sum(d.harvest_plants), 0), 1)
                       from grow_diaries d
-                     where d.owner_id = u.id and d.visibility = 'PUBLIC' and d.harvest_dry_grams is not null)
+                     where d.owner_id = u.id and %1$s and d.harvest_dry_grams is not null)
                        as grams_per_plant,
                    (select count(*) from reviews r where r.author_id = u.id and not r.hidden) as reviews
               from users u
              where u.status = 'ACTIVE'
-            """;
+            """.formatted(VISIBLE);
 
     /** Única parte dinâmica do SQL, escolhida por enum (nunca texto do usuário). */
     private static final Map<RankingSort, String> METRIC = Map.of(
@@ -65,6 +68,8 @@ public class JdbcGrowerDirectory implements GrowerDirectory {
                  where %s > 0
                 """.formatted(metric, STATS, sort == RankingSort.REVIEWS ? "s.reviews" : "s.diaries");
         MapSqlParameterSource params = new MapSqlParameterSource()
+                // O ranking só abre para quem está logado, então os diários "comunidade" sempre contam aqui.
+                .addValue("includeCommunity", true)
                 .addValue("limit", page.size())
                 .addValue("offset", page.offset());
         String filter = "";
@@ -90,6 +95,8 @@ public class JdbcGrowerDirectory implements GrowerDirectory {
     @Override
     public Optional<GrowerProfile> profile(String username, Optional<UUID> viewerId) {
         MapSqlParameterSource params = new MapSqlParameterSource("username", username)
+                // Perfil é público: diários "comunidade" só entram nas contagens para quem está logado.
+                .addValue("includeCommunity", viewerId.isPresent())
                 .addValue("viewerId", viewerId.orElse(null), Types.OTHER);
         return jdbc.query("""
                 select s.*,

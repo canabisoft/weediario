@@ -34,6 +34,10 @@ import { MEDIUM_LABEL, STAGE_LABEL, STATUS_LABEL } from '../shared/labels';
           <span class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-canvas/85 px-2 py-0.5 text-xs">
             <app-icon name="lock" class="size-3" /> Privado
           </span>
+        } @else if (d.visibility === 'COMMUNITY') {
+          <span class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-canvas/85 px-2 py-0.5 text-xs">
+            <app-icon name="user" class="size-3" /> Comunidade
+          </span>
         }
       </div>
       <div class="p-3">

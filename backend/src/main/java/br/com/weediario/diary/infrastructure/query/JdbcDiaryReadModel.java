@@ -88,7 +88,9 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
 
     @Override
     public PageResult<DiarySummary> publicFeed(FeedFilter filter, Optional<UUID> viewerId, PageQuery page) {
-        List<String> conditions = new ArrayList<>(List.of("d.visibility = 'PUBLIC'", "u.status = 'ACTIVE'"));
+        // Logado vê público + comunidade; deslogado, só público. Diário privado nunca entra no feed.
+        String visible = viewerId.isPresent() ? "d.visibility in ('PUBLIC', 'COMMUNITY')" : "d.visibility = 'PUBLIC'";
+        List<String> conditions = new ArrayList<>(List.of(visible, "u.status = 'ACTIVE'"));
         MapSqlParameterSource params = new MapSqlParameterSource();
         addEquals(conditions, params, "d.current_stage", "stage", filter.stage());
         addEquals(conditions, params, "d.medium", "medium", filter.medium());
@@ -127,10 +129,13 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
     @Override
     public Optional<DiarySummary> findVisible(UUID diaryId, Optional<UUID> viewerId) {
         MapSqlParameterSource params = new MapSqlParameterSource("id", diaryId)
-                .addValue("viewerId", viewerId.orElse(null), java.sql.Types.OTHER);
+                .addValue("viewerId", viewerId.orElse(null), java.sql.Types.OTHER)
+                .addValue("hasViewer", viewerId.isPresent());
         String sql = SELECT_DETAIL + """
                  where d.id = :id
-                   and ((d.visibility = 'PUBLIC' and u.status = 'ACTIVE') or d.owner_id = :viewerId)""";
+                   and ((d.visibility = 'PUBLIC' and u.status = 'ACTIVE')
+                        or (d.visibility = 'COMMUNITY' and u.status = 'ACTIVE' and :hasViewer)
+                        or d.owner_id = :viewerId)""";
         return jdbc.query(sql, params, rowMapper).stream().findFirst();
     }
 
@@ -188,7 +193,7 @@ public class JdbcDiaryReadModel implements DiaryReadModel {
                 select d.setup_snapshot::text as setup_snapshot, count(*) as diaries, max(d.started_on) as last_started_on
                   from grow_diaries d
                   join users u on u.id = d.owner_id and u.status = 'ACTIVE'
-                 where lower(u.username) = lower(:username) and d.visibility = 'PUBLIC'
+                 where lower(u.username) = lower(:username) and d.visibility in ('PUBLIC', 'COMMUNITY')
                    and d.setup_snapshot ->> 'name' is not null
                  group by d.setup_snapshot
                  order by last_started_on desc, diaries desc

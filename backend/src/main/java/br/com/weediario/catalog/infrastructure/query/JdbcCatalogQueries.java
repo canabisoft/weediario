@@ -33,6 +33,11 @@ public class JdbcCatalogQueries implements CatalogQueries {
     private static final String PUBLIC_DIARIES = """
             (grow_diaries d join users du on du.id = d.owner_id and du.status = 'ACTIVE' and d.visibility = 'PUBLIC')""";
 
+    // Rankings só abrem para quem está logado, então incluem também os diários "comunidade" (nunca os privados).
+    private static final String COMMUNITY_DIARIES = """
+            (grow_diaries d join users du on du.id = d.owner_id and du.status = 'ACTIVE'
+                 and d.visibility in ('PUBLIC', 'COMMUNITY'))""";
+
     private static final String STRAIN_REVIEWS = """
             left join lateral (
                 select count(*) as review_count,
@@ -476,7 +481,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                        count(distinct diary_id) as diaries, count(distinct owner_id) as growers,
                        round(sum(harvest_dry_grams)::numeric / nullif(sum(harvest_plants), 0), 1) as avg_gpp
                   from (%s) usage
-                 group by id, name, parent_name""".formatted(RANKING_SOURCE.get(kind).formatted(PUBLIC_DIARIES));
+                 group by id, name, parent_name""".formatted(RANKING_SOURCE.get(kind).formatted(COMMUNITY_DIARIES));
         MapSqlParameterSource params = new MapSqlParameterSource("category", category)
                 .addValue("limit", page.size()).addValue("offset", page.offset());
         Long total = jdbc.queryForObject("select count(*) from (" + usage + ") ranked", params, Long.class);
