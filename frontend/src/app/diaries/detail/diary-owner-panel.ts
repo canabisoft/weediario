@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
-import { DiaryCard, GrowDiaryView } from '../../core/api/api.models';
+import { DiaryCard, GrowDiaryView, Visibility } from '../../core/api/api.models';
 import { DiariesApi } from '../../core/api/diaries.api';
 import { problemMessage } from '../../core/api/problem';
 import { Icon } from '../../shared/icon';
@@ -26,10 +26,18 @@ type Mode = 'idle' | 'complete' | 'harvest';
             <app-icon name="camera" class="size-5" /> Novo update
           </a>
         }
-        <button type="button" class="wd-button bg-surface-raised text-fg" [disabled]="busy()" (click)="toggleVisibility()">
-          <app-icon [name]="d.visibility === 'PUBLIC' ? 'eyeOff' : 'eye'" class="size-5" />
-          {{ d.visibility === 'PUBLIC' ? 'Tornar privado' : 'Tornar público' }}
-        </button>
+        <label class="inline-flex items-center gap-2">
+          <span class="sr-only">Visibilidade do diário</span>
+          <select
+            class="wd-input min-h-12 text-base"
+            [disabled]="busy()"
+            (change)="setVisibility($any($event.target).value)"
+          >
+            @for (opt of visibilityOptions; track opt.value) {
+              <option [value]="opt.value" [selected]="opt.value === d.visibility">{{ opt.label }}</option>
+            }
+          </select>
+        </label>
         @if (d.status === 'IN_PROGRESS') {
           <button type="button" class="wd-button bg-surface-raised text-fg" (click)="mode.set('complete')">
             <app-icon name="scissors" class="size-5" /> Concluir (colheita)
@@ -97,9 +105,16 @@ export class DiaryOwnerPanel {
     plants: [null as number | null, [Validators.min(1), Validators.max(500)]],
   });
 
-  protected toggleVisibility(): void {
-    const next = this.diary().visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
-    this.run(this.api.changeVisibility(this.diary().id, next));
+  protected readonly visibilityOptions = [
+    { value: 'PUBLIC', label: 'Público' },
+    { value: 'COMMUNITY', label: 'Comunidade' },
+    { value: 'PRIVATE', label: 'Privado' },
+  ] as const;
+
+  protected setVisibility(next: Visibility): void {
+    if (next !== this.diary().visibility) {
+      this.run(this.api.changeVisibility(this.diary().id, next));
+    }
   }
 
   protected cancel(): void {

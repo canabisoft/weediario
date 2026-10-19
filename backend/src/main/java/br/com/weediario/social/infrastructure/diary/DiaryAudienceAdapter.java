@@ -24,6 +24,7 @@ public class DiaryAudienceAdapter implements DiaryAudience {
         return diaries.findById(new GrowDiaryId(diaryId)).map(diary -> new CommentableDiary(
                 diary.id().value(),
                 diary.ownerId().value(),
-                diary.visibility() == Visibility.PUBLIC));
+                diary.visibility() == Visibility.PUBLIC,
+                diary.visibility() == Visibility.COMMUNITY));
     }
 }

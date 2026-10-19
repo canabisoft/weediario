@@ -40,6 +40,30 @@ class FeedIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    void communityDiariesShowOnlyToSignedInViewers() throws Exception {
+        String strain = "CommStrain" + UUID.randomUUID().toString().substring(0, 6);
+        Session owner = newGrower();
+        Session viewer = newGrower();
+        UUID community = createDiary(owner, strain, "COMMUNITY", LocalDate.now().minusDays(10).toString());
+        publish(owner, community, "VEGETATIVE");
+
+        // Deslogado: não aparece no feed nem abre o detalhe.
+        assertThat(ids(feed("?strain=" + strain))).doesNotContain(community.toString());
+        mvc.perform(get("/api/v1/diaries/{id}", community)).andExpect(status().isNotFound());
+
+        // Logado (outra conta): aparece no feed e o detalhe abre.
+        JsonNode signedInFeed = body(mvc.perform(authed(get("/api/v1/feed/diaries?strain=" + strain), viewer))
+                .andExpect(status().isOk()).andReturn());
+        assertThat(ids(signedInFeed)).contains(community.toString());
+        mvc.perform(authed(get("/api/v1/diaries/{id}", community), viewer)).andExpect(status().isOk());
+
+        // No perfil do dono, o diário comunidade aparece para logado e some para deslogado.
+        assertThat(ids(feed("?author=" + owner.username()))).doesNotContain(community.toString());
+        assertThat(ids(body(mvc.perform(authed(get("/api/v1/feed/diaries?author=" + owner.username()), viewer))
+                .andExpect(status().isOk()).andReturn()))).contains(community.toString());
+    }
+
+    @Test
     void likeWildcardsInSearchAreTreatedAsText() throws Exception {
         JsonNode result = feed("?strain=%25");
 

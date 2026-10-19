@@ -20,7 +20,7 @@ public class JdbcNotificationReadModel implements NotificationReadModel {
               left join recipes r on r.id = n.recipe_id
               left join users a on a.id = n.actor_id
              where n.recipient_id = :recipient
-               and (n.diary_id is null or d.visibility = 'PUBLIC' or d.owner_id = :recipient)
+               and (n.diary_id is null or d.visibility in ('PUBLIC', 'COMMUNITY') or d.owner_id = :recipient)
                and (n.recipe_id is null or r.visibility = 'PUBLIC' or r.owner_id = :recipient)
                and (n.actor_id is null or a.status = 'ACTIVE')
             """;

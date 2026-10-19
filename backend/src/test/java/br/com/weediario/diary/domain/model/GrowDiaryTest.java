@@ -7,6 +7,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,6 +85,30 @@ class GrowDiaryTest {
     @Test
     void blankBreederIsTreatedAsUnknown() {
         assertThat(new Strain("Gorilla Glue #4", "   ").breederName()).isEmpty();
+    }
+
+    @Test
+    void communityDiaryIsVisibleOnlyToSignedInViewers() {
+        GrowerId owner = owner();
+        GrowerId other = owner();
+        GrowDiary diary = GrowDiary.start(owner, "Comunidade", strain(), FloweringType.PHOTOPERIOD, SeedSex.FEMINIZED,
+                GrowMedium.LIVING_SOIL, Visibility.COMMUNITY, TODAY, CLOCK);
+
+        assertThat(diary.isVisibleTo(Optional.empty())).as("deslogado").isFalse();
+        assertThat(diary.isVisibleTo(Optional.of(other))).as("outro logado").isTrue();
+        assertThat(diary.isVisibleTo(Optional.of(owner))).as("dono").isTrue();
+    }
+
+    @Test
+    void moderationHoldBlocksMakingDiaryVisibleAgain() {
+        GrowDiary diary = startedOn(TODAY.minusDays(5));
+        diary.holdForModeration(CLOCK);
+
+        assertThatThrownBy(() -> diary.changeVisibility(Visibility.PUBLIC, CLOCK)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> diary.changeVisibility(Visibility.COMMUNITY, CLOCK)).isInstanceOf(DomainException.class);
+        // Continuar privado é permitido.
+        diary.changeVisibility(Visibility.PRIVATE, CLOCK);
+        assertThat(diary.isVisibleTo(Optional.empty())).isFalse();
     }
 
     private static GrowDiary startedOn(LocalDate date) {
