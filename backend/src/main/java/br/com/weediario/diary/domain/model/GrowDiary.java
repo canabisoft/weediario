@@ -139,7 +139,9 @@ public final class GrowDiary {
 
     /** Diários privados só existem para o autor. */
     public boolean isVisibleTo(Optional<GrowerId> viewer) {
-        return visibility == Visibility.PUBLIC || viewer.map(this::isOwnedBy).orElse(false);
+        return visibility == Visibility.PUBLIC
+                || (visibility == Visibility.COMMUNITY && viewer.isPresent())
+                || viewer.map(this::isOwnedBy).orElse(false);
     }
 
     public void rename(String newTitle, Clock clock) {
@@ -149,8 +151,8 @@ public final class GrowDiary {
 
     public void changeVisibility(Visibility newVisibility, Clock clock) {
         Guard.notNull(newVisibility, "Visibilidade");
-        if (moderationHold && newVisibility == Visibility.PUBLIC) {
-            throw new DomainException("Este diário está retido pela moderação e não pode voltar a ser público agora");
+        if (moderationHold && newVisibility != Visibility.PRIVATE) {
+            throw new DomainException("Este diário está retido pela moderação e não pode voltar a aparecer agora");
         }
         this.visibility = newVisibility;
         touch(clock);

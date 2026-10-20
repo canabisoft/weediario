@@ -90,12 +90,18 @@ import { FLOWERING_LABEL, MEDIUM_LABEL, SEED_SEX_LABEL, options, today } from '.
           </div>
           <fieldset>
             <legend class="wd-label">Visibilidade</legend>
-            <div class="grid grid-cols-2 gap-2">
-              <label class="flex min-h-12 items-center gap-2 rounded-xl border border-line px-3">
-                <input type="radio" value="PUBLIC" formControlName="visibility" class="size-5" /> Público
+            <div class="grid gap-2">
+              <label class="flex min-h-12 items-start gap-2 rounded-xl border border-line px-3 py-2">
+                <input type="radio" value="PUBLIC" formControlName="visibility" class="mt-0.5 size-5" />
+                <span><span class="block">Público</span><span class="block text-xs text-fg-muted">Qualquer pessoa vê, logada ou não.</span></span>
               </label>
-              <label class="flex min-h-12 items-center gap-2 rounded-xl border border-line px-3">
-                <input type="radio" value="PRIVATE" formControlName="visibility" class="size-5" /> Privado
+              <label class="flex min-h-12 items-start gap-2 rounded-xl border border-line px-3 py-2">
+                <input type="radio" value="COMMUNITY" formControlName="visibility" class="mt-0.5 size-5" />
+                <span><span class="block">Comunidade</span><span class="block text-xs text-fg-muted">Só quem tem conta vê. Conta nos rankings.</span></span>
+              </label>
+              <label class="flex min-h-12 items-start gap-2 rounded-xl border border-line px-3 py-2">
+                <input type="radio" value="PRIVATE" formControlName="visibility" class="mt-0.5 size-5" />
+                <span><span class="block">Privado</span><span class="block text-xs text-fg-muted">Só você vê.</span></span>
               </label>
             </div>
           </fieldset>

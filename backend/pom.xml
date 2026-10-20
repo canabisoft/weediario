@@ -13,7 +13,7 @@
 
     <groupId>br.com.weediario</groupId>
     <artifactId>weediario-backend</artifactId>
-    <version>0.39.1</version>
+    <version>0.40.0</version>
     <name>weediario-backend</name>
     <description>Diários de cultivo e reviews com foco em privacidade</description>
 
@@ -157,6 +157,16 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!-- Testes rodam no fuso da aplicação (weediario.time-zone). Sem isso, o runner do CI (UTC) gera
+                 datas "de hoje" um dia à frente de São Paulo entre 00:00 e 03:00 UTC, e o domínio rejeita a
+                 data de início como futura. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Duser.timezone=America/Sao_Paulo</argLine>
+                </configuration>
             </plugin>
             <!-- Análise estática de segurança (FindSecBugs) no "mvn verify": só a categoria SECURITY, para o CI parar
                  em injeção, criptografia fraca, caminho de arquivo controlado pelo usuário etc. O build do Docker
