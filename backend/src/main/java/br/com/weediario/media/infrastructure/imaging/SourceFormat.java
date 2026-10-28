@@ -1,5 +1,6 @@
 package br.com.weediario.media.infrastructure.imaging;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 /**
@@ -32,6 +33,15 @@ enum SourceFormat {
             return Optional.of(WEBP);
         }
         return Optional.empty();
+    }
+
+    /** HEIC/HEIF (padrão da câmera do iPhone e de vários Android): não é decodificado, só reconhecido para orientar. */
+    static boolean isHeif(byte[] content) {
+        if (!startsWith(content, 4, 'f', 't', 'y', 'p') || content.length < 12) {
+            return false;
+        }
+        String brand = new String(content, 8, 4, StandardCharsets.US_ASCII);
+        return brand.startsWith("hei") || brand.startsWith("hev") || brand.equals("mif1") || brand.equals("msf1");
     }
 
     private static boolean startsWith(byte[] content, int offset, int... signature) {

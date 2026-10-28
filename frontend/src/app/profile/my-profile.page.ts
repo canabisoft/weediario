@@ -36,7 +36,7 @@ import { AccountDataPanel } from './account-data';
         <div class="flex flex-wrap gap-2">
           <label class="wd-button cursor-pointer bg-surface-raised text-fg">
             <app-icon name="camera" class="size-5" /> {{ me.hasAvatar ? 'Trocar foto' : 'Adicionar foto' }}
-            <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" (change)="uploadAvatar($event)" />
+            <input type="file" accept="image/*" class="sr-only" (change)="uploadAvatar($event)" />
           </label>
           @if (me.hasAvatar) {
             <button type="button" class="wd-button bg-surface-raised text-fg" (click)="removeAvatar()">Remover foto</button>

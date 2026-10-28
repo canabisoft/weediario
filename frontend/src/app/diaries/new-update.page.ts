@@ -61,7 +61,7 @@ const MAX_PHOTOS = 10;
             </label>
             <label class="wd-button cursor-pointer bg-surface-raised text-fg" [class.opacity-50]="photos().length >= maxPhotos">
               <app-icon name="image" class="size-5" /> Galeria
-              <input type="file" accept="image/jpeg,image/png,image/webp" multiple class="sr-only" [disabled]="photos().length >= maxPhotos" (change)="addFiles($event)" />
+              <input type="file" accept="image/*" multiple class="sr-only" [disabled]="photos().length >= maxPhotos" (change)="addFiles($event)" />
             </label>
           </div>
           <p class="mt-1 text-xs text-fg-muted">Relaxa: GPS, modelo do celular e data da foto somem antes de postar.</p>

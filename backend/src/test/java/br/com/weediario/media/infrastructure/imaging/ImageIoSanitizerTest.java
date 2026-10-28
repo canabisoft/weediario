@@ -133,6 +133,15 @@ class ImageIoSanitizerTest {
     }
 
     @Test
+    void explainsHeicPhotosInsteadOfAGenericFormatError() {
+        byte[] heic = {0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'h', 'e', 'i', 'c', 0, 0, 0, 0};
+
+        assertThatThrownBy(() -> sanitizer.sanitize(heic))
+                .isInstanceOf(InvalidImageException.class)
+                .hasMessageContaining("HEIC");
+    }
+
+    @Test
     void rejectsCorruptedImageWithValidSignature() {
         byte[] fake = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x00, 0x01, 0x02, 0x03};
 

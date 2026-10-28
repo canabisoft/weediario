@@ -62,7 +62,9 @@ public class ImageIoSanitizer implements ImageSanitizer {
     @Override
     public SanitizedImage sanitize(byte[] content) {
         SourceFormat format = SourceFormat.detect(content)
-                .orElseThrow(() -> new InvalidImageException("Formato não suportado. Envie JPEG, PNG ou WebP."));
+                .orElseThrow(() -> new InvalidImageException(SourceFormat.isHeif(content)
+                        ? "Foto em HEIC não é suportada. Envie em JPEG (no celular: câmera em \"Mais compatível\" ou JPEG)."
+                        : "Formato não suportado. Envie JPEG, PNG ou WebP."));
         int orientation = ExifOrientation.read(content);
 
         BufferedImage upright = ExifOrientation.apply(decode(content, format, orientation), orientation);

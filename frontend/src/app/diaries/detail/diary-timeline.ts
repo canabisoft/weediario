@@ -40,7 +40,7 @@ interface TimelineState {
               @if (isOwner()) {
                 <button
                   type="button"
-                  class="ml-auto inline-flex items-center gap-1 text-xs text-fg-muted"
+                  class="ml-auto inline-flex min-h-9 items-center gap-1 px-1 text-xs text-fg-muted"
                   (click)="remove(update)"
                 >
                   <app-icon name="trash" class="size-3.5" /> Apagar

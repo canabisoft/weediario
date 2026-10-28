@@ -1,7 +1,8 @@
 import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, filter, map } from 'rxjs';
+import { Observable, filter, from, map, switchMap } from 'rxjs';
 import { GrowEnvironment, GrowSetup, MyProfile, SetupSpec, UploadedImage } from './api.models';
+import { prepareForUpload } from '../../shared/upload-image';
 import { compact } from './diaries.api';
 
 export interface SetupInput extends SetupSpec {
@@ -88,23 +89,24 @@ export class AccountApi {
    * Envia uma foto. O servidor remove todos os metadados (GPS, aparelho, data) e devolve o id da versão limpa.
    */
   uploadImage(file: File): Observable<UploadProgress> {
-    const form = new FormData();
-    form.append('file', file);
-    return this.http
-      .post<UploadedImage>('/api/v1/media/images', form, { reportProgress: true, observe: 'events' })
-      .pipe(
-        filter((event: HttpEvent<UploadedImage>) =>
-          event.type === HttpEventType.UploadProgress || event.type === HttpEventType.Response,
-        ),
-        map((event) => {
-          if (event.type === HttpEventType.Response) {
-            return { progress: 100 as const, image: event.body! };
-          }
-          const total = event.type === HttpEventType.UploadProgress ? (event.total ?? 0) : 0;
-          const loaded = event.type === HttpEventType.UploadProgress ? event.loaded : 0;
-          // Mantém em 95% até o servidor terminar de processar a imagem.
-          return { progress: total ? Math.min(95, Math.round((loaded / total) * 100)) : 0 };
-        }),
-      );
+    return from(prepareForUpload(file)).pipe(
+      switchMap((content) => {
+        const form = new FormData();
+        form.append('file', content, content === file ? file.name : 'foto.jpg');
+        return this.http.post<UploadedImage>('/api/v1/media/images', form, { reportProgress: true, observe: 'events' });
+      }),
+      filter((event: HttpEvent<UploadedImage>) =>
+        event.type === HttpEventType.UploadProgress || event.type === HttpEventType.Response,
+      ),
+      map((event) => {
+        if (event.type === HttpEventType.Response) {
+          return { progress: 100 as const, image: event.body! };
+        }
+        const total = event.type === HttpEventType.UploadProgress ? (event.total ?? 0) : 0;
+        const loaded = event.type === HttpEventType.UploadProgress ? event.loaded : 0;
+        // Mantém em 95% até o servidor terminar de processar a imagem.
+        return { progress: total ? Math.min(95, Math.round((loaded / total) * 100)) : 0 };
+      }),
+    );
   }
 }
