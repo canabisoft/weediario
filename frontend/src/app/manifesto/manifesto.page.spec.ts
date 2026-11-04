@@ -11,7 +11,7 @@ describe('ManifestoPage', () => {
     const text = root.textContent!.replace(/\s+/g, ' ');
 
     expect(text).toContain('Nunca pedimos CPF, nome completo, RG, endereço ou telefone');
-    expect(text).toContain('Não guardamos registro de acesso');
+    expect(text).toContain('Não associamos registro de acesso à sua conta');
     expect(text).toContain('sempre com a etiqueta de anúncio');
     expect(text).not.toContain('Google Analytics pra');
     expect(text).toContain('Não indicamos dose');

@@ -6,12 +6,13 @@ import {
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
+import { TitleStrategy, provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { AuthService } from './core/auth/auth.service';
 import { GROWER_RANKING_SOURCE, HttpGrowerRankingSource } from './growers/grower-ranking.source';
+import { SeoTitleStrategy } from './seo/seo-title.strategy';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -26,5 +27,7 @@ export const appConfig: ApplicationConfig = {
       registrationStrategy: 'registerWhenStable:30000',
     }),
     { provide: GROWER_RANKING_SOURCE, useClass: HttpGrowerRankingSource },
+    // Título com palavra-chave nas páginas públicas (public-pages.ts); nas outras, o title da rota.
+    { provide: TitleStrategy, useClass: SeoTitleStrategy },
   ],
 };

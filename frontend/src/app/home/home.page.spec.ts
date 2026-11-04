@@ -36,7 +36,7 @@ describe('HomePage', () => {
   it('explains what weediário is to visitors without calling the API', () => {
     const { root, http } = render(false);
 
-    expect(root.querySelector('h1')?.textContent).toContain('O seu cultivo é assunto seu.');
+    expect(root.querySelector('h1')?.textContent).toContain('O seu cultivo e o seu tratamento são assuntos seus.');
     expect(root.textContent).toContain('O que a gente nunca pede, nem guarda.');
     expect(root.querySelector('a[href="/cadastro"]')).not.toBeNull();
     // Sem menu lateral para visitante: as páginas abertas ficam linkadas na própria landing.

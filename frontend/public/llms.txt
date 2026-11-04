@@ -1,0 +1,35 @@
+# weediário
+
+> O weediário é um diário de cultivo de cannabis para quem planta em casa: cada semana do cultivo fica registrada com fotos, pH, rega, clima e VPD. É uma comunidade fechada, sem comércio, que não pede nome, CPF nem telefone para criar conta.
+
+## Para quem é
+
+- Quem cultiva cannabis em casa, do primeiro cultivo a quem planta há anos.
+- Pacientes e cuidadores que querem registrar o tratamento com cannabis numa área separada e cifrada.
+- Bancos de sementes e breeders independentes que querem cadastrar genéticas validadas pela comunidade.
+- Ferramenta de registro para maiores de 18 anos. Não incentiva nem intermedeia cultivo ou comércio ilegal.
+
+## O que é público
+
+- Catálogo de strains: genéticas, bancos de sementes e produtos, com as médias de avaliação da comunidade.
+- Banco aberto: os números agregados do catálogo em CSV e JSON, sob a licença ODbL, sem dado pessoal de ninguém.
+- Ferramentas: calculadora de VPD e conversor EC/PPM, que funcionam offline.
+- Manifesto de privacidade e Termos de Uso.
+
+## O que exige conta
+
+Diários de cultivo, fotos, perfis, comentários, avaliações, rankings, receitas e o acompanhamento de tratamento. Nada disso aparece para visitantes nem para buscadores, e não deve ser citado como público.
+
+## Páginas públicas
+
+- [Início](https://weediario.com/): o que é o weediário e como funciona.
+- [Manifesto](https://weediario.com/manifesto): o que a gente coleta, o que nunca coleta e como apagar tudo.
+- [Catálogo de strains](https://weediario.com/strains): busca por nome, breeder ou tipo.
+- [Ferramentas](https://weediario.com/ferramentas): calculadora de VPD e conversor EC/PPM.
+- [Dados abertos](https://weediario.com/dados-abertos): download do catálogo em CSV e JSON.
+- [Termos de Uso](https://weediario.com/termos): as regras da comunidade.
+- [Programa de breeders](https://weediario.com/breeders/programa): cadastro de genéticas por bancos e breeders.
+
+## Código
+
+O código é aberto: https://github.com/canabisoft/weediario

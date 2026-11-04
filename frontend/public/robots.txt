@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /entrar
+Disallow: /cadastro
+Disallow: /ajustes
+Sitemap: https://weediario.com/sitemap.xml

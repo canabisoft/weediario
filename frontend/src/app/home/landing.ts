@@ -16,7 +16,7 @@ const FEATURES: readonly Feature[] = [
   },
   {
     icon: 'database',
-    title: 'Catálogo de milhares de strains',
+    title: '8.488 genéticas no catálogo aberto',
     text: 'Veja como cada genética se saiu em cultivos de verdade: notas pós-colheita e gramas por planta.',
   },
   {
@@ -40,7 +40,7 @@ const NEVER: readonly Feature[] = [
   {
     icon: 'eyeOff',
     title: 'IP, aparelho e páginas que você abre',
-    text: 'Não guardamos registro de acesso. Sem rastreador e sem cookie de terceiros.',
+    text: 'Não associamos registro de acesso à sua conta. Sem rastreador e sem cookie de terceiros.',
   },
   {
     icon: 'image',
@@ -106,7 +106,7 @@ const OPEN_PAGES: readonly OpenPage[] = [
     >
       <div>
         <h1 class="text-4xl font-extrabold leading-[1.05] tracking-tight text-fg sm:text-5xl">
-          O seu cultivo é assunto seu.
+          O seu cultivo e o seu tratamento são assuntos seus.
         </h1>
         <p class="mt-5 max-w-xl text-lg text-fg-muted">
           O weediário é um diário de cultivo de cannabis para quem planta em casa. Você anota cada
@@ -122,6 +122,9 @@ const OPEN_PAGES: readonly OpenPage[] = [
           >
         </div>
         <p class="mt-3 text-sm text-fg-muted">Só um apelido e uma senha. Sem e-mail obrigatório.</p>
+        <p class="mt-1 text-sm text-fg-muted">
+          Gratuito e sem plano pago. O código é aberto e você pode exportar ou apagar tudo.
+        </p>
       </div>
 
       <figure
@@ -248,9 +251,9 @@ const OPEN_PAGES: readonly OpenPage[] = [
 
     <section class="mt-16" aria-labelledby="landing-aberto">
       <h2 id="landing-aberto" class="text-2xl font-extrabold tracking-tight sm:text-3xl">
-        Aberto para todo mundo
+        Estas páginas não pedem conta
       </h2>
-      <p class="mt-2 text-fg-muted">Estas páginas não pedem conta.</p>
+      <p class="mt-2 text-fg-muted">Catálogo, banco aberto e ferramentas, para qualquer pessoa.</p>
       <ul class="mt-6 grid gap-3 sm:grid-cols-2">
         @for (page of openPages; track page.path) {
           <li>
@@ -287,7 +290,10 @@ const OPEN_PAGES: readonly OpenPage[] = [
     <footer
       class="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-6 text-sm text-fg-muted"
     >
-      <span class="mr-auto">weediário · para maiores de 18 anos</span>
+      <span class="mr-auto">
+        Ferramenta de registro para maiores de 18 anos. Não incentiva nem intermedeia cultivo ou
+        comércio ilegal.
+      </span>
       <nav aria-label="Institucional" class="flex flex-wrap gap-x-6 gap-y-2">
         <a routerLink="/manifesto" class="hover:text-fg">Manifesto</a>
         <a routerLink="/termos" class="hover:text-fg">Termos de Uso</a>

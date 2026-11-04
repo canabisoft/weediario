@@ -6,6 +6,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund --ignore-scripts
 COPY . .
 RUN npx ng build --configuration production
+# Sitemap das páginas pré-renderizadas e CSP com o hash do importmap inline (SRI dos chunks).
+RUN node scripts/postbuild.mjs
 
 # Imagem oficial do nginx que já roda sem root (usuário nginx, porta 8080).
 FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
@@ -16,7 +18,8 @@ USER root
 RUN apk upgrade --no-cache
 USER 101
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
-COPY nginx/security-headers.conf /etc/nginx/security-headers.conf
+# Gerada no build a partir de nginx/security-headers.conf, com o hash do importmap deste build em script-src.
+COPY --from=build /build/dist/frontend/nginx/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=build /build/dist/frontend/browser /usr/share/nginx/html
 # A imagem base já roda como o usuário nginx (uid 101); declarado aqui para ninguém depender disso sem ver.
 USER 101

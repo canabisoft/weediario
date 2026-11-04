@@ -55,7 +55,7 @@ export const CLAUSES: readonly Clause[] = [
       'Se você cadastrar um e-mail, ele serve só para confirmar o endereço, redefinir a senha e avisar de mudanças ' +
         'sensíveis. Fica cifrado, não serve para entrar nem para procurar contas, e pode ser removido quando quiser. ' +
         'Sem e-mail e sem a frase, a conta não pode ser recuperada.',
-      'Não guardamos registros de acesso: nem endereço IP, nem aparelho, nem as páginas que você abre.',
+      'Não associamos registro de acesso à sua conta. Sem rastreador e sem cookie de terceiros.',
       'O weediário é uma comunidade fechada: diários, fotos, perfis, avaliações, rankings, receitas, equipamentos e o ' +
         'acompanhamento de tratamento só ficam disponíveis para quem tem conta. Diários privados só são vistos por você. ' +
         'Visitantes sem conta veem apenas as páginas institucionais, as ferramentas e o catálogo de strains com números agregados.',

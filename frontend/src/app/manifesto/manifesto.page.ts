@@ -30,7 +30,7 @@ const PRINCIPLES: readonly Principle[] = [
     icon: 'eyeOff',
     title: 'Sem logs, sem rastreador',
     points: [
-      'Não guardamos registro de acesso: nem IP, nem aparelho, nem as páginas que você abre.',
+      'Não associamos registro de acesso à sua conta. Sem rastreador e sem cookie de terceiros.',
       'Sem rastreador e sem cookie de terceiros. O único cookie é o da sua sessão, que só serve pra te manter logado.',
       'Diário privado é privado: só você vê, e nunca aparece em feed, perfil, ranking ou busca. Rankings, receitas, ' +
         'equipamentos e tratamento são só pra quem tem conta.',
@@ -69,7 +69,7 @@ const PRINCIPLES: readonly Principle[] = [
     <article class="mx-auto max-w-3xl">
       <header>
         <p class="text-sm font-semibold uppercase tracking-wider text-accent">Manifesto</p>
-        <h1 class="mt-1 text-3xl font-bold">O seu cultivo e o seu tratamento são assunto seu.</h1>
+        <h1 class="mt-1 text-3xl font-bold">O seu cultivo e o seu tratamento são assuntos seus.</h1>
         <p class="mt-3 text-lg text-fg-muted">
           O weediário existe pra registrar e trocar ideia sobre cannabis sem virar um arquivo sobre você. Privacidade
           aqui não é opção escondida nas configurações: é o jeito que o app foi construído.

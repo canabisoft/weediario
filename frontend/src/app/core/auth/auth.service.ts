@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { isPlatformServer } from '@angular/common';
 import { Observable, catchError, finalize, firstValueFrom, map, of, shareReplay, tap } from 'rxjs';
 import { MyProfile } from '../api/api.models';
 import { RegistrationChallenge, solveChallenge } from './registration-challenge';
@@ -24,6 +25,8 @@ const AUTH = '/api/v1/auth';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  /** Na pré-renderização do build não há cookie nem API: as páginas públicas saem como para um visitante. */
+  private readonly prerendering = isPlatformServer(inject(PLATFORM_ID));
 
   private readonly token = signal<string | null>(null);
   readonly me = signal<MyProfile | null>(null);
@@ -43,6 +46,9 @@ export class AuthService {
 
   /** Chamado na inicialização do app: tenta retomar a sessão pelo cookie, sem falhar se não houver. */
   async restoreSession(): Promise<void> {
+    if (this.prerendering) {
+      return;
+    }
     const token = await firstValueFrom(this.refresh());
     if (token) {
       await firstValueFrom(this.loadMe()).catch(() => this.clear());
@@ -87,9 +93,19 @@ export class AuthService {
    * Recupera a conta com a frase: define a senha nova, troca a frase por outra (a antiga foi digitada e pode ter sido
    * vista), encerra as outras sessões e já entra.
    */
-  async recoverWithPhrase(username: string, recoveryVerifier: string, newPassword: string, newRecoveryVerifier: string): Promise<void> {
+  async recoverWithPhrase(
+    username: string,
+    recoveryVerifier: string,
+    newPassword: string,
+    newRecoveryVerifier: string,
+  ): Promise<void> {
     await this.session(
-      this.http.post<AccessTokenResponse>(`${AUTH}/recover`, { username, recoveryVerifier, newPassword, newRecoveryVerifier }),
+      this.http.post<AccessTokenResponse>(`${AUTH}/recover`, {
+        username,
+        recoveryVerifier,
+        newPassword,
+        newRecoveryVerifier,
+      }),
     );
   }
 
@@ -99,7 +115,9 @@ export class AuthService {
   }
 
   async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
-    await this.session(this.http.post<AccessTokenResponse>(`${AUTH}/password-reset/confirm`, { token, newPassword }));
+    await this.session(
+      this.http.post<AccessTokenResponse>(`${AUTH}/password-reset/confirm`, { token, newPassword }),
+    );
   }
 
   async verifyEmail(token: string): Promise<void> {
@@ -108,12 +126,18 @@ export class AuthService {
 
   /** Gera (conta antiga) ou troca a frase de recuperação; exige a senha atual. */
   async changeRecoveryPhrase(recoveryVerifier: string, currentPassword: string): Promise<void> {
-    this.me.set(await firstValueFrom(this.http.put<MyProfile>('/api/v1/me/recovery', { recoveryVerifier, currentPassword })));
+    this.me.set(
+      await firstValueFrom(
+        this.http.put<MyProfile>('/api/v1/me/recovery', { recoveryVerifier, currentPassword }),
+      ),
+    );
   }
 
   /** Troca a senha. O servidor encerra todas as sessões e devolve uma nova para este aparelho. */
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    await this.session(this.http.put<AccessTokenResponse>('/api/v1/me/password', { currentPassword, newPassword }));
+    await this.session(
+      this.http.put<AccessTokenResponse>('/api/v1/me/password', { currentPassword, newPassword }),
+    );
   }
 
   async logout(): Promise<void> {

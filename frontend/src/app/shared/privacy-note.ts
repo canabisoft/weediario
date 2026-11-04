@@ -6,7 +6,7 @@ import { Icon } from './icon';
  * mínimo, pode ser pseudônimo), limpar os metadados das fotos antes de publicar e não ser lugar de comércio (Termos de Uso).
  */
 export const PRIVACY_MESSAGES: readonly string[] = [
-  'Sem log de acesso: nem IP, nem as páginas que você abre.',
+  'Log de acesso nunca fica associado à sua conta.',
   'Foto limpa: a gente tira GPS, modelo do celular e data antes de postar.',
   'Aqui é diário, não é feira: nada de venda, troca ou contato pra negócio.',
   'E-mail é opcional e fica cifrado: ninguém vê, nem pra procurar conta.',
