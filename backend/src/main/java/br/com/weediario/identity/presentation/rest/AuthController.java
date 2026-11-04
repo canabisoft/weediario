@@ -48,12 +48,14 @@ public class AuthController {
     private final SessionResponses sessions;
     private final RegistrationChallenge challenges;
     private final SecuritySignals signals;
+    private final TrustedDeviceCookie devices;
 
     public AuthController(RegisterUserUseCase registerUser, AuthenticateUserUseCase authenticateUser,
                           RefreshSessionUseCase refreshSession, LogoutUseCase logout,
                           RecoverAccountUseCase recoverAccount, PasswordResetUseCase passwordReset,
                           AccountSecurityUseCase accountSecurity, RefreshTokenCookieFactory cookies,
-                          SessionResponses sessions, RegistrationChallenge challenges, SecuritySignals signals) {
+                          SessionResponses sessions, RegistrationChallenge challenges, SecuritySignals signals,
+                          TrustedDeviceCookie devices) {
         this.registerUser = registerUser;
         this.authenticateUser = authenticateUser;
         this.refreshSession = refreshSession;
@@ -65,6 +67,7 @@ public class AuthController {
         this.sessions = sessions;
         this.challenges = challenges;
         this.signals = signals;
+        this.devices = devices;
     }
 
     /** Desafio anti-robô do cadastro: o navegador resolve e manda a solução junto com o cadastro. */
@@ -82,20 +85,25 @@ public class AuthController {
                 request.acceptedTermsVersion(), solved == null ? null : new RegistrationChallenge.Solution(
                         solved.challenge(), solved.salt(), solved.number(), solved.signature())));
         signals.record(SecuritySignals.Signal.REGISTRATIONS);
-        return sessions.open(HttpStatus.CREATED, session);
+        return sessions.open(HttpStatus.CREATED, session, devices.issue(request.username()));
     }
 
+    /** Aparelho que já entrou nesta conta tem limite de tentativas próprio ({@link TrustedDeviceCookie}). */
     @PostMapping("/login")
-    public ResponseEntity<AccessTokenResponse> login(@Valid @RequestBody LoginRequest request) {
-        return sessions.open(authenticateUser.execute(
-                new AuthenticateUserUseCase.Command(request.login(), request.password())));
+    public ResponseEntity<AccessTokenResponse> login(@Valid @RequestBody LoginRequest request,
+                                                     HttpServletRequest http) {
+        String device = devices.deviceFor(http, request.login()).orElse(null);
+        var session = authenticateUser.execute(
+                new AuthenticateUserUseCase.Command(request.login(), request.password(), device));
+        return sessions.open(HttpStatus.OK, session, devices.issue(request.login()));
     }
 
     /** Frase de recuperação: senha nova, frase nova, outras sessões encerradas, e já entra na conta. */
     @PostMapping("/recover")
     public ResponseEntity<AccessTokenResponse> recover(@Valid @RequestBody RecoverRequest request) {
-        return sessions.open(recoverAccount.execute(new RecoverAccountUseCase.Command(request.username(),
-                request.recoveryVerifier(), request.newPassword(), request.newRecoveryVerifier())));
+        var session = recoverAccount.execute(new RecoverAccountUseCase.Command(request.username(),
+                request.recoveryVerifier(), request.newPassword(), request.newRecoveryVerifier()));
+        return sessions.open(HttpStatus.OK, session, devices.issue(request.username()));
     }
 
     /** Sempre 202, tenha a conta e-mail confirmado ou não. */

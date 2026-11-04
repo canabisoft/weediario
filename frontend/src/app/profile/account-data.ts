@@ -23,56 +23,117 @@ type Panel = 'none' | 'export' | 'delete';
         Você pode baixar tudo o que a sua conta guarda ou apagar a conta de vez, quando quiser.
       </p>
       <div class="flex flex-wrap gap-2">
-        <button type="button" class="wd-button bg-surface-raised text-fg" (click)="toggle('export')">Baixar meus dados</button>
-        <button type="button" class="wd-button bg-surface-raised text-danger" (click)="toggle('delete')">Apagar minha conta</button>
+        <button
+          type="button"
+          class="wd-button bg-surface-raised text-fg"
+          (click)="toggle('export')"
+        >
+          Baixar meus dados
+        </button>
+        @if (allowDelete()) {
+          <button
+            type="button"
+            class="wd-button bg-surface-raised text-danger"
+            (click)="toggle('delete')"
+          >
+            Apagar minha conta
+          </button>
+        }
       </div>
 
       @if (panel() === 'export') {
-        <form class="grid gap-3 rounded-xl border border-line p-3" (submit)="$event.preventDefault(); download()">
+        <form
+          class="grid gap-3 rounded-xl border border-line p-3"
+          (submit)="$event.preventDefault(); download()"
+        >
           <p class="text-sm text-fg-muted">
-            Um arquivo .zip com um <code>dados.json</code> (conta, diários, receitas, tratamento, comentários…) e as suas
-            fotos, já sem metadados.
+            Um arquivo .zip com um <code>dados.json</code> (conta, diários, receitas, tratamento,
+            comentários…) e as suas fotos, já sem metadados.
           </p>
           <div>
             <label class="wd-label" for="data-export-password">Senha atual</label>
-            <input id="data-export-password" name="password" type="password" class="wd-input" autocomplete="current-password"
-                   [ngModel]="password()" (ngModelChange)="password.set($event)" />
+            <input
+              id="data-export-password"
+              name="password"
+              type="password"
+              class="wd-input"
+              autocomplete="current-password"
+              [ngModel]="password()"
+              (ngModelChange)="password.set($event)"
+            />
           </div>
-          <button type="submit" class="wd-button" [disabled]="!password() || busy()">{{ busy() ? 'Preparando…' : 'Baixar .zip' }}</button>
+          <button type="submit" class="wd-button" [disabled]="!password() || busy()">
+            {{ busy() ? 'Preparando…' : 'Baixar .zip' }}
+          </button>
         </form>
       }
 
       @if (panel() === 'delete') {
-        <form class="grid gap-3 rounded-xl border border-danger/50 bg-danger/5 p-3" (submit)="$event.preventDefault(); remove()">
+        <form
+          class="grid gap-3 rounded-xl border border-danger/50 bg-danger/5 p-3"
+          (submit)="$event.preventDefault(); remove()"
+        >
           <div class="text-sm">
             <p class="font-semibold text-danger">Isso não tem volta.</p>
             <ul class="mt-1 list-disc pl-5 text-fg-muted">
-              <li>Somem a conta, os diários (com as fotos), receitas, setups, avaliações, comentários e o tratamento, incluindo pacientes que você acompanha como titular.</li>
+              <li>
+                Somem a conta, os diários (com as fotos), receitas, setups, avaliações, comentários
+                e o tratamento, incluindo pacientes que você acompanha como titular.
+              </li>
               <li>Itens que você cadastrou no catálogo aberto ficam, sem o seu nome.</li>
-              <li>Registros de moderação sobre a conta ficam por 5 anos, sem vínculo com ela (exigência legal).</li>
+              <li>
+                Registros de moderação sobre a conta ficam por 5 anos, sem vínculo com ela
+                (exigência legal).
+              </li>
               <li>Reações e denúncias já são anônimas e continuam como estão.</li>
             </ul>
             <p class="mt-1 text-fg-muted">Quer guardar algo? Baixe seus dados antes.</p>
           </div>
           <div>
-            <label class="wd-label" for="data-delete-username">Digite o seu apelido ({{ username() }})</label>
-            <input id="data-delete-username" name="username" class="wd-input" autocomplete="off" autocapitalize="none" spellcheck="false"
-                   [ngModel]="typedUsername()" (ngModelChange)="typedUsername.set($event)" />
+            <label class="wd-label" for="data-delete-username"
+              >Digite o seu apelido ({{ username() }})</label
+            >
+            <input
+              id="data-delete-username"
+              name="username"
+              class="wd-input"
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+              [ngModel]="typedUsername()"
+              (ngModelChange)="typedUsername.set($event)"
+            />
           </div>
           <div>
             <label class="wd-label" for="data-delete-password">Senha atual</label>
-            <input id="data-delete-password" name="password" type="password" class="wd-input" autocomplete="current-password"
-                   [ngModel]="password()" (ngModelChange)="password.set($event)" />
+            <input
+              id="data-delete-password"
+              name="password"
+              type="password"
+              class="wd-input"
+              autocomplete="current-password"
+              [ngModel]="password()"
+              (ngModelChange)="password.set($event)"
+            />
           </div>
-          <button type="submit" class="wd-button bg-danger text-white"
-                  [disabled]="!password() || typedUsername().trim().toLowerCase() !== username().toLowerCase() || busy()">
+          <button
+            type="submit"
+            class="wd-button bg-danger text-white"
+            [disabled]="
+              !password() ||
+              typedUsername().trim().toLowerCase() !== username().toLowerCase() ||
+              busy()
+            "
+          >
             {{ busy() ? 'Apagando…' : 'Apagar minha conta para sempre' }}
           </button>
         </form>
       }
 
       @if (error()) {
-        <p role="alert" class="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{{ error() }}</p>
+        <p role="alert" class="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">
+          {{ error() }}
+        </p>
       }
     </section>
   `,
@@ -83,6 +144,8 @@ export class AccountDataPanel {
   private readonly router = inject(Router);
 
   readonly username = input.required<string>();
+  /** Conta banida só exporta (a API recusa o resto); a exclusão, ela pede pelo e-mail de privacidade. */
+  readonly allowDelete = input(true);
 
   protected readonly panel = signal<Panel>('none');
   protected readonly password = signal('');

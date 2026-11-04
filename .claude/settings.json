@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "ClaudeInChromeDomain(localhost:8080)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/.env)",
+      "Read(./docs/DEPLOY.md)"
+    ]
+  }
+}

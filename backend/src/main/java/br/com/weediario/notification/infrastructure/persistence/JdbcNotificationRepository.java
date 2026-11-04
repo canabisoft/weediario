@@ -30,8 +30,9 @@ public class JdbcNotificationRepository implements NotificationRepository {
     @Override
     public void add(Notification notification) {
         jdbc.update("""
-                insert into notifications (id, recipient_id, type, diary_id, recipe_id, actor_id, occurrences, created_at)
-                values (:id, :recipient, :type, :diary, :recipe, :actor, 1, :at)
+                insert into notifications (id, recipient_id, type, diary_id, recipe_id, actor_id, occurrences, created_at,
+                                           held_type, held_id)
+                values (:id, :recipient, :type, :diary, :recipe, :actor, 1, :at, :heldType, :heldId)
                 """ + (notification.type().aggregated() ? ACCUMULATE : ""),
                 new MapSqlParameterSource("id", notification.id())
                         .addValue("recipient", notification.recipientId())
@@ -39,7 +40,9 @@ public class JdbcNotificationRepository implements NotificationRepository {
                         .addValue("diary", notification.diaryId(), Types.OTHER)
                         .addValue("recipe", notification.recipeId(), Types.OTHER)
                         .addValue("actor", notification.actorId(), Types.OTHER)
-                        .addValue("at", Timestamp.from(notification.createdAt())));
+                        .addValue("at", Timestamp.from(notification.createdAt()))
+                        .addValue("heldType", notification.heldType(), Types.VARCHAR)
+                        .addValue("heldId", notification.heldId(), Types.OTHER));
     }
 
     @Override

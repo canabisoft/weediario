@@ -206,8 +206,10 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isNoContent());
 
         mvc.perform(authed(get("/api/v1/diaries/{id}/comments", diaryId), owner)).andExpect(jsonPath("$.totalItems").value(0));
-        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                .content(loginJson(seller.username(), seller.password())))
+        // Banida ainda entra por 30 dias, mas só para baixar os próprios dados (Termos, cláusula 9).
+        Session banned = relogin(seller);
+        mvc.perform(authed(get("/api/v1/me"), banned)).andExpect(jsonPath("$.exportOnlyUntil").exists());
+        mvc.perform(authed(get("/api/v1/diaries/{id}/comments", diaryId), banned))
                 .andExpect(status().isUnauthorized());
         String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8)));
         assertThat(jdbc.queryForList("""

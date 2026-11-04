@@ -15,9 +15,11 @@ import java.util.UUID;
  * @param diaryId  diário envolvido (vazio para novos seguidores e respostas em receitas)
  * @param recipeId receita envolvida (só nas respostas a comentários de receita)
  * @param actorId  quem fez a ação; sempre vazio nos tipos anônimos
+ * @param heldType tipo do conteúdo retido (só em {@link NotificationType#CONTENT_HELD})
+ * @param heldId   id do conteúdo retido (só em {@link NotificationType#CONTENT_HELD})
  */
 public record Notification(UUID id, UUID recipientId, NotificationType type, UUID diaryId, UUID recipeId, UUID actorId,
-                           Instant createdAt) {
+                           Instant createdAt, String heldType, UUID heldId) {
 
     public Notification {
         Guard.notNull(id, "Id");
@@ -26,6 +28,9 @@ public record Notification(UUID id, UUID recipientId, NotificationType type, UUI
         Guard.notNull(createdAt, "Data");
         if (type.anonymous() && actorId != null) {
             throw new DomainException("Notificação anônima não pode guardar quem fez a ação");
+        }
+        if ((type == NotificationType.CONTENT_HELD) != (heldType != null && heldId != null)) {
+            throw new DomainException("Só o aviso de conteúdo retido aponta para o conteúdo");
         }
     }
 
@@ -52,7 +57,7 @@ public record Notification(UUID id, UUID recipientId, NotificationType type, UUI
         }
         return commentAuthorId.equals(replierId) ? Optional.empty()
                 : Optional.of(new Notification(UUID.randomUUID(), commentAuthorId, NotificationType.REPLY, diaryId,
-                        recipeId, replierId, clock.instant()));
+                        recipeId, replierId, clock.instant(), null, null));
     }
 
     public static Optional<Notification> newFollower(UUID followeeId, UUID followerId, Clock clock) {
@@ -60,7 +65,18 @@ public record Notification(UUID id, UUID recipientId, NotificationType type, UUI
                 : Optional.of(create(followeeId, NotificationType.NEW_FOLLOWER, null, null, clock));
     }
 
+    /**
+     * Seu conteúdo está fora do ar aguardando a moderação. Aponta para o item retido (para a manifestação) e, quando
+     * existe, para o diário ou a receita onde ele está.
+     */
+    public static Notification contentHeld(UUID authorId, String heldType, UUID heldId, UUID diaryId, UUID recipeId,
+                                           Clock clock) {
+        return new Notification(UUID.randomUUID(), authorId, NotificationType.CONTENT_HELD, diaryId, recipeId, null,
+                clock.instant(), Guard.notBlank(heldType, "Tipo do conteúdo"), Guard.notNull(heldId, "Conteúdo"));
+    }
+
     private static Notification create(UUID recipientId, NotificationType type, UUID diaryId, UUID actorId, Clock clock) {
-        return new Notification(UUID.randomUUID(), recipientId, type, diaryId, null, actorId, clock.instant());
+        return new Notification(UUID.randomUUID(), recipientId, type, diaryId, null, actorId, clock.instant(), null,
+                null);
     }
 }

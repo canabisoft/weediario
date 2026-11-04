@@ -5,7 +5,8 @@ import { Page } from './api.models';
 import { CatalogItem, CatalogKind, ProductCategory, RankingKind } from './catalog-db.api';
 
 export type ContentType = 'COMMENT' | 'DIARY' | 'REVIEW' | 'RECIPE' | 'RECIPE_COMMENT' | 'PROFILE';
-export type ReportReason = 'ILLEGAL_COMMERCE' | 'TRAFFICKING_APOLOGY' | 'INAPPROPRIATE' | 'SPAM' | 'OTHER';
+export type ReportReason =
+  'ILLEGAL_COMMERCE' | 'TRAFFICKING_APOLOGY' | 'INAPPROPRIATE' | 'SPAM' | 'OTHER';
 export type ModerationReason = ReportReason | 'UNFOUNDED';
 export type Verdict = 'KEEP' | 'REMOVE';
 export type AccountAction = 'NONE' | 'SUSPEND' | 'BAN';
@@ -29,6 +30,9 @@ export interface QueueItem {
   readonly reports: number;
   readonly reasons: Partial<Record<ReportReason, number>>;
   readonly since: string;
+  /** Versão do autor, mandada em até 5 dias depois da retenção (Termos de Uso, cláusula 9). */
+  readonly appeal?: string;
+  readonly appealedAt?: string;
 }
 
 export interface QueueCounts {
@@ -54,16 +58,25 @@ export class ModerationApi {
   private readonly http = inject(HttpClient);
 
   /** Denúncia pela comunidade (qualquer conteúdo público). */
-  report(targetType: ContentType, targetId: string, reason: ReportReason): Observable<{ hidden: boolean }> {
+  report(
+    targetType: ContentType,
+    targetId: string,
+    reason: ReportReason,
+  ): Observable<{ hidden: boolean }> {
     if (targetType === 'PROFILE') {
       // Perfil vai pelo apelido: a API pública não expõe o id interno das contas.
-      return this.http.post<{ hidden: boolean }>(`/api/v1/reports/profiles/${encodeURIComponent(targetId)}`, { reason });
+      return this.http.post<{ hidden: boolean }>(
+        `/api/v1/reports/profiles/${encodeURIComponent(targetId)}`,
+        { reason },
+      );
     }
     return this.http.post<{ hidden: boolean }>('/api/v1/reports', { targetType, targetId, reason });
   }
 
   queue(page = 0): Observable<Page<QueueItem>> {
-    return this.http.get<Page<QueueItem>>('/api/v1/moderation/queue', { params: { page, size: 20 } });
+    return this.http.get<Page<QueueItem>>('/api/v1/moderation/queue', {
+      params: { page, size: 20 },
+    });
   }
 
   queueCounts(): Observable<QueueCounts> {
@@ -82,7 +95,10 @@ export class ModerationApi {
   }
 
   reinstate(username: string, note?: string): Observable<void> {
-    return this.http.post<void>(`/api/v1/moderation/users/${encodeURIComponent(username)}/reinstate`, { note });
+    return this.http.post<void>(
+      `/api/v1/moderation/users/${encodeURIComponent(username)}/reinstate`,
+      { note },
+    );
   }
 
   /** Log de moderação em CSV (só admin). */
@@ -95,11 +111,15 @@ export class ModerationApi {
   }
 
   pendingCatalog(kind: CatalogKind, page = 0): Observable<Page<PendingCatalogItem>> {
-    return this.http.get<Page<PendingCatalogItem>>(`/api/v1/moderation/catalog/${kind}`, { params: { page, size: 20 } });
+    return this.http.get<Page<PendingCatalogItem>>(`/api/v1/moderation/catalog/${kind}`, {
+      params: { page, size: 20 },
+    });
   }
 
   /** Filas do catálogo por tipo e, em {@code REPRESENTATIVES}, pedidos de representantes de breeders. */
   catalogCounts(): Observable<Partial<Record<RankingKind | 'REPRESENTATIVES', number>>> {
-    return this.http.get<Partial<Record<RankingKind | 'REPRESENTATIVES', number>>>('/api/v1/moderation/catalog/counts');
+    return this.http.get<Partial<Record<RankingKind | 'REPRESENTATIVES', number>>>(
+      '/api/v1/moderation/catalog/counts',
+    );
   }
 }

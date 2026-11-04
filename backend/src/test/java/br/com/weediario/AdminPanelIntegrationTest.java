@@ -217,15 +217,17 @@ class AdminPanelIntegrationTest extends IntegrationTestSupport {
         mvc.perform(authed(get("/api/v1/me"), offender)).andExpect(status().isOk());
         decide(moderator, commentId, "REMOVE", "BAN").andExpect(status().isNoContent());
 
-        // O access token ainda não expirou, mas já não serve.
+        // O access token ainda não expirou, mas já não serve: o banimento encerrou as sessões.
         mvc.perform(authed(get("/api/v1/me"), offender))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
+                .andExpect(jsonPath("$.code").value("SESSION_REVOKED"));
         mvc.perform(authed(post("/api/v1/diaries"), offender).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson(offender.username(), offender.password())))
-                .andExpect(status().isUnauthorized());
+        // Entrar de novo só serve para exportar os dados por 30 dias (Termos, cláusula 9): publicar continua recusado.
+        Session exportOnly = relogin(offender);
+        mvc.perform(authed(post("/api/v1/diaries"), exportOnly).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DISABLED"));
     }
 
     // --------------------------------------------------------------------------------------------- helpers

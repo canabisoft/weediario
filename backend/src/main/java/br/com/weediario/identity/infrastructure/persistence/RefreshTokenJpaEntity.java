@@ -35,6 +35,9 @@ public class RefreshTokenJpaEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "family_started_at", nullable = false, updatable = false)
+    private Instant familyStartedAt;
+
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
@@ -49,11 +52,13 @@ public class RefreshTokenJpaEntity {
         entity.tokenHash = token.tokenHash();
         entity.expiresAt = token.expiresAt();
         entity.createdAt = token.createdAt();
+        entity.familyStartedAt = token.familyStartedAt();
         entity.revokedAt = token.revokedAt();
         return entity;
     }
 
     RefreshToken toDomain() {
-        return RefreshToken.restore(id, new UserId(userId), familyId, tokenHash, expiresAt, createdAt, revokedAt);
+        return RefreshToken.restore(id, new UserId(userId), familyId, tokenHash, expiresAt, createdAt, familyStartedAt,
+                revokedAt);
     }
 }

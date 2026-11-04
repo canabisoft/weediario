@@ -1,11 +1,13 @@
 package br.com.weediario.moderation.domain.repository;
 
 import br.com.weediario.moderation.domain.model.ContentRef;
+import br.com.weediario.moderation.domain.model.HoldState;
 import br.com.weediario.moderation.domain.model.ModerationLogEntry;
 import br.com.weediario.moderation.domain.model.ModerationVocabulary.HoldCause;
 import br.com.weediario.moderation.domain.model.ModerationVocabulary.ReportReason;
 
 import java.time.Instant;
+import java.util.Optional;
 
 public interface ModerationRepository {
 
@@ -22,8 +24,17 @@ public interface ModerationRepository {
 
     boolean isHeld(ContentRef target);
 
-    /** Coloca (ou mantém) o conteúdo na fila "aguardando moderação". */
-    void hold(ContentRef target, HoldCause cause, String detail, Instant at);
+    /**
+     * Coloca (ou mantém) o conteúdo na fila "aguardando moderação".
+     *
+     * @return se a retenção é nova (o autor é avisado só na primeira)
+     */
+    boolean hold(ContentRef target, HoldCause cause, String detail, Instant at);
+
+    Optional<HoldState> holdState(ContentRef target);
+
+    /** Guarda a versão do autor junto da retenção (quem chama já conferiu autor, prazo e se já houve manifestação). */
+    void appeal(ContentRef target, String text, Instant at);
 
     void release(ContentRef target);
 

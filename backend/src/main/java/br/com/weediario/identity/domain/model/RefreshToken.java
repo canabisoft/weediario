@@ -11,8 +11,13 @@ import java.util.UUID;
  * <p>
  * Tokens de uma mesma sessão compartilham a {@code familyId}: se um token já rotacionado for reapresentado
  * (sinal de roubo), a família inteira é revogada.
+ * <p>
+ * A rotação renova a validade, mas nunca além de {@link #MAX_SESSION_AGE} desde o login que abriu a família: quem usa o
+ * app todo dia entra de novo a cada 90 dias, e um cookie roubado não vale para sempre.
  */
 public final class RefreshToken {
+
+    public static final Duration MAX_SESSION_AGE = Duration.ofDays(90);
 
     private final UUID id;
     private final UserId userId;
@@ -20,31 +25,37 @@ public final class RefreshToken {
     private final String tokenHash;
     private final Instant expiresAt;
     private final Instant createdAt;
+    private final Instant familyStartedAt;
     private Instant revokedAt;
 
     private RefreshToken(UUID id, UserId userId, UUID familyId, String tokenHash,
-                         Instant expiresAt, Instant createdAt, Instant revokedAt) {
+                         Instant expiresAt, Instant createdAt, Instant familyStartedAt, Instant revokedAt) {
         this.id = Guard.notNull(id, "Id");
         this.userId = Guard.notNull(userId, "Usuário");
         this.familyId = Guard.notNull(familyId, "Família");
         this.tokenHash = Guard.notBlank(tokenHash, "Hash do token");
         this.expiresAt = Guard.notNull(expiresAt, "Expiração");
         this.createdAt = Guard.notNull(createdAt, "Data de criação");
+        this.familyStartedAt = Guard.notNull(familyStartedAt, "Início da sessão");
         this.revokedAt = revokedAt;
     }
 
     public static RefreshToken startSession(UserId userId, String tokenHash, Instant now, Duration ttl) {
-        return new RefreshToken(UUID.randomUUID(), userId, UUID.randomUUID(), tokenHash, now.plus(ttl), now, null);
+        return new RefreshToken(UUID.randomUUID(), userId, UUID.randomUUID(), tokenHash, now.plus(ttl), now, now, null);
     }
 
     public RefreshToken rotate(String newTokenHash, Instant now, Duration ttl) {
         revoke(now);
-        return new RefreshToken(UUID.randomUUID(), userId, familyId, newTokenHash, now.plus(ttl), now, null);
+        Instant renewed = now.plus(ttl);
+        Instant ceiling = familyStartedAt.plus(MAX_SESSION_AGE);
+        return new RefreshToken(UUID.randomUUID(), userId, familyId, newTokenHash,
+                renewed.isAfter(ceiling) ? ceiling : renewed, now, familyStartedAt, null);
     }
 
     public static RefreshToken restore(UUID id, UserId userId, UUID familyId, String tokenHash,
-                                       Instant expiresAt, Instant createdAt, Instant revokedAt) {
-        return new RefreshToken(id, userId, familyId, tokenHash, expiresAt, createdAt, revokedAt);
+                                       Instant expiresAt, Instant createdAt, Instant familyStartedAt,
+                                       Instant revokedAt) {
+        return new RefreshToken(id, userId, familyId, tokenHash, expiresAt, createdAt, familyStartedAt, revokedAt);
     }
 
     public boolean isRevoked() {
@@ -88,6 +99,10 @@ public final class RefreshToken {
 
     public Instant createdAt() {
         return createdAt;
+    }
+
+    public Instant familyStartedAt() {
+        return familyStartedAt;
     }
 
     public Instant revokedAt() {

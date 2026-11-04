@@ -7,13 +7,25 @@ import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
 
 /** Versão vigente. Mudou o texto, muda a versão (e o backend também): todo mundo aceita de novo antes de publicar. */
-export const TERMS_VERSION = '1.1';
+export const TERMS_VERSION = '1.2';
 
 /** "2026-11-01" → "1º de novembro de 2026". */
 function formatLongDate(iso: string): string {
   const [year, month, day] = iso.split('-').map(Number);
-  const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro',
-    'novembro', 'dezembro'];
+  const months = [
+    'janeiro',
+    'fevereiro',
+    'março',
+    'abril',
+    'maio',
+    'junho',
+    'julho',
+    'agosto',
+    'setembro',
+    'outubro',
+    'novembro',
+    'dezembro',
+  ];
   return `${day === 1 ? '1º' : day} de ${months[month - 1]} de ${year}`;
 }
 
@@ -48,6 +60,8 @@ export const CLAUSES: readonly Clause[] = [
     id: 'dados',
     title: '3. Sua conta e seus dados',
     paragraphs: [
+      'Quem trata os seus dados, com que base legal e como exercer os seus direitos está na Política de Privacidade ' +
+        '(weediario.com/privacidade), que faz parte destes termos.',
       'Pedimos um apelido (pode ser pseudônimo) e uma senha. O e-mail é opcional. Não pedimos CPF, nome completo, RG, ' +
         'endereço ou telefone.',
       'A senha é guardada só como hash (Argon2id). Toda conta tem uma frase de 12 palavras, mostrada no cadastro, para ' +
@@ -70,8 +84,10 @@ export const CLAUSES: readonly Clause[] = [
     id: 'cookies',
     title: '4. Cookies',
     paragraphs: [
-      'O weediário usa um único cookie, necessário para manter você logado e ilegível por scripts da página. Sem cookies ' +
-        'de terceiros, ferramentas de estatística ou rastreadores.',
+      'O weediário usa dois cookies, os dois necessários e ilegíveis por scripts da página: um mantém você logado; o ' +
+        'outro lembra que este aparelho já entrou na sua conta, para que alguém errando a sua senha de propósito não ' +
+        'tranque você do lado de fora. Nenhum deles serve para mais nada. Sem cookies de terceiros, ferramentas de ' +
+        'estatística ou rastreadores.',
     ],
   },
   {
@@ -96,20 +112,31 @@ export const CLAUSES: readonly Clause[] = [
     ],
   },
   {
+    id: 'seu-conteudo',
+    title: '7. Seu conteúdo é seu',
+    paragraphs: [
+      'Você mantém os direitos sobre suas fotos e textos e nos concede licença limitada, não exclusiva e gratuita para ' +
+        'armazenar, processar e exibir o conteúdo conforme a visibilidade que você escolher.',
+      'A licença termina quando você apaga o conteúdo ou a conta, ressalvadas as cópias de backup por até 30 dias.',
+    ],
+  },
+  {
     id: 'moderacao',
-    title: '7. Moderação, suspensão e banimento',
+    title: '8. Moderação com contraditório',
     paragraphs: [
       'A plataforma pode remover conteúdos e suspender ou encerrar definitivamente contas que violarem estes termos, sem ' +
-        'aviso prévio e sem indenização, a partir de constatação automatizada ou de denúncia.',
-      'Qualquer pessoa pode denunciar um conteúdo, de forma anônima. Com três denúncias, o conteúdo sai do ar até a ' +
-        'moderação decidir.',
+        'indenização, a partir de constatação automatizada ou de denúncia.',
+      'Qualquer pessoa pode denunciar um conteúdo, de forma anônima. Conteúdo denunciado por três contas, ou retido pelo ' +
+        'filtro anti-comércio, fica oculto até a revisão da moderação.',
+      'O autor é avisado nas notificações e pode mandar a sua versão à moderação em até 5 dias. Banimento definitivo só ' +
+        'acontece depois de revisão humana, e a conta banida ainda pode entrar por 30 dias para exportar os próprios dados.',
       'Cada decisão da moderação fica registrada por 5 anos com data, conteúdo, conta, motivo e um resumo criptográfico ' +
         '(hash) do texto removido. Esse registro não guarda IP, não guarda quem denunciou e não guarda o conteúdo em si.',
     ],
   },
   {
     id: 'autoridades',
-    title: '8. Cooperação com autoridades',
+    title: '9. Cooperação com autoridades',
     paragraphs: [
       'O weediário colabora com as autoridades judiciais e policiais mediante ordem judicial fundamentada, nos termos da ' +
         'legislação brasileira vigente.',
@@ -119,18 +146,34 @@ export const CLAUSES: readonly Clause[] = [
   },
   {
     id: 'saude',
-    title: '9. Acompanhamento de tratamento',
+    title: '10. Acompanhamento de tratamento',
     paragraphs: [
       'A área de tratamento só registra o que você usou e como se sentiu. O weediário não indica dose, horário nem produto, ' +
         'e não substitui a orientação do profissional que acompanha o tratamento.',
     ],
   },
   {
+    id: 'encerramento',
+    title: '11. Encerramento do serviço',
+    paragraphs: [
+      'Se o weediário encerrar, avisamos com 30 dias de antecedência e mantemos a exportação de dados disponível nesse ' +
+        'período.',
+    ],
+  },
+  {
     id: 'mudancas',
-    title: '10. Mudanças nestes termos',
+    title: '12. Mudanças nestes termos',
     paragraphs: [
       'Se o texto mudar, a versão muda junto, e você precisa ler e aceitar a nova versão antes de voltar a publicar. ' +
         'Enquanto isso, sua conta continua podendo ler, baixar e apagar seus dados.',
+    ],
+  },
+  {
+    id: 'foro',
+    title: '13. Lei aplicável e foro',
+    paragraphs: [
+      'Estes termos são regidos pelas leis brasileiras. Fica eleito o foro do domicílio do usuário consumidor (Código de ' +
+        'Defesa do Consumidor, art. 101, I); nas demais hipóteses, o foro da comarca do Rio de Janeiro/RJ.',
     ],
   },
 ];
@@ -146,27 +189,42 @@ export const CLAUSES: readonly Clause[] = [
         <p class="text-sm font-semibold uppercase tracking-wider text-accent">Termos de Uso</p>
         <h1 class="mt-1 text-3xl font-bold">As regras do weediário</h1>
         <p class="mt-2 text-sm text-fg-muted">
-          Versão {{ version }}@if (publishedOn(); as date) { · publicada em {{ date }}}
+          Versão {{ version }}
+          @if (publishedOn(); as date) {
+            · publicada em {{ date }}
+          }
         </p>
       </header>
 
       @if (auth.needsTermsAcceptance()) {
         <p class="mt-4 rounded-xl border border-warn/50 bg-warn/10 p-3 text-sm" role="status">
-          Atualizamos os Termos de Uso. Leia e aceite a versão {{ version }} no fim da página para continuar publicando.
+          Atualizamos os Termos de Uso. Leia e aceite a versão {{ version }} no fim da página para
+          continuar publicando.
         </p>
       }
 
       <nav class="mt-4 text-sm" aria-label="Seções">
         <ul class="flex flex-wrap gap-x-3 gap-y-1">
           @for (clause of clauses; track clause.id) {
-            <li><button type="button" class="text-left text-accent" (click)="scrollTo(clause.id)">{{ clause.title }}</button></li>
+            <li>
+              <button type="button" class="text-left text-accent" (click)="scrollTo(clause.id)">
+                {{ clause.title }}
+              </button>
+            </li>
           }
         </ul>
       </nav>
 
       @for (clause of clauses; track clause.id) {
-        <section [id]="clause.id" class="mt-6 scroll-mt-24 rounded-2xl p-4"
-                 [class]="clause.highlight ? 'border-2 border-danger/50 bg-danger/5' : 'border border-line bg-surface'">
+        <section
+          [id]="clause.id"
+          class="mt-6 scroll-mt-24 rounded-2xl p-4"
+          [class]="
+            clause.highlight
+              ? 'border-2 border-danger/50 bg-danger/5'
+              : 'border border-line bg-surface'
+          "
+        >
           <h2 class="text-lg font-semibold">{{ clause.title }}</h2>
           @for (paragraph of clause.paragraphs; track $index) {
             <p class="mt-2">{{ paragraph }}</p>
@@ -182,13 +240,25 @@ export const CLAUSES: readonly Clause[] = [
         <section class="wd-card mt-6 grid gap-3" aria-labelledby="accept-title">
           <h2 id="accept-title" class="font-semibold">Aceitar a versão {{ version }}</h2>
           <label class="flex items-start gap-2 text-sm">
-            <input type="checkbox" class="mt-0.5 size-5" [checked]="agreed()" (change)="agreed.set($any($event.target).checked)" />
+            <input
+              type="checkbox"
+              class="mt-0.5 size-5"
+              [checked]="agreed()"
+              (change)="agreed.set($any($event.target).checked)"
+            />
             Li e aceito os Termos de Uso, incluindo a proibição de comércio.
           </label>
           @if (error()) {
             <p role="alert" class="text-sm text-danger">{{ error() }}</p>
           }
-          <button type="button" class="wd-button w-fit" [disabled]="!agreed() || busy()" (click)="accept()">Aceitar e continuar</button>
+          <button
+            type="button"
+            class="wd-button w-fit"
+            [disabled]="!agreed() || busy()"
+            (click)="accept()"
+          >
+            Aceitar e continuar
+          </button>
         </section>
       }
     </article>
@@ -202,10 +272,12 @@ export class TermsPage {
   protected readonly version = TERMS_VERSION;
   /** Data de publicação vem do servidor (definida no lançamento); sem ela, a página não mostra data. */
   protected readonly publishedOn = toSignal(
-    inject(HttpClient).get<{ version: string; publishedOn?: string }>('/api/v1/terms').pipe(
-      map((terms) => (terms.publishedOn ? formatLongDate(terms.publishedOn) : null)),
-      catchError(() => of(null)),
-    ),
+    inject(HttpClient)
+      .get<{ version: string; publishedOn?: string }>('/api/v1/terms')
+      .pipe(
+        map((terms) => (terms.publishedOn ? formatLongDate(terms.publishedOn) : null)),
+        catchError(() => of(null)),
+      ),
     { initialValue: null },
   );
   protected readonly agreed = signal(false);

@@ -50,24 +50,38 @@ const REASONS = Object.keys(SHORT_REASON) as ReportReason[];
         @for (item of result.items; track item.type + item.id) {
           <li class="wd-card grid gap-3">
             <div class="flex flex-wrap items-center gap-2 text-sm">
-              <span class="rounded-full bg-surface-raised px-2 py-0.5 text-xs font-semibold">{{ typeLabel[item.type] }}</span>
+              <span class="rounded-full bg-surface-raised px-2 py-0.5 text-xs font-semibold">{{
+                typeLabel[item.type]
+              }}</span>
               @if (item.held) {
-                <span class="inline-flex items-center gap-1 rounded-full bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger">
+                <span
+                  class="inline-flex items-center gap-1 rounded-full bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger"
+                >
                   <app-icon name="eyeOff" class="size-3.5" />
-                  {{ item.cause === 'AUTO_FILTER' ? 'Retido pelo filtro' + (item.detail ? ': ' + item.detail : '') : 'Fora do ar por denúncias' }}
+                  {{
+                    item.cause === 'AUTO_FILTER'
+                      ? 'Retido pelo filtro' + (item.detail ? ': ' + item.detail : '')
+                      : 'Fora do ar por denúncias'
+                  }}
                 </span>
               }
               <span class="text-xs text-fg-muted">{{ when(item.since) }}</span>
             </div>
 
             @if (!item.exists) {
-              <p class="text-sm text-fg-muted">O conteúdo já foi apagado pelo autor. Ele sai da fila na próxima limpeza.</p>
+              <p class="text-sm text-fg-muted">
+                O conteúdo já foi apagado pelo autor. Ele sai da fila na próxima limpeza.
+              </p>
             } @else {
               <p class="text-sm">
                 @if (item.author) {
-                  <a [routerLink]="['/growers', item.author]" class="font-semibold">{{ item.author }}</a>
+                  <a [routerLink]="['/growers', item.author]" class="font-semibold">{{
+                    item.author
+                  }}</a>
                   @if (item.authorStatus && item.authorStatus !== 'ACTIVE') {
-                    <span class="ml-1 rounded-full bg-danger/15 px-2 text-xs text-danger">{{ item.authorStatus === 'BANNED' ? 'banida' : 'suspensa' }}</span>
+                    <span class="ml-1 rounded-full bg-danger/15 px-2 text-xs text-danger">{{
+                      item.authorStatus === 'BANNED' ? 'banida' : 'suspensa'
+                    }}</span>
                   }
                 }
                 @if (item.title) {
@@ -80,46 +94,108 @@ const REASONS = Object.keys(SHORT_REASON) as ReportReason[];
                 }
               </p>
               @if (item.text) {
-                <p class="max-h-48 overflow-auto whitespace-pre-line break-words rounded-xl bg-surface-raised p-3 text-sm">{{ item.text }}</p>
+                <p
+                  class="max-h-48 overflow-auto whitespace-pre-line break-words rounded-xl bg-surface-raised p-3 text-sm"
+                >
+                  {{ item.text }}
+                </p>
+              }
+              @if (item.appeal) {
+                <div class="rounded-xl border border-accent/40 bg-accent/5 p-3 text-sm">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-accent">
+                    Versão do autor
+                  </p>
+                  <p class="mt-1 max-h-48 overflow-auto whitespace-pre-line break-words">
+                    {{ item.appeal }}
+                  </p>
+                </div>
               }
             }
 
             @if (item.reports) {
               <p class="flex flex-wrap gap-2 text-xs">
-                <span class="inline-flex items-center gap-1 font-semibold"><app-icon name="flag" class="size-3.5" /> {{ item.reports }} {{ item.reports === 1 ? 'denúncia' : 'denúncias' }}:</span>
+                <span class="inline-flex items-center gap-1 font-semibold"
+                  ><app-icon name="flag" class="size-3.5" /> {{ item.reports }}
+                  {{ item.reports === 1 ? 'denúncia' : 'denúncias' }}:</span
+                >
                 @for (reason of reasonsOf(item); track reason.key) {
-                  <span class="rounded-full bg-warn/15 px-2">{{ reason.label }} ({{ reason.count }})</span>
+                  <span class="rounded-full bg-warn/15 px-2"
+                    >{{ reason.label }} ({{ reason.count }})</span
+                  >
                 }
               </p>
             }
 
             @if (item.exists) {
               <div class="grid gap-2 rounded-xl border border-line p-3 sm:grid-cols-[auto_1fr]">
-                <label class="wd-label sm:col-span-2" [for]="'reason-' + item.id">Motivo (fica no log de moderação)</label>
-                <select [id]="'reason-' + item.id" class="wd-input text-base" [value]="reasonFor(item)" (change)="setReason(item, $any($event.target).value)">
+                <label class="wd-label sm:col-span-2" [for]="'reason-' + item.id"
+                  >Motivo (fica no log de moderação)</label
+                >
+                <select
+                  [id]="'reason-' + item.id"
+                  class="wd-input text-base"
+                  [value]="reasonFor(item)"
+                  (change)="setReason(item, $any($event.target).value)"
+                >
                   @for (reason of reasons; track reason) {
                     <option [value]="reason">{{ reasonLabel[reason] }}</option>
                   }
                 </select>
-                <input class="wd-input" maxlength="500" placeholder="Observação (opcional)" [attr.aria-label]="'Observação'"
-                       [value]="notes()[key(item)] ?? ''" (input)="setNote(item, $any($event.target).value)" />
+                <input
+                  class="wd-input"
+                  maxlength="500"
+                  placeholder="Observação (opcional)"
+                  [attr.aria-label]="'Observação'"
+                  [value]="notes()[key(item)] ?? ''"
+                  (input)="setNote(item, $any($event.target).value)"
+                />
                 <div class="flex flex-wrap gap-2 sm:col-span-2">
-                  <button type="button" class="wd-button min-h-10 bg-surface-raised text-fg" [disabled]="busy()" (click)="decide(item, 'KEEP', 'NONE')">
+                  <button
+                    type="button"
+                    class="wd-button min-h-10 bg-surface-raised text-fg"
+                    [disabled]="busy()"
+                    (click)="decide(item, 'KEEP', 'NONE')"
+                  >
                     <app-icon name="check" class="size-4" /> Manter (improcedente)
                   </button>
-                  <button type="button" class="wd-button min-h-10 bg-surface-raised text-danger" [disabled]="busy()" (click)="decide(item, 'REMOVE', 'NONE')">
+                  <button
+                    type="button"
+                    class="wd-button min-h-10 bg-surface-raised text-danger"
+                    [disabled]="busy()"
+                    (click)="decide(item, 'REMOVE', 'NONE')"
+                  >
                     <app-icon name="trash" class="size-4" /> Remover
                   </button>
-                  <button type="button" class="wd-button min-h-10 bg-surface-raised text-danger" [disabled]="busy()" (click)="decide(item, 'REMOVE', 'SUSPEND')">
+                  <button
+                    type="button"
+                    class="wd-button min-h-10 bg-surface-raised text-danger"
+                    [disabled]="busy()"
+                    (click)="decide(item, 'REMOVE', 'SUSPEND')"
+                  >
                     Remover e suspender autor
                   </button>
                   @if (confirmBan() === key(item)) {
-                    <button type="button" class="wd-button min-h-10 bg-danger text-white" [disabled]="busy()" (click)="decide(item, 'REMOVE', 'BAN')">
+                    <button
+                      type="button"
+                      class="wd-button min-h-10 bg-danger text-white"
+                      [disabled]="busy()"
+                      (click)="decide(item, 'REMOVE', 'BAN')"
+                    >
                       Confirmar banimento
                     </button>
-                    <button type="button" class="wd-button min-h-10 bg-surface-raised text-fg" (click)="confirmBan.set(null)">Cancelar</button>
+                    <button
+                      type="button"
+                      class="wd-button min-h-10 bg-surface-raised text-fg"
+                      (click)="confirmBan.set(null)"
+                    >
+                      Cancelar
+                    </button>
                   } @else {
-                    <button type="button" class="wd-button min-h-10 bg-surface-raised text-danger" (click)="confirmBan.set(key(item))">
+                    <button
+                      type="button"
+                      class="wd-button min-h-10 bg-surface-raised text-danger"
+                      (click)="confirmBan.set(key(item))"
+                    >
                       Remover e banir autor
                     </button>
                   }
@@ -128,14 +204,32 @@ const REASONS = Object.keys(SHORT_REASON) as ReportReason[];
             }
           </li>
         } @empty {
-          <li class="wd-card text-center text-fg-muted">Nada denunciado nem retido. A comunidade está em paz.</li>
+          <li class="wd-card text-center text-fg-muted">
+            Nada denunciado nem retido. A comunidade está em paz.
+          </li>
         }
       </ul>
       @if (result.totalPages > 1) {
         <nav class="mt-4 flex items-center justify-between" aria-label="Páginas">
-          <button type="button" class="wd-button bg-surface-raised text-fg" [disabled]="result.page === 0" (click)="pageIndex.set(result.page - 1)">Anterior</button>
-          <span class="text-sm text-fg-muted">{{ result.page + 1 }} de {{ result.totalPages }}</span>
-          <button type="button" class="wd-button bg-surface-raised text-fg" [disabled]="result.page + 1 >= result.totalPages" (click)="pageIndex.set(result.page + 1)">Próxima</button>
+          <button
+            type="button"
+            class="wd-button bg-surface-raised text-fg"
+            [disabled]="result.page === 0"
+            (click)="pageIndex.set(result.page - 1)"
+          >
+            Anterior
+          </button>
+          <span class="text-sm text-fg-muted"
+            >{{ result.page + 1 }} de {{ result.totalPages }}</span
+          >
+          <button
+            type="button"
+            class="wd-button bg-surface-raised text-fg"
+            [disabled]="result.page + 1 >= result.totalPages"
+            (click)="pageIndex.set(result.page + 1)"
+          >
+            Próxima
+          </button>
         </nav>
       }
     } @else {
@@ -169,9 +263,13 @@ export class ContentQueue {
   );
 
   private reloadable(page: number): Observable<Page<QueueItem>> {
-    return this.api.queue(page).pipe(
-      catchError(() => of<Page<QueueItem>>({ items: [], page: 0, size: 20, totalItems: 0, totalPages: 0 })),
-    );
+    return this.api
+      .queue(page)
+      .pipe(
+        catchError(() =>
+          of<Page<QueueItem>>({ items: [], page: 0, size: 20, totalItems: 0, totalPages: 0 }),
+        ),
+      );
   }
 
   protected key(item: QueueItem): string {
@@ -206,7 +304,11 @@ export class ContentQueue {
 
   /** Motivo pré-selecionado: o mais denunciado; retido pelo filtro, comércio ilegal. */
   protected reasonFor(item: QueueItem): ReportReason {
-    return this.chosenReasons()[this.key(item)] ?? this.reasonsOf(item)[0]?.key as ReportReason ?? 'ILLEGAL_COMMERCE';
+    return (
+      this.chosenReasons()[this.key(item)] ??
+      (this.reasonsOf(item)[0]?.key as ReportReason) ??
+      'ILLEGAL_COMMERCE'
+    );
   }
 
   protected setReason(item: QueueItem, reason: ReportReason): void {
@@ -219,22 +321,32 @@ export class ContentQueue {
 
   protected decide(item: QueueItem, verdict: Verdict, account: AccountAction): void {
     const note = this.notes()[this.key(item)]?.trim() || undefined;
-    const reason: ModerationReason | undefined = verdict === 'REMOVE' ? this.reasonFor(item) : undefined;
+    const reason: ModerationReason | undefined =
+      verdict === 'REMOVE' ? this.reasonFor(item) : undefined;
     this.busy.set(true);
     this.message.set(null);
-    this.api.decide({ targetType: item.type, targetId: item.id, verdict, account, reason, note }).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.confirmBan.set(null);
-        this.message.set(verdict === 'KEEP' ? 'Mantido e de volta ao ar.' : account === 'NONE' ? 'Removido.'
-          : account === 'BAN' ? 'Removido e conta banida.' : 'Removido e conta suspensa.');
-        this.reload.update((n) => n + 1);
-        this.changed.emit();
-      },
-      error: (error) => {
-        this.busy.set(false);
-        this.message.set(problemMessage(error));
-      },
-    });
+    this.api
+      .decide({ targetType: item.type, targetId: item.id, verdict, account, reason, note })
+      .subscribe({
+        next: () => {
+          this.busy.set(false);
+          this.confirmBan.set(null);
+          this.message.set(
+            verdict === 'KEEP'
+              ? 'Mantido e de volta ao ar.'
+              : account === 'NONE'
+                ? 'Removido.'
+                : account === 'BAN'
+                  ? 'Removido e conta banida.'
+                  : 'Removido e conta suspensa.',
+          );
+          this.reload.update((n) => n + 1);
+          this.changed.emit();
+        },
+        error: (error) => {
+          this.busy.set(false);
+          this.message.set(problemMessage(error));
+        },
+      });
   }
 }

@@ -50,6 +50,11 @@ public final class NotifyUseCase {
         deliver(Notification.reply(commentAuthorId, null, recipeId, replierId, clock));
     }
 
+    /** O autor fica sabendo que o conteúdo dele saiu do ar e que pode mandar a sua versão à moderação. */
+    public void contentHeld(UUID authorId, String heldType, UUID heldId, UUID diaryId, UUID recipeId) {
+        deliver(Optional.of(Notification.contentHeld(authorId, heldType, heldId, diaryId, recipeId, clock)));
+    }
+
     public void followed(UUID followeeId, UUID followerId) {
         deliver(Notification.newFollower(followeeId, followerId, clock));
     }

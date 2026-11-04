@@ -1,5 +1,6 @@
 package br.com.weediario.moderation.application.usecase;
 
+import br.com.weediario.moderation.application.port.HoldNotifier;
 import br.com.weediario.moderation.application.port.ModeratedAccounts;
 import br.com.weediario.moderation.application.port.ModeratedContent;
 import br.com.weediario.moderation.application.port.ModeratedContent.ContentInfo;
@@ -38,15 +39,17 @@ public final class ReportContentUseCase {
     private final ModeratedAccounts accounts;
     private final ReporterStandings standings;
     private final ActionQuota quota;
+    private final HoldNotifier notifier;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public ReportContentUseCase(ModerationRepository repository, ModeratedContent content, ReporterPseudonyms pseudonyms,
-                                ModeratedAccounts accounts, ReporterStandings standings, ActionQuota quota,
+                                ModeratedAccounts accounts, ReporterStandings standings, ActionQuota quota, HoldNotifier notifier,
                                 UnitOfWork unitOfWork, Clock clock) {
         this.accounts = accounts;
         this.standings = standings;
         this.quota = quota;
+        this.notifier = notifier;
         this.repository = repository;
         this.content = content;
         this.pseudonyms = pseudonyms;
@@ -82,6 +85,7 @@ public final class ReportContentUseCase {
             if (counts && reports >= HIDE_AFTER_REPORTS && !repository.isHeld(ref)) {
                 content.hide(ref);
                 repository.hold(ref, HoldCause.REPORTS, null, now);
+                notifier.contentHeld(info);
                 return true;
             }
             return false;

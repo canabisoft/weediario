@@ -15,7 +15,12 @@ public enum NotificationType {
     /** Um grower que você segue publicou um update num diário público. */
     FOLLOWED_UPDATE(false, true),
     /** Alguém respondeu um comentário seu (em diário ou receita); o apelido de quem respondeu já é público. */
-    REPLY(false, false);
+    REPLY(false, false),
+    /**
+     * Seu conteúdo saiu do ar e aguarda a moderação (filtro anti-comércio ou denúncias). Avisa o próprio autor e não
+     * tem quem fez a ação: denúncias são anônimas.
+     */
+    CONTENT_HELD(false, false);
 
     private final boolean anonymous;
     private final boolean aggregated;

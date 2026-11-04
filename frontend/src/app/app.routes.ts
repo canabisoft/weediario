@@ -168,7 +168,8 @@ export const routes: Routes = [
     path: 'notificacoes',
     title: 'Notificações · weediário',
     canActivate: [authGuard],
-    loadComponent: () => import('./notifications/notifications.page').then((m) => m.NotificationsPage),
+    loadComponent: () =>
+      import('./notifications/notifications.page').then((m) => m.NotificationsPage),
   },
   {
     path: 'moderacao',
@@ -180,6 +181,11 @@ export const routes: Routes = [
     path: 'termos',
     title: 'Termos de Uso · weediário',
     loadComponent: () => import('./legal/terms.page').then((m) => m.TermsPage),
+  },
+  {
+    path: 'privacidade',
+    title: 'Política de Privacidade · weediário',
+    loadComponent: () => import('./legal/privacy.page').then((m) => m.PrivacyPage),
   },
   {
     path: 'manifesto',

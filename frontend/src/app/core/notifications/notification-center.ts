@@ -33,7 +33,7 @@ export class NotificationCenter {
 
   constructor() {
     effect(() => {
-      const active = this.auth.isLoggedIn() && this.connectivity.online();
+      const active = this.auth.isMember() && this.connectivity.online();
       const loggedOut = !this.auth.isLoggedIn();
       untracked(() => {
         if (active) {

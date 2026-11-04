@@ -31,7 +31,8 @@ const PRINCIPLES: readonly Principle[] = [
     title: 'Sem logs, sem rastreador',
     points: [
       'Não associamos registro de acesso à sua conta. Sem rastreador e sem cookie de terceiros.',
-      'Sem rastreador e sem cookie de terceiros. O único cookie é o da sua sessão, que só serve pra te manter logado.',
+      'Sem rastreador e sem cookie de terceiros. Os únicos cookies são o da sua sessão e um que lembra que o seu aparelho ' +
+        'já entrou na conta, pra ninguém te trancar do lado de fora errando a sua senha.',
       'Diário privado é privado: só você vê, e nunca aparece em feed, perfil, ranking ou busca. Rankings, receitas, ' +
         'equipamentos e tratamento são só pra quem tem conta.',
       'A única publicidade: uma marca pode pagar pra aparecer em destaque num ranking, sempre com a etiqueta de anúncio. ' +
@@ -71,15 +72,18 @@ const PRINCIPLES: readonly Principle[] = [
         <p class="text-sm font-semibold uppercase tracking-wider text-accent">Manifesto</p>
         <h1 class="mt-1 text-3xl font-bold">O seu cultivo e o seu tratamento são assuntos seus.</h1>
         <p class="mt-3 text-lg text-fg-muted">
-          O weediário existe pra registrar e trocar ideia sobre cannabis sem virar um arquivo sobre você. Privacidade
-          aqui não é opção escondida nas configurações: é o jeito que o app foi construído.
+          O weediário existe pra registrar e trocar ideia sobre cannabis sem virar um arquivo sobre
+          você. Privacidade aqui não é opção escondida nas configurações: é o jeito que o app foi
+          construído.
         </p>
       </header>
 
       @for (principle of principles; track principle.title) {
         <section class="wd-card mt-6" [attr.aria-labelledby]="'principle-' + $index">
           <h2 [id]="'principle-' + $index" class="flex items-center gap-3 text-xl font-semibold">
-            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent">
+            <span
+              class="grid size-10 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent"
+            >
               <app-icon [name]="principle.icon" class="size-5" />
             </span>
             {{ principle.title }}
@@ -96,20 +100,27 @@ const PRINCIPLES: readonly Principle[] = [
       }
 
       <p class="mt-6">
-        As regras completas estão nos <a routerLink="/termos" class="font-semibold text-accent">Termos de Uso</a>.
+        As regras completas estão nos
+        <a routerLink="/termos" class="font-semibold text-accent">Termos de Uso</a>.
       </p>
 
-      <section class="mt-6 rounded-2xl border border-line p-5 text-sm text-fg-muted" aria-labelledby="honesty">
+      <section
+        class="mt-6 rounded-2xl border border-line p-5 text-sm text-fg-muted"
+        aria-labelledby="honesty"
+      >
         <h2 id="honesty" class="font-semibold text-fg">Sendo honestos</h2>
         <p class="mt-2">
-          Como em qualquer site, a sua operadora e quem hospeda o servidor enxergam as conexões passando. O que depende
-          da gente é não guardar: no servidor fica só o que o app precisa pra funcionar, sem log de acesso e sem
-          rastreador. Se algo neste manifesto deixar de ser verdade, ele muda antes, e você fica sabendo por aqui.
+          Como em qualquer site, a sua operadora e quem hospeda o servidor enxergam as conexões
+          passando. O que depende da gente é não guardar: no servidor fica só o que o app precisa
+          pra funcionar, sem log de acesso e sem rastreador. Se algo neste manifesto deixar de ser
+          verdade, ele muda antes, e você fica sabendo por aqui.
         </p>
       </section>
 
       <p class="mt-8 text-center">
-        <a routerLink="/diarios" class="font-semibold text-accent">Bora ver os diários da comunidade →</a>
+        <a routerLink="/diarios" class="font-semibold text-accent"
+          >Bora ver os diários da comunidade →</a
+        >
       </p>
     </article>
   `,

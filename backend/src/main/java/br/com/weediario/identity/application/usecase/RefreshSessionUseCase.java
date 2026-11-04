@@ -66,7 +66,7 @@ public final class RefreshSessionUseCase {
             return Optional.empty();
         }
         return users.findById(current.userId())
-                .filter(User::canAuthenticate)
+                .filter(user -> user.canSignIn(now))
                 .map(user -> sessionIssuer.rotateSession(user, current));
     }
 

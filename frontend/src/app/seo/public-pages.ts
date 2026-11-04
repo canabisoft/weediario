@@ -60,6 +60,13 @@ export const PUBLIC_PAGES: readonly PublicPage[] = [
     ogImage: '/og/termos.jpg',
   },
   {
+    path: '/privacidade',
+    title: 'Política de Privacidade · weediário',
+    description:
+      'Quem trata seus dados no weediário, com que base legal, com quem compartilhamos e como pedir acesso, correção ou exclusão.',
+    ogImage: '/og/privacidade.jpg',
+  },
+  {
     path: '/breeders/programa',
     title: 'Programa de breeders · weediário',
     description:

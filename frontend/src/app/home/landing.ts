@@ -297,6 +297,7 @@ const OPEN_PAGES: readonly OpenPage[] = [
       <nav aria-label="Institucional" class="flex flex-wrap gap-x-6 gap-y-2">
         <a routerLink="/manifesto" class="hover:text-fg">Manifesto</a>
         <a routerLink="/termos" class="hover:text-fg">Termos de Uso</a>
+        <a routerLink="/privacidade" class="hover:text-fg">Privacidade</a>
         <a routerLink="/ajustes" class="hover:text-fg">Ajustes</a>
         <a
           href="https://github.com/canabisoft/weediario"

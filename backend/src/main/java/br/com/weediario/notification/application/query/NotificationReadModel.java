@@ -21,7 +21,13 @@ public interface NotificationReadModel {
      * @param actor       apelido de quem fez a ação (nulo nos tipos anônimos)
      * @param occurrences quantas vezes aconteceu enquanto não lida (reações, seguidores, updates)
      */
+    /**
+     * @param heldType      conteúdo retido (só em CONTENT_HELD)
+     * @param appealUntil   até quando o autor pode mandar a sua versão; nulo se o conteúdo já não está retido
+     * @param appealed      se o autor já mandou a sua versão
+     */
     record NotificationView(UUID id, String type, UUID diaryId, String diaryTitle, UUID recipeId, String recipeName,
-                            String actor, int occurrences, Instant createdAt, boolean read) {
+                            String actor, int occurrences, Instant createdAt, boolean read, String heldType,
+                            UUID heldId, Instant appealUntil, Boolean appealed) {
     }
 }

@@ -163,6 +163,56 @@ class ApiSecurityIntegrationTest extends IntegrationTestSupport {
                 .andExpect(header().exists(HttpHeaders.RETRY_AFTER));
     }
 
+    @Test
+    void lockingSomeonesUsernameDoesNotLockTheDeviceTheOwnerAlreadyUses() throws Exception {
+        Session victim = newGrower();
+        jakarta.servlet.http.Cookie device = mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON).content(loginJson(victim.username(), victim.password())))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getCookie("__Secure-wd_dev");
+        assertThat(device).isNotNull();
+        assertThat(device.isHttpOnly()).isTrue();
+        assertThat(device.getPath()).isEqualTo("/api/v1/auth/login");
+
+        // Quem só sabe o apelido erra de propósito até trancar.
+        for (int attempt = 1; attempt <= 6; attempt++) {
+            mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                    .content(loginJson(victim.username(), "senha errada de proposito")));
+        }
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson(victim.username(), victim.password())))
+                .andExpect(status().isTooManyRequests());
+
+        // O dono, no aparelho onde já entrou, continua entrando.
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).cookie(device)
+                        .content(loginJson(victim.username(), victim.password())))
+                .andExpect(status().isOk());
+
+        // Cookie adulterado ou de outro apelido não vale: cai na contagem do apelido, que está trancada.
+        String value = device.getValue();
+        var forged = new jakarta.servlet.http.Cookie("__Secure-wd_dev",
+                value.substring(0, value.length() - 1) + (value.endsWith("A") ? "B" : "A"));
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).cookie(forged)
+                        .content(loginJson(victim.username(), victim.password())))
+                .andExpect(status().isTooManyRequests());
+        Session other = newGrower();
+        jakarta.servlet.http.Cookie othersDevice = mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON).content(loginJson(other.username(), other.password())))
+                .andReturn().getResponse().getCookie("__Secure-wd_dev");
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).cookie(othersDevice)
+                        .content(loginJson(victim.username(), victim.password())))
+                .andExpect(status().isTooManyRequests());
+
+        // E o aparelho conhecido também tem limite: erros nele trancam só ele.
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).cookie(device)
+                    .content(loginJson(victim.username(), "outra senha errada")));
+        }
+        mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).cookie(device)
+                        .content(loginJson(victim.username(), victim.password())))
+                .andExpect(status().isTooManyRequests());
+    }
+
     // --- API3: mass assignment -------------------------------------------------------------
 
     @Test
@@ -183,6 +233,19 @@ class ApiSecurityIntegrationTest extends IntegrationTestSupport {
                         .header("Access-Control-Request-Method", "GET"))
                 .andExpect(status().isForbidden())
                 .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
+    }
+
+    /**
+     * Defesa em profundidade além do SameSite=Strict: uma página de outra origem que dispare o POST de verdade (sem
+     * preflight, como um formulário) também é recusada pelo CORS antes de chegar ao refresh, ao logout ou ao login.
+     */
+    @Test
+    void cookieEndpointsRefuseStateChangingRequestsFromOtherOrigins() throws Exception {
+        for (String path : new String[]{"/api/v1/auth/refresh", "/api/v1/auth/logout", "/api/v1/auth/login"}) {
+            mvc.perform(post(path).header(HttpHeaders.ORIGIN, "https://evil.example")
+                            .contentType(MediaType.APPLICATION_JSON).content(loginJson("alguem", "qualquer senha")))
+                    .andExpect(status().isForbidden());
+        }
     }
 
     // --- Upload de imagem: só imagem real entra --------------------------------------------

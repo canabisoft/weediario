@@ -15,6 +15,10 @@ import java.util.Locale;
  * antes de mudanças sensíveis. Senha escolhida por gente pode ser adivinhada. Frase de recuperação, chave de acesso
  * antiga e links de e-mail não têm limite (são aleatórios e longos demais para adivinhar, e um bloqueio por apelido só
  * deixaria alguém impedir o dono de recuperar a conta). A chave guardada é um HMAC do apelido normalizado.
+ * <p>
+ * Aparelho conhecido (cookie assinado de um login anterior nesta conta) tem contagem própria, separada da do apelido:
+ * quem erra a senha de propósito para trancar a conta de outra pessoa só tranca os aparelhos que nunca entraram nela.
+ * O dono, no celular de sempre, continua entrando; e quem roubou o cookie de um aparelho tem o mesmo limite de 5.
  */
 public final class LoginThrottle {
 
@@ -39,7 +43,24 @@ public final class LoginThrottle {
      * conta; quando o limite é atingido, as seguintes recebem {@link LoginThrottledException} sem nem rodar o Argon2.
      */
     public Attempt begin(String scope, String rawUsername) {
-        String key = keyHasher.keyOf(scope + (rawUsername == null ? "" : rawUsername.strip().toLowerCase(Locale.ROOT)));
+        return reserve(keyHasher.keyOf(scope + normalize(rawUsername)));
+    }
+
+    /**
+     * Como {@link #begin}, mas para um aparelho que já entrou nesta conta: conta à parte, só dele.
+     *
+     * @param trustedDevice identificador do aparelho, já conferido contra o apelido digitado
+     */
+    public Attempt beginOnDevice(String trustedDevice, String rawUsername) {
+        return reserve(keyHasher.keyOf("device:" + trustedDevice + ":" + normalize(rawUsername)));
+    }
+
+    /** O apelido como o limite enxerga: sem espaços nas pontas e sem diferença de maiúsculas. */
+    public static String normalize(String rawUsername) {
+        return rawUsername == null ? "" : rawUsername.strip().toLowerCase(Locale.ROOT);
+    }
+
+    private Attempt reserve(String key) {
         Instant now = clock.instant();
         unitOfWork.run(() -> {
             LoginAttempts current = attempts.findForUpdate(key, now);

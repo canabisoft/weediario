@@ -218,6 +218,8 @@ export interface MyProfile {
   readonly currentTermsVersion: string;
   /** Bio e foto ocultadas do público pela moderação. */
   readonly profileHidden: boolean;
+  /** Conta banida: até quando ela ainda entra, só para baixar os próprios dados (Termos de Uso, cláusula 9). */
+  readonly exportOnlyUntil?: string;
 }
 
 export interface GrowerProfile {

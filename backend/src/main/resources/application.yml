@@ -101,8 +101,9 @@ weediario:
       access-token-ttl: 10m
     refresh-token:
       ttl: 7d
-      # Curta de propósito: só cobre F5 no meio de um refresh e abas renovando juntas.
-      reuse-grace: 30s
+      # Curta de propósito: só cobre F5 no meio de um refresh e abas renovando juntas. Dentro dela, um cookie roubado
+      # reapresentado ainda ganha token novo; 10 s cobre rede móvel lenta sem deixar essa porta aberta por muito tempo.
+      reuse-grace: 10s
       cookie-name: __Secure-wd_rt
       cookie-path: /api/v1/auth
     cors:

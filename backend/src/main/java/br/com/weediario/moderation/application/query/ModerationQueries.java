@@ -27,7 +27,9 @@ public interface ModerationQueries {
      * @param cause   por que está retido (nulo: tem denúncias, mas ainda abaixo do limite)
      * @param since   quando foi retido ou recebeu a primeira denúncia
      */
-    record Pending(ContentRef ref, HoldCause cause, String detail, long reports, Instant since) {
+    /** @param appeal versão do autor (Termos, cláusula 9), quando ele mandou */
+    record Pending(ContentRef ref, HoldCause cause, String detail, long reports, Instant since, String appeal,
+                   Instant appealedAt) {
     }
 
     record Counts(long pending, long held, Map<TargetType, Long> byType) {

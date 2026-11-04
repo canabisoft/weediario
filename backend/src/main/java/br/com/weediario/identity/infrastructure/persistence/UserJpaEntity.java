@@ -55,6 +55,9 @@ public class UserJpaEntity {
     @Column(name = "profile_hidden", nullable = false)
     private boolean profileHidden;
 
+    @Column(name = "status_changed_at")
+    private Instant statusChangedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -77,6 +80,7 @@ public class UserJpaEntity {
         entity.termsVersion = user.termsVersion().orElse(null);
         entity.termsAcceptedAt = user.termsAcceptedAt().orElse(null);
         entity.profileHidden = user.profileHidden();
+        entity.statusChangedAt = user.statusChangedAt();
         entity.createdAt = user.createdAt();
         entity.updatedAt = user.updatedAt();
         return entity;
@@ -86,6 +90,6 @@ public class UserJpaEntity {
         return User.restore(new UserId(id), new Username(username),
                 new PasswordHash(passwordHash),
                 recoveryHash == null ? null : new PasswordHash(recoveryHash), role, status, bio, avatarImageId,
-                termsVersion, termsAcceptedAt, profileHidden, createdAt, updatedAt);
+                termsVersion, termsAcceptedAt, profileHidden, statusChangedAt, createdAt, updatedAt);
     }
 }

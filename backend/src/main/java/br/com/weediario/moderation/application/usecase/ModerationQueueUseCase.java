@@ -81,7 +81,7 @@ public final class ModerationQueueUseCase {
                 text != null && text.length() > PREVIEW_MAX ? text.substring(0, PREVIEW_MAX) + "…" : text,
                 info.map(ContentInfo::linkId).orElse(null),
                 pending.cause() != null, pending.cause(), pending.detail(), pending.reports(),
-                queries.reasons(pending.ref()), pending.since());
+                queries.reasons(pending.ref()), pending.since(), pending.appeal(), pending.appealedAt());
     }
 
     private static void requireModerator(boolean moderator) {
@@ -95,9 +95,10 @@ public final class ModerationQueueUseCase {
      *
      * @param exists falso se o conteúdo já foi apagado pelo autor (sai da fila na próxima limpeza)
      * @param held   fora do público, aguardando decisão
+     * @param appeal versão do autor, mandada em até 5 dias depois da retenção (Termos, cláusula 9)
      */
     public record QueueItem(TargetType type, UUID id, boolean exists, String author, String authorStatus, String title,
                             String text, String linkId, boolean held, HoldCause cause, String detail, long reports,
-                            Map<ReportReason, Long> reasons, Instant since) {
+                            Map<ReportReason, Long> reasons, Instant since, String appeal, Instant appealedAt) {
     }
 }

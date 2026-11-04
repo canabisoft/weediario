@@ -1,5 +1,6 @@
 package br.com.weediario.moderation.infrastructure.config;
 
+import br.com.weediario.moderation.application.port.HoldNotifier;
 import br.com.weediario.moderation.application.port.ModeratedAccounts;
 import br.com.weediario.moderation.application.port.ModeratedContent;
 import br.com.weediario.moderation.application.port.ReporterPseudonyms;
@@ -7,6 +8,7 @@ import br.com.weediario.moderation.application.port.ReporterStandings;
 import br.com.weediario.moderation.application.query.ModerationQueries;
 import br.com.weediario.moderation.application.query.PlatformMetrics;
 import br.com.weediario.moderation.application.usecase.AdminMetricsUseCase;
+import br.com.weediario.moderation.application.usecase.AppealHoldUseCase;
 import br.com.weediario.moderation.application.usecase.ContentHoldUseCase;
 import br.com.weediario.moderation.application.usecase.ModerateContentUseCase;
 import br.com.weediario.moderation.application.usecase.ManageTeamUseCase;
@@ -30,14 +32,22 @@ public class ModerationConfig {
     @Bean
     ReportContentUseCase reportContentUseCase(ModerationRepository repository, ModeratedContent content,
                                               ReporterPseudonyms pseudonyms, ModeratedAccounts accounts,
-                                              ReporterStandings standings, ActionQuota quota,
+                                              ReporterStandings standings, ActionQuota quota, HoldNotifier notifier,
                                               UnitOfWork unitOfWork, Clock clock) {
-        return new ReportContentUseCase(repository, content, pseudonyms, accounts, standings, quota, unitOfWork, clock);
+        return new ReportContentUseCase(repository, content, pseudonyms, accounts, standings, quota, notifier,
+                unitOfWork, clock);
     }
 
     @Bean
-    ContentHoldUseCase contentHoldUseCase(ModerationRepository repository, UnitOfWork unitOfWork, Clock clock) {
-        return new ContentHoldUseCase(repository, unitOfWork, clock);
+    ContentHoldUseCase contentHoldUseCase(ModerationRepository repository, ModeratedContent content,
+                                          HoldNotifier notifier, UnitOfWork unitOfWork, Clock clock) {
+        return new ContentHoldUseCase(repository, content, notifier, unitOfWork, clock);
+    }
+
+    @Bean
+    AppealHoldUseCase appealHoldUseCase(ModerationRepository repository, ModeratedContent content,
+                                        UnitOfWork unitOfWork, Clock clock) {
+        return new AppealHoldUseCase(repository, content, unitOfWork, clock);
     }
 
     @Bean

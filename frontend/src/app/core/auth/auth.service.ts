@@ -31,6 +31,8 @@ export class AuthService {
   private readonly token = signal<string | null>(null);
   readonly me = signal<MyProfile | null>(null);
   readonly isLoggedIn = computed(() => this.me() !== null);
+  /** Logado com acesso ao app. Conta banida ainda entra, mas só para exportar os dados (Termos, cláusula 9). */
+  readonly isMember = computed(() => this.me() !== null && !this.me()!.exportOnlyUntil);
   readonly isModerator = computed(() => ['MODERATOR', 'ADMIN'].includes(this.me()?.role ?? ''));
   readonly isAdmin = computed(() => this.me()?.role === 'ADMIN');
   /** Conta anterior à frase de recuperação: precisa gerar a frase (sem ela e sem e-mail, não há como recuperar). */

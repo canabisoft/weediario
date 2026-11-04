@@ -45,7 +45,9 @@ import { RecoveryPhraseCard } from './recovery-phrase-card';
               <input type="checkbox" class="mt-0.5 size-5" formControlName="acceptTerms" />
               <span>
                 Li e aceito os <a routerLink="/termos" target="_blank" class="font-semibold text-accent">Termos de Uso</a>
-                (versão {{ termsVersion }}), incluindo a proibição de qualquer comércio. Tenho 18 anos ou mais.
+                (versão {{ termsVersion }}), incluindo a proibição de qualquer comércio, e li a
+                <a routerLink="/privacidade" target="_blank" class="font-semibold text-accent">Política de Privacidade</a>.
+                Tenho 18 anos ou mais.
               </span>
             </label>
 

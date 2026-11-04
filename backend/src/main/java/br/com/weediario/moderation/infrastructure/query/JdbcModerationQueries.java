@@ -29,7 +29,7 @@ public class JdbcModerationQueries implements ModerationQueries {
                 union
                 select target_type, target_id from moderation_holds
             )
-            select r.target_type, r.target_id, h.cause, h.detail,
+            select r.target_type, r.target_id, h.cause, h.detail, h.appeal, h.appealed_at,
                    (select count(*) from content_reports c
                      where c.target_type = r.target_type and c.target_id = r.target_id) as reports,
                    coalesce(h.held_at, (select min(c.created_at) from content_reports c
@@ -55,7 +55,9 @@ public class JdbcModerationQueries implements ModerationQueries {
                 (rs, n) -> new Pending(
                         new ContentRef(TargetType.valueOf(rs.getString("target_type")), rs.getObject("target_id", UUID.class)),
                         rs.getString("cause") == null ? null : HoldCause.valueOf(rs.getString("cause")),
-                        rs.getString("detail"), rs.getLong("reports"), rs.getTimestamp("since").toInstant()));
+                        rs.getString("detail"), rs.getLong("reports"), rs.getTimestamp("since").toInstant(),
+                        rs.getString("appeal"),
+                        rs.getTimestamp("appealed_at") == null ? null : rs.getTimestamp("appealed_at").toInstant()));
         return PageResult.of(items, page, total == null ? 0 : total);
     }
 

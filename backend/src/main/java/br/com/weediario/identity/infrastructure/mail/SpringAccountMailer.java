@@ -30,6 +30,8 @@ public class SpringAccountMailer implements AccountMailer {
 
     private final JavaMailSender sender;
     private final AccountMailProperties properties;
+    /** Links com token no log: só em desenvolvimento (endereço público sem HTTPS). */
+    private final boolean logLinks;
     private final ThreadPoolExecutor queue = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(QUEUE_CAPACITY), runnable -> {
                 Thread thread = new Thread(runnable, "account-mailer");
@@ -40,6 +42,12 @@ public class SpringAccountMailer implements AccountMailer {
     public SpringAccountMailer(ObjectProvider<JavaMailSender> sender, AccountMailProperties properties) {
         this.properties = properties;
         this.sender = properties.from().isEmpty() ? null : sender.getIfAvailable();
+        boolean production = properties.publicUrl() != null && properties.publicUrl().startsWith("https://");
+        this.logLinks = properties.logLinks() && !production;
+        if (properties.logLinks() && production) {
+            log.warn("weediario.identity.mail.log-links ignorado: o endereço público é HTTPS (produção) e os links "
+                    + "levam tokens de uso único, que não podem ir para o log");
+        }
         if (this.sender == null) {
             log.warn("Envio de e-mail desligado (configure spring.mail.host e weediario.identity.mail.from): "
                     + "confirmação de e-mail e redefinição de senha por e-mail não vão chegar");
@@ -101,7 +109,7 @@ public class SpringAccountMailer implements AccountMailer {
 
     private void send(EmailAddress to, String subject, String body, String link) {
         if (sender == null) {
-            if (properties.logLinks() && link != null) {
+            if (logLinks && link != null) {
                 log.info("[dev] e-mail desligado; link que seria enviado: {}", link);
             } else {
                 log.info("E-mail desligado: mensagem \"{}\" não enviada", subject);

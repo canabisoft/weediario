@@ -5,6 +5,8 @@ set -eu
 cd "$(dirname "$0")/.."
 
 if [ -f .env ]; then
+  # .env de antes do umask abaixo pode ter ficado legível por outros usuários do servidor.
+  chmod 600 .env
   # .env antigo: só acrescenta chaves que surgiram depois, sem mexer nas existentes.
   added=0
   for name in WEEDIARIO_HEALTH_KEY WEEDIARIO_EMAIL_KEY; do
@@ -45,5 +47,6 @@ WEEDIARIO_HEALTH_KEY=$(openssl rand -base64 32 | tr -d '
 WEEDIARIO_EMAIL_KEY=$(openssl rand -base64 32 | tr -d '\n')
 WEEDIARIO_HTTP_PORT=8080
 EOF
+chmod 600 .env
 
 echo ".env criado. Suba com: docker compose up -d --build"

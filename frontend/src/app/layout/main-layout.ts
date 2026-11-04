@@ -1,5 +1,12 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DOCUMENT,
+  DestroyRef,
+  inject,
+  signal,
+} from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -11,6 +18,7 @@ import { ThemeService } from '../core/theme/theme.service';
 import { Avatar } from '../shared/avatar';
 import { Icon, IconName } from '../shared/icon';
 import { PrivacyNote } from '../shared/privacy-note';
+import { BannedExport } from './banned-export';
 
 interface NavItem {
   readonly path: string;
@@ -32,7 +40,16 @@ const DESKTOP_QUERY = '(min-width: 1024px)';
 @Component({
   selector: 'app-main-layout',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet, Icon, Avatar, PrivacyNote],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    NgTemplateOutlet,
+    Icon,
+    Avatar,
+    PrivacyNote,
+    BannedExport,
+  ],
   templateUrl: './main-layout.html',
   host: { '(document:keydown.escape)': 'closeMenu()' },
 })
@@ -61,12 +78,26 @@ export class MainLayout {
   ];
 
   /** Só aparece para moderadores (o backend também exige o papel). */
-  protected readonly moderationNav: NavItem = { path: '/moderacao', label: 'Moderação', icon: 'shield' };
+  protected readonly moderationNav: NavItem = {
+    path: '/moderacao',
+    label: 'Moderação',
+    icon: 'shield',
+  };
 
   /** Em destaque no menu: o que a comunidade constrói junto. */
   protected readonly communityNav: readonly NavItem[] = [
-    { path: '/dados-abertos', label: 'Banco aberto', icon: 'database', hint: 'Strains livres para baixar e usar' },
-    { path: '/breeders/programa', label: 'Programa de breeders', icon: 'sprout', hint: 'Suas genéticas validadas por quem cultiva' },
+    {
+      path: '/dados-abertos',
+      label: 'Banco aberto',
+      icon: 'database',
+      hint: 'Strains livres para baixar e usar',
+    },
+    {
+      path: '/breeders/programa',
+      label: 'Programa de breeders',
+      icon: 'sprout',
+      hint: 'Suas genéticas validadas por quem cultiva',
+    },
   ];
 
   protected readonly secondaryNav: readonly NavItem[] = [
@@ -74,6 +105,7 @@ export class MainLayout {
     { path: '/ajustes', label: 'Ajustes', icon: 'settings' },
     { path: '/manifesto', label: 'Manifesto', icon: 'shield' },
     { path: '/termos', label: 'Termos de Uso', icon: 'diaries' },
+    { path: '/privacidade', label: 'Privacidade', icon: 'lock' },
   ];
 
   constructor() {
@@ -89,7 +121,10 @@ export class MainLayout {
 
     // Navegar pelo menu da gaveta fecha a gaveta.
     this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd), takeUntilDestroyed())
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
       .subscribe(() => this.menuOpen.set(false));
   }
 
@@ -110,5 +145,7 @@ export class MainLayout {
 }
 
 function desktopMediaQuery(window: Window | null): MediaQueryList | null {
-  return window && typeof window.matchMedia === 'function' ? window.matchMedia(DESKTOP_QUERY) : null;
+  return window && typeof window.matchMedia === 'function'
+    ? window.matchMedia(DESKTOP_QUERY)
+    : null;
 }

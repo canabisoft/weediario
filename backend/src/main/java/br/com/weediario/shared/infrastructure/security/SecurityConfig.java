@@ -77,8 +77,6 @@ public class SecurityConfig {
                                 "/api/v1/catalog/products/*/reviews", "/api/v1/strains/*/reviews",
                                 "/api/v1/seedbanks/*/reviews")
                         .authenticated()
-                        // A foto de perfil carrega por <img>, que não leva token: fica aberta (só a imagem).
-                        .requestMatchers(HttpMethod.GET, "/api/v1/growers/*/avatar").permitAll()
                         // Visitante só lê o catálogo (dados agregados, sem diário nem grower) e o institucional.
                         // Feed, diários, perfis e rankings de growers caem no anyRequest().authenticated().
                         .requestMatchers(HttpMethod.GET, "/api/v1/strains/**", "/api/v1/seedbanks/**",

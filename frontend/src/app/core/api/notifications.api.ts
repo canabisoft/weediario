@@ -3,7 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Page } from './api.models';
 
-export type NotificationType = 'COMMENT' | 'REACTION' | 'NEW_FOLLOWER' | 'FOLLOWED_UPDATE' | 'REPLY';
+export type NotificationType =
+  'COMMENT' | 'REACTION' | 'NEW_FOLLOWER' | 'FOLLOWED_UPDATE' | 'REPLY' | 'CONTENT_HELD';
+
+/** O que pode ser retido pela moderação (o mesmo vocabulário das denúncias). */
+export type HeldType = 'COMMENT' | 'DIARY' | 'REVIEW' | 'RECIPE' | 'RECIPE_COMMENT' | 'PROFILE';
 
 /**
  * Notificação da caixa de entrada. Reações e novos seguidores são anônimos: nunca trazem {@code actor}.
@@ -21,6 +25,12 @@ export interface NotificationItem {
   readonly occurrences: number;
   readonly createdAt: string;
   readonly read: boolean;
+  /** Só em CONTENT_HELD: o conteúdo que saiu do ar e aguarda a moderação. */
+  readonly heldType?: HeldType;
+  readonly heldId?: string;
+  /** Até quando o autor pode mandar a sua versão; ausente quando a moderação já decidiu. */
+  readonly appealUntil?: string;
+  readonly appealed?: boolean;
 }
 
 export const NOTIFICATIONS_STREAM_URL = '/api/v1/me/notifications/stream';
@@ -30,7 +40,9 @@ export class NotificationsApi {
   private readonly http = inject(HttpClient);
 
   inbox(page = 0): Observable<Page<NotificationItem>> {
-    return this.http.get<Page<NotificationItem>>('/api/v1/me/notifications', { params: { page, size: 20 } });
+    return this.http.get<Page<NotificationItem>>('/api/v1/me/notifications', {
+      params: { page, size: 20 },
+    });
   }
 
   unreadCount(): Observable<{ unread: number }> {
@@ -43,5 +55,10 @@ export class NotificationsApi {
 
   markRead(id: string): Observable<void> {
     return this.http.post<void>(`/api/v1/me/notifications/${id}/read`, {});
+  }
+
+  /** Versão do autor sobre um conteúdo retido (Termos de Uso, cláusula 9). */
+  appeal(targetType: HeldType, targetId: string, text: string): Observable<void> {
+    return this.http.post<void>('/api/v1/me/moderation/appeals', { targetType, targetId, text });
   }
 }

@@ -1,5 +1,6 @@
 package br.com.weediario.identity.infrastructure.security;
 
+import br.com.weediario.identity.domain.model.User;
 import br.com.weediario.shared.infrastructure.observability.SecuritySignals;
 import br.com.weediario.shared.infrastructure.security.SecurityConfig;
 import jakarta.servlet.FilterChain;
@@ -21,6 +22,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,6 +34,8 @@ import java.util.UUID;
  * <ul>
  *   <li>Conta suspensa, banida ou apagada: 401 {@code ACCOUNT_DISABLED}. As sessões já foram revogadas, então a
  *   renovação também falha e o app sai da conta.</li>
+ *   <li>Exceção da conta banida há menos de {@link User#BANNED_EXPORT_WINDOW}: ela entra de novo só para baixar os
+ *   próprios dados (Termos, cláusula 9). Passam apenas {@code GET /api/v1/me} e {@code POST /api/v1/me/export}.</li>
  *   <li>Papel diferente do que está no token (promovido ou tirado da equipe): 401 {@code SESSION_OUTDATED}; o app
  *   renova a sessão e recebe um token com o papel atual.</li>
  *   <li>Token de uma geração de sessões já encerrada (troca ou redefinição de senha, recuperação): 401
@@ -52,10 +57,12 @@ public class AccountStatusFilter extends OncePerRequestFilter {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final SecuritySignals signals;
+    private final Clock clock;
 
-    public AccountStatusFilter(NamedParameterJdbcTemplate jdbc, SecuritySignals signals) {
+    public AccountStatusFilter(NamedParameterJdbcTemplate jdbc, SecuritySignals signals, Clock clock) {
         this.jdbc = jdbc;
         this.signals = signals;
+        this.clock = clock;
     }
 
     @Override
@@ -71,7 +78,7 @@ public class AccountStatusFilter extends OncePerRequestFilter {
         if (authentication instanceof JwtAuthenticationToken token) {
             Jwt jwt = token.getToken();
             Optional<Current> current = current(jwt.getSubject());
-            if (current.isEmpty() || !"ACTIVE".equals(current.get().status())) {
+            if (current.isEmpty() || !allowed(current.get(), request)) {
                 reject(response, DISABLED);
                 return;
             }
@@ -89,6 +96,22 @@ public class AccountStatusFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
+    private boolean allowed(Current account, HttpServletRequest request) {
+        if ("ACTIVE".equals(account.status())) {
+            return true;
+        }
+        boolean exportWindow = "BANNED".equals(account.status()) && account.statusChangedAt() != null
+                && clock.instant().isBefore(account.statusChangedAt().plus(User.BANNED_EXPORT_WINDOW));
+        return exportWindow && isExportOnly(request);
+    }
+
+    /** O que a conta banida ainda pode fazer: ver o próprio perfil (para o app saber do prazo) e exportar os dados. */
+    private static boolean isExportOnly(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return ("GET".equals(request.getMethod()) && "/api/v1/me".equals(path))
+                || ("POST".equals(request.getMethod()) && "/api/v1/me/export".equals(path));
+    }
+
     private Optional<Current> current(String subject) {
         UUID id;
         try {
@@ -96,9 +119,11 @@ public class AccountStatusFilter extends OncePerRequestFilter {
         } catch (IllegalArgumentException | NullPointerException invalid) {
             return Optional.empty();
         }
-        return jdbc.query("select status, role, session_epoch from users where id = :id",
+        return jdbc.query("select status, role, session_epoch, status_changed_at from users where id = :id",
                 new MapSqlParameterSource("id", id),
-                (rs, n) -> new Current(rs.getString("status"), rs.getString("role"), rs.getInt("session_epoch")))
+                (rs, n) -> new Current(rs.getString("status"), rs.getString("role"), rs.getInt("session_epoch"),
+                        rs.getTimestamp("status_changed_at") == null ? null
+                                : rs.getTimestamp("status_changed_at").toInstant()))
                 .stream().findFirst();
     }
 
@@ -116,6 +141,6 @@ public class AccountStatusFilter extends OncePerRequestFilter {
         response.getWriter().write(body);
     }
 
-    private record Current(String status, String role, int sessionEpoch) {
+    private record Current(String status, String role, int sessionEpoch, Instant statusChangedAt) {
     }
 }

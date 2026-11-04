@@ -113,12 +113,13 @@ public class ProfileController {
         return profiles.changeAvatar(Viewer.requireId(principal), null);
     }
 
+    /** Só para quem tem conta (comunidade fechada); o app baixa com o token e guarda no cache privado do navegador. */
     @GetMapping("/api/v1/growers/{username}/avatar")
     public ResponseEntity<byte[]> avatar(@PathVariable String username) {
         AvatarFile avatar = profiles.avatarOf(username).orElseThrow(() -> new ResourceNotFoundException("Foto"));
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(avatar.mediaType()))
-                .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePublic())
+                .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePrivate())
                 .body(avatar.content());
     }
 

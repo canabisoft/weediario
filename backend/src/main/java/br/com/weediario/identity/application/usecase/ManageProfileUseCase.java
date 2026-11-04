@@ -106,17 +106,18 @@ public final class ManageProfileUseCase {
      * @param termsAccepted     se a versão aceita é a vigente (sem isso não dá para publicar)
      * @param profileHidden     bio/foto ocultadas do público pela moderação
      * @param hasRecoveryPhrase se a conta já tem frase de recuperação (contas antigas geram no próximo login)
+     * @param exportOnlyUntil   conta banida: até quando ela entra, só para exportar os dados (nulo nas outras)
      */
     public record MyProfile(UUID id, String username, String bio, boolean hasAvatar, String role,
                             String termsVersion, Instant termsAcceptedAt, boolean termsAccepted, String currentTermsVersion,
-                            boolean profileHidden, boolean hasRecoveryPhrase) {
+                            boolean profileHidden, boolean hasRecoveryPhrase, Instant exportOnlyUntil) {
 
         static MyProfile of(User user) {
             return new MyProfile(user.id().value(), user.username().value(),
                     user.bio().orElse(null), user.avatarImageId().isPresent(), user.role().name(),
                     user.termsVersion().orElse(null), user.termsAcceptedAt().orElse(null),
                     user.hasAcceptedCurrentTerms(), TermsOfUse.CURRENT_VERSION, user.profileHidden(),
-                    user.hasRecovery());
+                    user.hasRecovery(), user.exportAllowedUntil().orElse(null));
         }
     }
 }

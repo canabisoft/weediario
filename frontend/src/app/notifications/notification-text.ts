@@ -1,4 +1,14 @@
-import { NotificationItem } from '../core/api/notifications.api';
+import { HeldType, NotificationItem } from '../core/api/notifications.api';
+
+/** "Seu diário", "Sua receita"... no aviso de conteúdo retido. */
+const HELD_LABEL: Record<HeldType, string> = {
+  DIARY: 'Seu diário',
+  COMMENT: 'Seu comentário em',
+  REVIEW: 'Sua avaliação',
+  RECIPE: 'Sua receita',
+  RECIPE_COMMENT: 'Seu comentário na receita',
+  PROFILE: 'Seu perfil',
+};
 
 /** Pedaço da frase: texto comum ou o nome de alguém/algo em destaque. */
 export interface TextPart {
@@ -16,14 +26,21 @@ export function notificationText(item: NotificationItem): TextPart[] {
     case 'COMMENT':
       return [{ text: item.actor ?? 'Alguém', strong: true }, { text: ' comentou em ' }, title];
     case 'REACTION':
-      return [title, { text: n === 1 ? ' recebeu uma reação nova' : ` recebeu ${n} reações novas` }];
+      return [
+        title,
+        { text: n === 1 ? ' recebeu uma reação nova' : ` recebeu ${n} reações novas` },
+      ];
     case 'NEW_FOLLOWER':
-      return [{ text: n === 1 ? 'Você ganhou um seguidor novo' : `Você ganhou ${n} seguidores novos` }];
+      return [
+        { text: n === 1 ? 'Você ganhou um seguidor novo' : `Você ganhou ${n} seguidores novos` },
+      ];
     case 'REPLY':
       return [
         { text: item.actor ?? 'Alguém', strong: true },
         { text: ' respondeu seu comentário em ' },
-        item.recipeId ? { text: item.recipeName ?? 'uma receita', strong: !!item.recipeName } : title,
+        item.recipeId
+          ? { text: item.recipeName ?? 'uma receita', strong: !!item.recipeName }
+          : title,
       ];
     case 'FOLLOWED_UPDATE':
       return [
@@ -31,11 +48,22 @@ export function notificationText(item: NotificationItem): TextPart[] {
         { text: n === 1 ? ' postou um update em ' : ` postou ${n} updates em ` },
         title,
       ];
+    case 'CONTENT_HELD': {
+      const where = item.diaryTitle ?? item.recipeName;
+      return [
+        { text: HELD_LABEL[item.heldType ?? 'DIARY'] + (where ? ' ' : '') },
+        ...(where ? [{ text: where, strong: true }] : []),
+        { text: ' saiu do ar e aguarda a moderação.' },
+      ];
+    }
   }
 }
 
 /** Para onde a notificação leva. */
-export function notificationLink(item: NotificationItem, myUsername: string | undefined): string[] | null {
+export function notificationLink(
+  item: NotificationItem,
+  myUsername: string | undefined,
+): string[] | null {
   if (item.diaryId) {
     return ['/diarios', item.diaryId];
   }

@@ -4,6 +4,7 @@ import br.com.weediario.shared.domain.DomainException;
 import br.com.weediario.shared.domain.Guard;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +22,8 @@ import java.util.UUID;
 public final class User {
 
     public static final int BIO_MAX_LENGTH = 280;
+    /** Depois do banimento, a conta ainda entra por este prazo, só para exportar os próprios dados (Termos, cl. 9). */
+    public static final Duration BANNED_EXPORT_WINDOW = Duration.ofDays(30);
 
     private final UserId id;
     private final Username username;
@@ -36,12 +39,15 @@ public final class User {
     private Instant termsAcceptedAt;
     /** Bio e foto ocultadas do público pela moderação (o dono continua vendo). */
     private boolean profileHidden;
+    /** Quando o status mudou pela última vez (suspensão, banimento, reativação); nulo se nunca mudou. */
+    private Instant statusChangedAt;
     private final Instant createdAt;
     private Instant updatedAt;
 
     private User(UserId id, Username username, PasswordHash passwordHash, PasswordHash recoveryHash,
                  Role role, AccountStatus status, String bio, UUID avatarImageId, String termsVersion,
-                 Instant termsAcceptedAt, boolean profileHidden, Instant createdAt, Instant updatedAt) {
+                 Instant termsAcceptedAt, boolean profileHidden, Instant statusChangedAt, Instant createdAt,
+                 Instant updatedAt) {
         this.id = Guard.notNull(id, "Id");
         this.username = Guard.notNull(username, "Nome de usuário");
         this.passwordHash = Guard.notNull(passwordHash, "Senha");
@@ -53,6 +59,7 @@ public final class User {
         this.termsVersion = termsVersion;
         this.termsAcceptedAt = termsAcceptedAt;
         this.profileHidden = profileHidden;
+        this.statusChangedAt = statusChangedAt;
         this.createdAt = Guard.notNull(createdAt, "Data de criação");
         this.updatedAt = Guard.notNull(updatedAt, "Data de atualização");
     }
@@ -70,20 +77,39 @@ public final class User {
         Instant now = clock.instant();
         Guard.notNull(recoveryHash, "Frase de recuperação");
         return new User(UserId.newId(), username, passwordHash, recoveryHash, Role.GROWER, AccountStatus.ACTIVE, null, null,
-                terms, now, false, now, now);
+                terms, now, false, null, now, now);
     }
 
     /** Reconstitui um usuário já persistido; não aplica regras de criação. */
     public static User restore(UserId id, Username username, PasswordHash passwordHash, PasswordHash recoveryHash,
                                Role role, AccountStatus status, String bio, UUID avatarImageId,
                                String termsVersion, Instant termsAcceptedAt, boolean profileHidden,
-                               Instant createdAt, Instant updatedAt) {
+                               Instant statusChangedAt, Instant createdAt, Instant updatedAt) {
         return new User(id, username, passwordHash, recoveryHash, role, status, bio, avatarImageId, termsVersion,
-                termsAcceptedAt, profileHidden, createdAt, updatedAt);
+                termsAcceptedAt, profileHidden, statusChangedAt, createdAt, updatedAt);
     }
 
     public boolean canAuthenticate() {
         return status == AccountStatus.ACTIVE;
+    }
+
+    /**
+     * Conta banida há menos de {@link #BANNED_EXPORT_WINDOW}: entra de novo só para baixar os próprios dados. O resto
+     * da API continua recusando (AccountStatusFilter).
+     */
+    public boolean canSignInToExport(Instant now) {
+        return status == AccountStatus.BANNED && exportAllowedUntil().map(now::isBefore).orElse(false);
+    }
+
+    /** Até quando a conta banida pode exportar os dados; vazio se ela não está banida. */
+    public Optional<Instant> exportAllowedUntil() {
+        return status == AccountStatus.BANNED && statusChangedAt != null
+                ? Optional.of(statusChangedAt.plus(BANNED_EXPORT_WINDOW)) : Optional.empty();
+    }
+
+    /** Entra normalmente ou, banida, só para exportar. */
+    public boolean canSignIn(Instant now) {
+        return canAuthenticate() || canSignInToExport(now);
     }
 
     /** Define a senha (troca ou redefinição). Quem chama já conferiu a senha atual, a frase ou o link do e-mail. */
@@ -143,6 +169,7 @@ public final class User {
         }
         this.status = newStatus;
         this.updatedAt = clock.instant();
+        this.statusChangedAt = this.updatedAt;
     }
 
     /**
@@ -237,6 +264,10 @@ public final class User {
 
     public Instant createdAt() {
         return createdAt;
+    }
+
+    public Instant statusChangedAt() {
+        return statusChangedAt;
     }
 
     public Instant updatedAt() {

@@ -6,6 +6,7 @@ import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
 import { NotificationCenter } from '../core/notifications/notification-center';
 import { Icon, IconName } from '../shared/icon';
+import { HeldAppeal } from './held-appeal';
 import { notificationLink, notificationText, timeAgo } from './notification-text';
 
 const ICONS: Record<NotificationItem['type'], IconName> = {
@@ -14,6 +15,7 @@ const ICONS: Record<NotificationItem['type'], IconName> = {
   NEW_FOLLOWER: 'userPlus',
   FOLLOWED_UPDATE: 'diaries',
   REPLY: 'reply',
+  CONTENT_HELD: 'shield',
 };
 
 /**
@@ -22,11 +24,12 @@ const ICONS: Record<NotificationItem['type'], IconName> = {
 @Component({
   selector: 'app-notifications-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgTemplateOutlet, Icon],
+  imports: [RouterLink, NgTemplateOutlet, Icon, HeldAppeal],
   template: `
     <h1 class="text-2xl font-bold">Notificações</h1>
     <p class="text-fg-muted">
-      Comentários, respostas, reações e novidades de quem você segue. Reações e seguidores chegam anônimos, do jeito que o resto do app mostra.
+      Comentários, respostas, reações, novidades de quem você segue e avisos da moderação. Reações e
+      seguidores chegam anônimos, do jeito que o resto do app mostra.
     </p>
 
     @if (items(); as list) {
@@ -34,22 +37,55 @@ const ICONS: Record<NotificationItem['type'], IconName> = {
         @for (item of list; track item.id) {
           <li>
             @let target = link(item);
-            @if (target) {
-              <a [routerLink]="target" class="wd-card flex items-start gap-3 hover:border-accent/50" [class.border-accent]="!item.read">
-                <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: item }" />
+            @if (item.type === 'CONTENT_HELD') {
+              <!-- Tem formulário dentro: não vira link. -->
+              <div class="wd-card grid gap-3" [class.border-accent]="!item.read">
+                <div class="flex items-start gap-3">
+                  <ng-container
+                    [ngTemplateOutlet]="row"
+                    [ngTemplateOutletContext]="{ $implicit: item }"
+                  />
+                </div>
+                <app-held-appeal class="block pl-13" [item]="item" />
+                @if (target) {
+                  <a [routerLink]="target" class="pl-13 text-sm font-semibold text-accent"
+                    >Ver o conteúdo</a
+                  >
+                }
+              </div>
+            } @else if (target) {
+              <a
+                [routerLink]="target"
+                class="wd-card flex items-start gap-3 hover:border-accent/50"
+                [class.border-accent]="!item.read"
+              >
+                <ng-container
+                  [ngTemplateOutlet]="row"
+                  [ngTemplateOutletContext]="{ $implicit: item }"
+                />
               </a>
             } @else {
               <div class="wd-card flex items-start gap-3" [class.border-accent]="!item.read">
-                <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: item }" />
+                <ng-container
+                  [ngTemplateOutlet]="row"
+                  [ngTemplateOutletContext]="{ $implicit: item }"
+                />
               </div>
             }
           </li>
         } @empty {
-          <li class="wd-card text-center text-fg-muted">Nada por aqui ainda. Quando alguém interagir com seus diários, aparece aqui.</li>
+          <li class="wd-card text-center text-fg-muted">
+            Nada por aqui ainda. Quando alguém interagir com seus diários, aparece aqui.
+          </li>
         }
       </ul>
       @if (hasMore()) {
-        <button type="button" class="wd-button mt-4 w-full bg-surface-raised text-fg" [disabled]="loading()" (click)="loadMore()">
+        <button
+          type="button"
+          class="wd-button mt-4 w-full bg-surface-raised text-fg"
+          [disabled]="loading()"
+          (click)="loadMore()"
+        >
           Carregar mais
         </button>
       }
@@ -74,7 +110,9 @@ const ICONS: Record<NotificationItem['type'], IconName> = {
             }
           }
         </span>
-        <time class="text-xs text-fg-muted" [attr.datetime]="item.createdAt">{{ when(item.createdAt) }}</time>
+        <time class="text-xs text-fg-muted" [attr.datetime]="item.createdAt">{{
+          when(item.createdAt)
+        }}</time>
       </span>
       @if (!item.read) {
         <span class="mt-2 size-2.5 shrink-0 rounded-full bg-accent" aria-label="Nova"></span>

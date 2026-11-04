@@ -105,8 +105,12 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.hasAvatar").value(true))
                 .andExpect(jsonPath("$.email").doesNotExist());
 
-        byte[] avatar = mvc.perform(get("/api/v1/growers/{u}/avatar", grower.username()))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        // Comunidade fechada: sem conta, a foto não aparece (nem confirma que o apelido existe).
+        mvc.perform(get("/api/v1/growers/{u}/avatar", grower.username())).andExpect(status().isUnauthorized());
+        byte[] avatar = mvc.perform(signedIn(get("/api/v1/growers/{u}/avatar", grower.username())))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("private")))
+                .andReturn().getResponse().getContentAsByteArray();
         var metadata = com.drew.imaging.ImageMetadataReader.readMetadata(new ByteArrayInputStream(avatar), avatar.length);
         assertThat(metadata.getFirstDirectoryOfType(com.drew.metadata.exif.GpsDirectory.class)).isNull();
 
@@ -114,7 +118,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
         mvc.perform(authed(get("/api/v1/me"), grower)).andExpect(jsonPath("$.email").doesNotExist());
 
         mvc.perform(authed(delete("/api/v1/me/avatar"), grower)).andExpect(jsonPath("$.hasAvatar").value(false));
-        mvc.perform(get("/api/v1/growers/{u}/avatar", grower.username())).andExpect(status().isNotFound());
+        mvc.perform(signedIn(get("/api/v1/growers/{u}/avatar", grower.username()))).andExpect(status().isNotFound());
     }
 
     @Test

@@ -14,7 +14,7 @@
 - Catálogo de strains: genéticas, bancos de sementes e produtos, com as médias de avaliação da comunidade.
 - Banco aberto: os números agregados do catálogo em CSV e JSON, sob a licença ODbL, sem dado pessoal de ninguém.
 - Ferramentas: calculadora de VPD e conversor EC/PPM, que funcionam offline.
-- Manifesto de privacidade e Termos de Uso.
+- Manifesto, Termos de Uso e Política de Privacidade.
 
 ## O que exige conta
 
@@ -28,6 +28,7 @@ Diários de cultivo, fotos, perfis, comentários, avaliações, rankings, receit
 - [Ferramentas](https://weediario.com/ferramentas): calculadora de VPD e conversor EC/PPM.
 - [Dados abertos](https://weediario.com/dados-abertos): download do catálogo em CSV e JSON.
 - [Termos de Uso](https://weediario.com/termos): as regras da comunidade.
+- [Política de Privacidade](https://weediario.com/privacidade): quem trata os dados, bases legais e direitos (LGPD).
 - [Programa de breeders](https://weediario.com/breeders/programa): cadastro de genéticas por bancos e breeders.
 
 ## Código

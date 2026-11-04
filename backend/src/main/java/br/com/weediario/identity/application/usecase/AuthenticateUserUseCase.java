@@ -13,10 +13,14 @@ import br.com.weediario.identity.domain.service.PasswordHasher;
 import br.com.weediario.shared.application.UnitOfWork;
 import br.com.weediario.shared.domain.DomainException;
 
+import java.time.Clock;
 import java.util.Optional;
 
 /**
  * Login com apelido + senha.
+ * <p>
+ * Conta banida há menos de 30 dias entra, mas só para exportar os próprios dados (User#canSignInToExport; o
+ * AccountStatusFilter recusa o resto da API).
  * <p>
  * Conta inexistente, senha errada e conta suspensa recebem a mesma resposta e levam o mesmo tempo (o Argon2 roda
  * contra um hash falso quando a conta não existe). A senha é escolhida por gente e pode ser adivinhada, então há limite
@@ -29,21 +33,25 @@ public final class AuthenticateUserUseCase {
     private final SessionIssuer sessionIssuer;
     private final LoginThrottle throttle;
     private final UnitOfWork unitOfWork;
+    private final Clock clock;
     /** Comparado quando a conta não existe, para o tempo não revelar isso. */
     private final PasswordHash passwordDecoy;
 
     public AuthenticateUserUseCase(UserRepository users, PasswordHasher passwordHasher, SessionIssuer sessionIssuer,
-                                   LoginThrottle throttle, UnitOfWork unitOfWork) {
+                                   LoginThrottle throttle, UnitOfWork unitOfWork, Clock clock) {
         this.users = users;
         this.passwordHasher = passwordHasher;
         this.sessionIssuer = sessionIssuer;
         this.throttle = throttle;
         this.unitOfWork = unitOfWork;
+        this.clock = clock;
         this.passwordDecoy = passwordHasher.hash("timing-decoy-" + System.nanoTime());
     }
 
     public AuthenticatedSession execute(Command command) {
-        LoginThrottle.Attempt attempt = throttle.begin(LoginThrottle.LOGIN, command.login());
+        LoginThrottle.Attempt attempt = command.trustedDevice() == null
+                ? throttle.begin(LoginThrottle.LOGIN, command.login())
+                : throttle.beginOnDevice(command.trustedDevice(), command.login());
         Optional<User> user = findUser(command.login());
         String password = command.password() == null ? "" : command.password();
         boolean matches;
@@ -55,7 +63,7 @@ public final class AuthenticateUserUseCase {
         }
 
         Optional<User> authenticated = user.filter(found ->
-                matches && found.canAuthenticate());
+                matches && found.canSignIn(clock.instant()));
         if (authenticated.isEmpty()) {
             throw new InvalidCredentialsException();
         }
@@ -77,8 +85,16 @@ public final class AuthenticateUserUseCase {
         }
     }
 
-    /** @param login apelido */
-    public record Command(String login, String password) {
+    /**
+     * @param login         apelido
+     * @param trustedDevice aparelho que já entrou nesta conta (cookie conferido), ou {@code null}: muda só qual
+     *                      contagem de tentativas vale ({@link LoginThrottle#beginOnDevice})
+     */
+    public record Command(String login, String password, String trustedDevice) {
+
+        public Command(String login, String password) {
+            this(login, password, null);
+        }
 
         @Override
         public String toString() {

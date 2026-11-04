@@ -1,6 +1,7 @@
 package br.com.weediario.moderation.infrastructure.persistence;
 
 import br.com.weediario.moderation.domain.model.ContentRef;
+import br.com.weediario.moderation.domain.model.HoldState;
 import br.com.weediario.moderation.domain.model.ModerationLogEntry;
 import br.com.weediario.moderation.domain.model.ModerationVocabulary.HoldCause;
 import br.com.weediario.moderation.domain.model.ModerationVocabulary.ReportReason;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
+import java.util.Optional;
 
 @Repository
 public class JdbcModerationRepository implements ModerationRepository {
@@ -66,13 +68,32 @@ public class JdbcModerationRepository implements ModerationRepository {
     }
 
     @Override
-    public void hold(ContentRef target, HoldCause cause, String detail, Instant at) {
-        jdbc.update("""
+    public boolean hold(ContentRef target, HoldCause cause, String detail, Instant at) {
+        return jdbc.update("""
                 insert into moderation_holds (target_type, target_id, cause, detail, held_at)
                 values (:type, :id, :cause, :detail, :at)
                 on conflict (target_type, target_id) do nothing""",
                 ref(target).addValue("cause", cause.name()).addValue("detail", detail, Types.VARCHAR)
-                        .addValue("at", Timestamp.from(at)));
+                        .addValue("at", Timestamp.from(at))) > 0;
+    }
+
+    @Override
+    public Optional<HoldState> holdState(ContentRef target) {
+        return jdbc.query("""
+                select held_at, appealed_at from moderation_holds
+                 where target_type = :type and target_id = :id
+                   for update""", ref(target),
+                (rs, n) -> new HoldState(rs.getTimestamp("held_at").toInstant(),
+                        rs.getTimestamp("appealed_at") == null ? null : rs.getTimestamp("appealed_at").toInstant()))
+                .stream().findFirst();
+    }
+
+    @Override
+    public void appeal(ContentRef target, String text, Instant at) {
+        jdbc.update("""
+                update moderation_holds set appeal = :text, appealed_at = :at
+                 where target_type = :type and target_id = :id and appealed_at is null""",
+                ref(target).addValue("text", text).addValue("at", Timestamp.from(at)));
     }
 
     @Override

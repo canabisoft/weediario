@@ -6,7 +6,7 @@
 </a>
 
 <!-- Menu lateral só para quem tem conta: quase tudo nele pede login. Visitante navega pela landing e pelo cabeçalho. -->
-@if (auth.isLoggedIn()) {
+@if (auth.isMember()) {
   <!-- Fundo escurecido atrás da gaveta (só no celular). -->
   @if (menuOpen()) {
     <div
@@ -124,16 +124,16 @@
   </a>
 </ng-template>
 
-<div [class]="auth.isLoggedIn() ? 'lg:pl-64' : ''">
+<div [class]="auth.isMember() ? 'lg:pl-64' : ''">
   <header
     class="sticky top-0 z-30 border-b border-line bg-canvas/90 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:px-8"
   >
     <!-- Visitante: sem menu lateral, a barra segue a mesma coluna centralizada do conteúdo. -->
     <div
       class="flex items-center gap-2 lg:gap-4"
-      [class]="auth.isLoggedIn() ? '' : 'mx-auto max-w-5xl lg:px-8'"
+      [class]="auth.isMember() ? '' : 'mx-auto max-w-5xl lg:px-8'"
     >
-      @if (auth.isLoggedIn()) {
+      @if (auth.isMember()) {
         <button
           type="button"
           class="grid size-11 place-items-center rounded-xl text-fg lg:hidden"
@@ -214,7 +214,7 @@
       }
     </div>
 
-    @if (auth.isLoggedIn()) {
+    @if (auth.isMember()) {
       <!-- No celular a busca ganha a largura toda, abaixo da barra. -->
       <form role="search" class="mt-3 md:hidden" (submit)="search($event)">
         <ng-container *ngTemplateOutlet="searchField; context: { $implicit: 'busca-mobile' }" />
@@ -287,6 +287,11 @@
   }
 
   <main id="conteudo" class="mx-auto w-full max-w-5xl px-4 pb-16 pt-6 lg:px-8">
-    <router-outlet />
+    @if (auth.me()?.exportOnlyUntil) {
+      <!-- Conta banida: só baixa os dados (a API recusa o resto). -->
+      <app-banned-export />
+    } @else {
+      <router-outlet />
+    }
   </main>
 </div>

@@ -27,7 +27,16 @@ describe('MainLayout', () => {
   });
 
   function signIn(role: 'GROWER' | 'MODERATOR' = 'GROWER') {
-    TestBed.inject(AuthService).me.set({ id: 'u1', username: 'maria', hasAvatar: false, hasRecoveryPhrase: true, role, termsAccepted: true, currentTermsVersion: '1.0', profileHidden: false });
+    TestBed.inject(AuthService).me.set({
+      id: 'u1',
+      username: 'maria',
+      hasAvatar: false,
+      hasRecoveryPhrase: true,
+      role,
+      termsAccepted: true,
+      currentTermsVersion: '1.0',
+      profileHidden: false,
+    });
   }
 
   async function render() {
@@ -41,10 +50,20 @@ describe('MainLayout', () => {
     const { root } = await render();
     const nav = root.querySelector('nav[aria-label="Navegação principal"]')!;
 
-    for (const label of ['Home', 'Diários', 'Catálogo', 'Mais usados', 'Equipamentos', 'Ranking de growers', 'Ferramentas']) {
+    for (const label of [
+      'Home',
+      'Diários',
+      'Catálogo',
+      'Mais usados',
+      'Equipamentos',
+      'Ranking de growers',
+      'Ferramentas',
+    ]) {
       expect(nav.textContent).toContain(label);
     }
-    expect(root.querySelector('aside app-privacy-note')!.textContent).toContain('Sua privacidade vem primeiro');
+    expect(root.querySelector('aside app-privacy-note')!.textContent).toContain(
+      'Sua privacidade vem primeiro',
+    );
   });
 
   it('highlights the open database and the breeder program in the sidebar', async () => {
@@ -53,8 +72,12 @@ describe('MainLayout', () => {
     const community = root.querySelector('section[aria-labelledby="menu-comunidade"]')!;
 
     expect(community.textContent).toContain('Feito pela comunidade');
-    expect(community.querySelector('a[href="/dados-abertos"]')!.textContent).toContain('Banco aberto');
-    expect(community.querySelector('a[href="/breeders/programa"]')!.textContent).toContain('Programa de breeders');
+    expect(community.querySelector('a[href="/dados-abertos"]')!.textContent).toContain(
+      'Banco aberto',
+    );
+    expect(community.querySelector('a[href="/breeders/programa"]')!.textContent).toContain(
+      'Programa de breeders',
+    );
   });
 
   it('has a highlighted quick action to start a diary', async () => {
@@ -105,6 +128,27 @@ describe('MainLayout', () => {
     expect(root.querySelector('header a[href="/cadastro"]')?.textContent).toContain('Criar conta');
   });
 
+  it('shows a banned account only the screen to download its data', async () => {
+    TestBed.inject(AuthService).me.set({
+      id: 'u1',
+      username: 'maria',
+      hasAvatar: false,
+      hasRecoveryPhrase: true,
+      role: 'GROWER',
+      termsAccepted: true,
+      currentTermsVersion: '1.2',
+      profileHidden: false,
+      exportOnlyUntil: '2026-12-04T12:00:00Z',
+    });
+    const { root } = await render();
+
+    expect(root.querySelector('app-banned-export')?.textContent).toContain('Esta conta foi banida');
+    expect(root.textContent).toContain('Baixar meus dados');
+    expect(root.textContent).not.toContain('Apagar minha conta');
+    expect(root.querySelector('aside')).toBeNull();
+    expect(root.querySelector('router-outlet')).toBeNull();
+  });
+
   it('toggles night mode with one tap from the header', async () => {
     const { fixture, root } = await render();
     const button = root.querySelector('header button[aria-pressed]') as HTMLButtonElement;
@@ -132,11 +176,22 @@ describe('MainLayout', () => {
 
   it('asks for the new terms when the account accepted an older version', async () => {
     const auth = TestBed.inject(AuthService);
-    auth.me.set({ id: 'u1', username: 'maria', hasAvatar: false, hasRecoveryPhrase: true, role: 'GROWER',
-      termsVersion: '0.9', termsAccepted: false, currentTermsVersion: '1.0', profileHidden: false });
+    auth.me.set({
+      id: 'u1',
+      username: 'maria',
+      hasAvatar: false,
+      hasRecoveryPhrase: true,
+      role: 'GROWER',
+      termsVersion: '0.9',
+      termsAccepted: false,
+      currentTermsVersion: '1.0',
+      profileHidden: false,
+    });
     const { root } = await render();
 
-    const banner = [...root.querySelectorAll('[role=status]')].find((el) => el.textContent?.includes('Termos de Uso'));
+    const banner = [...root.querySelectorAll('[role=status]')].find((el) =>
+      el.textContent?.includes('Termos de Uso'),
+    );
     expect(banner?.querySelector('a[href="/termos"]')).not.toBeNull();
   });
 });
