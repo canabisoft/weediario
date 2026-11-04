@@ -108,6 +108,9 @@ weediario:
       cookie-path: /api/v1/auth
     cors:
       allowed-origins: ${WEEDIARIO_CORS_ORIGINS:http://localhost:4200}
+  ops:
+    # Token do monitor externo que lê GET /api/v1/ops/signals (cabeçalho X-Weediario-Monitor). Vazio = rota desligada.
+    monitor-token: ${WEEDIARIO_MONITOR_TOKEN:}
 
 logging:
   level:

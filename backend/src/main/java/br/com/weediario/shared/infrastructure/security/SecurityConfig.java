@@ -71,6 +71,8 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
+                        // Monitor externo: sem JWT, o controller confere o token próprio (e responde 404 sem ele).
+                        .requestMatchers(HttpMethod.GET, "/api/v1/ops/signals").permitAll()
                         // Comunidade fechada: rankings e relatos de quem cultiva (reviews, com apelido e link de
                         // diário) são só para quem tem conta, mesmo dentro dos caminhos do catálogo.
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/rankings/**",

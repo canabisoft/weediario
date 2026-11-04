@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "weediario.social.pseudonym-key=cHNldWRvbnltLWtleS1mb3ItdGVzdHMtb25seS0yNTYtYml0cyE=",
         "weediario.treatment.encryption-key=dGVzdC1rZXktZm9yLWhlYWx0aC1kYXRhLTMyYnl0ZXM=",
         "weediario.identity.mail.email-key=ZW1haWwta2V5LWZvci10ZXN0cy1vbmx5LTMyYnl0ZXM=",
+        "weediario.ops.monitor-token=" + IntegrationTestSupport.MONITOR_TOKEN,
         "spring.datasource.username=",
         "spring.datasource.password=",
         // Desafio anti-robô fácil: os testes cadastram centenas de contas.
@@ -44,6 +45,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Import({EmbeddedPostgresConfig.class, RecordingAccountMailer.Config.class})
 public abstract class IntegrationTestSupport {
+
+    /** Token do monitor externo dos sinais de segurança (só de teste). */
+    protected static final String MONITOR_TOKEN = "monitor-token-only-for-tests-0123456789";
 
     /** Versão vigente dos Termos de Uso (o cadastro exige o aceite). */
     protected static final String TERMS = "1.2";

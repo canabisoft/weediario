@@ -105,6 +105,8 @@ services:
       WEEDIARIO_EMAIL_KEY: ${WEEDIARIO_EMAIL_KEY:?rode scripts/setup-env para acrescentar a chave ao .env}
       # Dia em que os Termos de Uso entraram no ar (lançamento), ex. 2026-11-01.
       WEEDIARIO_TERMS_PUBLISHED_ON: ${WEEDIARIO_TERMS_PUBLISHED_ON:-}
+      # Token do monitor externo dos sinais de segurança (GET /api/v1/ops/signals). Vazio = rota desligada.
+      WEEDIARIO_MONITOR_TOKEN: ${WEEDIARIO_MONITOR_TOKEN:-}
       # E-mail opcional (confirmação, redefinição de senha, avisos). Sem SMTP, o envio fica desligado.
       WEEDIARIO_PUBLIC_URL: ${WEEDIARIO_PUBLIC_URL:-http://localhost:${WEEDIARIO_HTTP_PORT:-8080}}
       WEEDIARIO_MAIL_FROM: ${WEEDIARIO_MAIL_FROM:-}

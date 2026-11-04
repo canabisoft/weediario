@@ -20,7 +20,7 @@ if (Test-Path $envFile) {
             $added = $true
         }
     }
-    foreach ($name in @('WEEDIARIO_DB_OWNER_PASSWORD', 'WEEDIARIO_DB_APP_PASSWORD')) {
+    foreach ($name in @('WEEDIARIO_DB_OWNER_PASSWORD', 'WEEDIARIO_DB_APP_PASSWORD', 'WEEDIARIO_MONITOR_TOKEN')) {
         if (-not (Select-String -Path $envFile -Pattern "^$name=" -Quiet)) {
             $line = "$name=$(([System.BitConverter]::ToString((New-RandomBytes 24))) -replace '-', '')"
             [System.IO.File]::AppendAllText($envFile, $line + "`n", (New-Object System.Text.UTF8Encoding $false))
@@ -43,6 +43,7 @@ $lines = @(
     "WEEDIARIO_PSEUDONYM_KEY=$([Convert]::ToBase64String((New-RandomBytes 48)))"
     "WEEDIARIO_HEALTH_KEY=$([Convert]::ToBase64String((New-RandomBytes 32)))"
     "WEEDIARIO_EMAIL_KEY=$([Convert]::ToBase64String((New-RandomBytes 32)))"
+    "WEEDIARIO_MONITOR_TOKEN=$(([System.BitConverter]::ToString((New-RandomBytes 24))) -replace '-', '')"
     'WEEDIARIO_HTTP_PORT=8080'
 )
 # UTF-8 sem BOM: o docker compose lê o arquivo literalmente.

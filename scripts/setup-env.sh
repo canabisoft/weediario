@@ -16,7 +16,7 @@ if [ -f .env ]; then
       added=1
     fi
   done
-  for name in WEEDIARIO_DB_OWNER_PASSWORD WEEDIARIO_DB_APP_PASSWORD; do
+  for name in WEEDIARIO_DB_OWNER_PASSWORD WEEDIARIO_DB_APP_PASSWORD WEEDIARIO_MONITOR_TOKEN; do
     if ! grep -q "^$name=" .env; then
       printf '%s=%s
 ' "$name" "$(openssl rand -hex 24)" >> .env
@@ -45,6 +45,7 @@ WEEDIARIO_PSEUDONYM_KEY=$(secret)
 WEEDIARIO_HEALTH_KEY=$(openssl rand -base64 32 | tr -d '
 ')
 WEEDIARIO_EMAIL_KEY=$(openssl rand -base64 32 | tr -d '\n')
+WEEDIARIO_MONITOR_TOKEN=$(openssl rand -hex 24)
 WEEDIARIO_HTTP_PORT=8080
 EOF
 chmod 600 .env
