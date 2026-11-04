@@ -83,10 +83,10 @@ public class DiaryTimelineController {
                                         @PathVariable UUID photoId,
                                         @RequestParam(defaultValue = "FULL") PhotoSize size) {
         GetDiaryPhotoUseCase.Photo photo = getPhoto.execute(diaryId, photoId, size, Viewer.idOf(principal));
-        // Fotos de diários privados nunca vão para cache compartilhado (CDN/proxy).
+        // Foto exige login: nunca em cache compartilhado (CDN/proxy). A de diário privado nem no navegador fica.
         // O conteúdo de um id nunca muda, então o navegador não precisa revalidar ("immutable").
-        CacheControl cache = photo.publiclyCacheable()
-                ? CacheControl.maxAge(Duration.ofDays(7)).cachePublic().immutable()
+        CacheControl cache = photo.browserCacheable()
+                ? CacheControl.maxAge(Duration.ofDays(7)).cachePrivate().immutable()
                 : CacheControl.noStore().cachePrivate();
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(photo.mediaType()))

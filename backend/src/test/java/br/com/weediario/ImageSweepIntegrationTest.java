@@ -33,7 +33,7 @@ class ImageSweepIntegrationTest extends IntegrationTestSupport {
     @Test
     void removesFilesWithoutRecordAndPhotosNothingUsesButKeepsPublishedOnes() throws Exception {
         Session grower = newGrower();
-        UUID diaryId = createDiary(grower, "Sweep Kush", "PUBLIC", LocalDate.now().minusDays(20).toString());
+        UUID diaryId = createDiary(grower, "Sweep Kush", "COMMUNITY", LocalDate.now().minusDays(20).toString());
         UUID kept = publishPhoto(grower, diaryId);
         UUID unused = publishPhoto(grower, diaryId);
 

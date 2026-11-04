@@ -32,7 +32,7 @@ public class JdbcModeratedContent implements ModeratedContent {
     static {
         SQL.put(TargetType.COMMENT, new Sql("""
                 select c.id, c.author_id, u.username, u.status, d.owner_id as container_owner,
-                       (d.visibility = 'PUBLIC' and not c.hidden) as public, d.title, c.body as text, d.id::text as link
+                       (d.visibility = 'COMMUNITY' and not c.hidden) as public, d.title, c.body as text, d.id::text as link
                   from diary_comments c
                   join users u on u.id = c.author_id
                   join grow_diaries d on d.id = c.diary_id
@@ -42,7 +42,7 @@ public class JdbcModeratedContent implements ModeratedContent {
                 "delete from diary_comments where id = :id"));
         SQL.put(TargetType.DIARY, new Sql("""
                 select d.id, d.owner_id as author_id, u.username, u.status, null::uuid as container_owner,
-                       d.visibility = 'PUBLIC' as public, d.title,
+                       d.visibility = 'COMMUNITY' as public, d.title,
                        d.title || coalesce(E'\\n' || (select string_agg(n.note, E'\\n' order by n.recorded_on, n.created_at)
                                                        from diary_updates n where n.diary_id = d.id and n.note is not null), '')
                            as text,
@@ -52,7 +52,7 @@ public class JdbcModeratedContent implements ModeratedContent {
                  where d.id = :id""",
                 "update grow_diaries set moderation_hold = true, visibility = 'PRIVATE' where id = :id",
                 """
-                update grow_diaries set visibility = case when moderation_hold then 'PUBLIC' else visibility end,
+                update grow_diaries set visibility = case when moderation_hold then 'COMMUNITY' else visibility end,
                                         moderation_hold = false
                  where id = :id""",
                 "update grow_diaries set moderation_hold = true, visibility = 'PRIVATE' where id = :id"));

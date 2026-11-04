@@ -17,7 +17,7 @@ import { MEDIUM_LABEL, STAGE_LABEL, STATUS_LABEL } from '../shared/labels';
     >
       <div class="relative aspect-[4/3]">
         @if (d.coverThumbnailUrl) {
-          <app-diary-photo class="size-full" [url]="d.coverThumbnailUrl" [isPublic]="d.visibility === 'PUBLIC'" />
+          <app-diary-photo class="size-full" [url]="d.coverThumbnailUrl" />
         } @else {
           <div class="grid size-full place-items-center bg-surface-raised text-accent/40">
             <app-icon name="leaf" class="size-14" [strokeWidth]="1.2" />
@@ -33,10 +33,6 @@ import { MEDIUM_LABEL, STAGE_LABEL, STATUS_LABEL } from '../shared/labels';
         } @else if (d.visibility === 'PRIVATE') {
           <span class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-canvas/85 px-2 py-0.5 text-xs">
             <app-icon name="lock" class="size-3" /> Privado
-          </span>
-        } @else if (d.visibility === 'COMMUNITY') {
-          <span class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-canvas/85 px-2 py-0.5 text-xs">
-            <app-icon name="user" class="size-3" /> Comunidade
           </span>
         }
       </div>

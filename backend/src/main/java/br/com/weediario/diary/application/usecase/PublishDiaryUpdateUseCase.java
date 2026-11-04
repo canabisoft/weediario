@@ -72,8 +72,8 @@ public final class PublishDiaryUpdateUseCase {
                     command.photoIds(),
                     clock);
             photos.attach(author, update.photoIds());
-            // Nota em diário público passa pelo filtro anti-comércio; retida, o diário inteiro sai do público.
-            Verdict verdict = diary.visibility() == Visibility.PUBLIC ? CommerceFilter.requireAllowedOrHeld(command.note())
+            // Nota em diário da comunidade passa pelo filtro anti-comércio; retida, o diário inteiro vira privado.
+            Verdict verdict = diary.visibility() == Visibility.COMMUNITY ? CommerceFilter.requireAllowedOrHeld(command.note())
                     : Verdict.ALLOWED;
             if (verdict.held()) {
                 diary.holdForModeration(clock);
@@ -84,7 +84,7 @@ public final class PublishDiaryUpdateUseCase {
                 moderation.heldByFilter(diary.id().value(), verdict.reason());
             }
             notifier.updatePublished(diary.id().value(), diary.ownerId().value(),
-                    diary.visibility() == Visibility.PUBLIC);
+                    diary.visibility() == Visibility.COMMUNITY);
             return view;
         });
     }

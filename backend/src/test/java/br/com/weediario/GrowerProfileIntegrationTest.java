@@ -26,8 +26,8 @@ class GrowerProfileIntegrationTest extends IntegrationTestSupport {
         String privateSetup = setup(grower, "Tenda secreta");
         setup(grower, "Setup nunca usado");
 
-        String first = diaryWithSetup(grower, publicSetup, "PUBLIC", 100);
-        diaryWithSetup(grower, publicSetup, "PUBLIC", 10);
+        String first = diaryWithSetup(grower, publicSetup, "COMMUNITY", 100);
+        diaryWithSetup(grower, publicSetup, "COMMUNITY", 10);
         diaryWithSetup(grower, privateSetup, "PRIVATE", 5);
 
         mvc.perform(authed(post("/api/v1/diaries/{id}/complete", first), grower)
@@ -40,7 +40,7 @@ class GrowerProfileIntegrationTest extends IntegrationTestSupport {
                                  "report":"Planta vigorosa, aroma doce e colheita farta."}"""))
                 .andExpect(status().isCreated());
 
-        mvc.perform(get("/api/v1/growers/{u}", grower.username()))
+        mvc.perform(signedIn(get("/api/v1/growers/{u}", grower.username())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.diaries").value(2))
                 .andExpect(jsonPath("$.harvests").value(1))
@@ -53,7 +53,7 @@ class GrowerProfileIntegrationTest extends IntegrationTestSupport {
         assertThat(setups.get(0).get("setup").get("name").asText()).isEqualTo("Tenda da sala");
         assertThat(setups.get(0).get("diaries").asInt()).isEqualTo(2);
 
-        mvc.perform(get("/api/v1/growers/{u}/reviews", grower.username()))
+        mvc.perform(signedIn(get("/api/v1/growers/{u}/reviews", grower.username())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalItems").value(1))
                 .andExpect(jsonPath("$.items[0].strain").value("Perfil Kush"))
@@ -64,7 +64,7 @@ class GrowerProfileIntegrationTest extends IntegrationTestSupport {
     @Test
     void unknownGrowerHasNoSetupsOrReviews() throws Exception {
         mvc.perform(signedIn(get("/api/v1/growers/{u}/setups", "ninguem_aqui"))).andExpect(jsonPath("$.length()").value(0));
-        mvc.perform(get("/api/v1/growers/{u}/reviews", "ninguem_aqui")).andExpect(jsonPath("$.totalItems").value(0));
+        mvc.perform(signedIn(get("/api/v1/growers/{u}/reviews", "ninguem_aqui"))).andExpect(jsonPath("$.totalItems").value(0));
     }
 
     private String setup(Session grower, String name) throws Exception {

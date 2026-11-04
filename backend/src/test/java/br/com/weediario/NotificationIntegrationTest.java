@@ -24,7 +24,7 @@ class NotificationIntegrationTest extends IntegrationTestSupport {
     void ownerIsNotifiedOfCommentsReactionsAndFollowersWithoutRevealingAnonymousActors() throws Exception {
         Session owner = newGrower();
         Session fan = newGrower();
-        UUID diaryId = createDiary(owner, "Notificada", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Notificada", "COMMUNITY", LocalDate.now().toString());
 
         mvc.perform(authed(put("/api/v1/growers/{u}/follow", owner.username()), fan)).andExpect(status().isNoContent());
         mvc.perform(authed(put("/api/v1/growers/{u}/follow", owner.username()), fan)).andExpect(status().isNoContent());
@@ -70,7 +70,7 @@ class NotificationIntegrationTest extends IntegrationTestSupport {
         Session grower = newGrower();
         Session follower = newGrower();
         mvc.perform(authed(put("/api/v1/growers/{u}/follow", grower.username()), follower)).andExpect(status().isNoContent());
-        UUID publicDiary = createDiary(grower, "Pública", "PUBLIC", LocalDate.now().minusDays(3).toString());
+        UUID publicDiary = createDiary(grower, "Pública", "COMMUNITY", LocalDate.now().minusDays(3).toString());
         UUID privateDiary = createDiary(grower, "Privada", "PRIVATE", LocalDate.now().minusDays(3).toString());
 
         publishUpdate(grower, publicDiary);
@@ -96,7 +96,7 @@ class NotificationIntegrationTest extends IntegrationTestSupport {
     void streamPushesTheUnreadCounterInRealTime() throws Exception {
         Session owner = newGrower();
         Session fan = newGrower();
-        UUID diaryId = createDiary(owner, "Ao vivo", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Ao vivo", "COMMUNITY", LocalDate.now().toString());
 
         mvc.perform(get("/api/v1/me/notifications/stream")).andExpect(status().isUnauthorized());
         MvcResult stream = mvc.perform(authed(get("/api/v1/me/notifications/stream"), owner)

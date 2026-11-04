@@ -13,6 +13,7 @@ import java.util.stream.StreamSupport;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class FeedIntegrationTest extends IntegrationTestSupport {
@@ -21,8 +22,8 @@ class FeedIntegrationTest extends IntegrationTestSupport {
     void feedShowsOnlyPublicDiariesAndFiltersByStage() throws Exception {
         String strain = "FeedStrain" + UUID.randomUUID().toString().substring(0, 6);
         Session grower = newGrower();
-        UUID flowering = createDiary(grower, strain, "PUBLIC", LocalDate.now().minusDays(60).toString());
-        UUID vegetative = createDiary(grower, strain, "PUBLIC", LocalDate.now().minusDays(20).toString());
+        UUID flowering = createDiary(grower, strain, "COMMUNITY", LocalDate.now().minusDays(60).toString());
+        UUID vegetative = createDiary(grower, strain, "COMMUNITY", LocalDate.now().minusDays(20).toString());
         UUID hidden = createDiary(grower, strain, "PRIVATE", LocalDate.now().minusDays(20).toString());
         publish(grower, flowering, "FLOWERING");
         publish(grower, vegetative, "VEGETATIVE");
@@ -40,16 +41,26 @@ class FeedIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void communityDiariesShowOnlyToSignedInViewers() throws Exception {
+    void closedCommunityHidesDiariesAndProfilesFromVisitors() throws Exception {
         String strain = "CommStrain" + UUID.randomUUID().toString().substring(0, 6);
         Session owner = newGrower();
         Session viewer = newGrower();
         UUID community = createDiary(owner, strain, "COMMUNITY", LocalDate.now().minusDays(10).toString());
         publish(owner, community, "VEGETATIVE");
 
-        // Deslogado: não aparece no feed nem abre o detalhe.
-        assertThat(ids(feed("?strain=" + strain))).doesNotContain(community.toString());
-        mvc.perform(get("/api/v1/diaries/{id}", community)).andExpect(status().isNotFound());
+        // Deslogado: feed, diário, fotos, comentários e perfil exigem conta.
+        mvc.perform(get("/api/v1/feed/diaries?strain=" + strain)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/diaries/{id}", community)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/diaries/{id}/updates", community)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/diaries/{id}/comments", community)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/growers/{u}", owner.username())).andExpect(status().isUnauthorized());
+        // O catálogo segue aberto, só com agregados.
+        mvc.perform(get("/api/v1/catalog/strains?q=" + strain)).andExpect(status().isOk());
+
+        // App antigo (ainda em cache no aparelho) que manda "PUBLIC" abre o diário para a comunidade.
+        UUID legacy = createDiary(owner, strain, "PUBLIC", LocalDate.now().toString());
+        mvc.perform(authed(get("/api/v1/diaries/{id}", legacy), owner))
+                .andExpect(jsonPath("$.visibility").value("COMMUNITY"));
 
         // Logado (outra conta): aparece no feed e o detalhe abre.
         JsonNode signedInFeed = body(mvc.perform(authed(get("/api/v1/feed/diaries?strain=" + strain), viewer))
@@ -57,8 +68,7 @@ class FeedIntegrationTest extends IntegrationTestSupport {
         assertThat(ids(signedInFeed)).contains(community.toString());
         mvc.perform(authed(get("/api/v1/diaries/{id}", community), viewer)).andExpect(status().isOk());
 
-        // No perfil do dono, o diário comunidade aparece para logado e some para deslogado.
-        assertThat(ids(feed("?author=" + owner.username()))).doesNotContain(community.toString());
+        // No perfil do dono, o diário comunidade aparece para quem está logado.
         assertThat(ids(body(mvc.perform(authed(get("/api/v1/feed/diaries?author=" + owner.username()), viewer))
                 .andExpect(status().isOk()).andReturn()))).contains(community.toString());
     }
@@ -80,7 +90,7 @@ class FeedIntegrationTest extends IntegrationTestSupport {
 
         assertThat(ids(mine)).containsExactly(hidden.toString());
         mvc.perform(get("/api/v1/me/diaries")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/diaries/{id}", hidden)).andExpect(status().isNotFound());
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", hidden))).andExpect(status().isNotFound());
     }
 
     @Test
@@ -90,7 +100,7 @@ class FeedIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void invalidFilterIsBadRequest() throws Exception {
-        mvc.perform(get("/api/v1/feed/diaries?stage=HACKED")).andExpect(status().isBadRequest());
+        mvc.perform(signedIn(get("/api/v1/feed/diaries?stage=HACKED"))).andExpect(status().isBadRequest());
     }
 
     private void publish(Session grower, UUID diaryId, String stage) throws Exception {
@@ -102,7 +112,7 @@ class FeedIntegrationTest extends IntegrationTestSupport {
     }
 
     private JsonNode feed(String query) throws Exception {
-        return body(mvc.perform(get("/api/v1/feed/diaries" + query)).andExpect(status().isOk()).andReturn());
+        return body(mvc.perform(signedIn(get("/api/v1/feed/diaries" + query))).andExpect(status().isOk()).andReturn());
     }
 
     private static List<String> ids(JsonNode page) {

@@ -142,9 +142,9 @@ class CatalogIntegrationTest extends IntegrationTestSupport {
         String picked = createDiaryJson(grower, "{\"strainId\":\"" + strainId + "\"}");
         String typed = createDiaryJson(grower, "{\"strainName\":\"lemon-tester AUTO\",\"breeder\":\"Teste Genetics\"}");
 
-        mvc.perform(get("/api/v1/diaries/{id}", picked)).andExpect(jsonPath("$.strainId").value(strainId))
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", picked))).andExpect(jsonPath("$.strainId").value(strainId))
                 .andExpect(jsonPath("$.strainName").value("Lemon Tester Auto"));
-        mvc.perform(get("/api/v1/diaries/{id}", typed)).andExpect(jsonPath("$.strainId").value(strainId));
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", typed))).andExpect(jsonPath("$.strainId").value(strainId));
         mvc.perform(get("/api/v1/catalog/strains/{id}", strainId))
                 .andExpect(jsonPath("$.diaries").value(2))
                 .andExpect(jsonPath("$.flavors[0]").value("limão"));
@@ -186,7 +186,7 @@ class CatalogIntegrationTest extends IntegrationTestSupport {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"targetId\":\"" + target + "\"}"))
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/api/v1/diaries/{id}", diary)).andExpect(jsonPath("$.strainId").value(target));
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diary))).andExpect(jsonPath("$.strainId").value(target));
         mvc.perform(get("/api/v1/catalog/strains/{id}", duplicate)).andExpect(status().isNotFound());
         // O nome da duplicada virou apelido: digitar de novo cai na principal.
         JsonNode again = resolveStrain(grower, "bubba kush duplicada", null, false);
@@ -217,7 +217,7 @@ class CatalogIntegrationTest extends IntegrationTestSupport {
                 .andReturn()).get("id").asText();
         String diaryId = createDiaryJson(grower, "{\"strainName\":\"Bubba Kush\",\"breeder\":\"Teste Genetics Seeds\","
                 + "\"setupId\":\"" + setupId + "\"}");
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.setup.products[0].name").value("Bio Grow " + suffix));
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(jsonPath("$.setup.products[0].name").value("Bio Grow " + suffix));
 
         JsonNode products = body(mvc.perform(signedIn(get("/api/v1/catalog/rankings/PRODUCTS?category=NUTRIENT&size=50")))
                 .andExpect(status().isOk()).andReturn());
@@ -234,7 +234,7 @@ class CatalogIntegrationTest extends IntegrationTestSupport {
         mvc.perform(get("/api/v1/catalog/strains?q=lemon tester"))
                 .andExpect(jsonPath("$.items[0].name").value("Lemon Tester Auto"))
                 .andExpect(jsonPath("$.items[0].reviewCount").value(0));
-        mvc.perform(get("/api/v1/strains/{id}/reviews", strainIdByName("Lemon Tester Auto")))
+        mvc.perform(signedIn(get("/api/v1/strains/{id}/reviews", strainIdByName("Lemon Tester Auto"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalItems").value(0));
         mvc.perform(get("/api/v1/strains/{id}", strainIdByName("Lemon Tester Auto")))

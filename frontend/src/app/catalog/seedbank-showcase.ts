@@ -4,11 +4,13 @@ import { RouterLink } from '@angular/router';
 import { catchError, map, of, scan, switchMap } from 'rxjs';
 import { BreederStrainCard, CatalogDbApi } from '../core/api/catalog-db.api';
 import { DiariesApi } from '../core/api/diaries.api';
+import { AuthService } from '../core/auth/auth.service';
 import { DiaryCardComponent } from '../diaries/diary-card';
 import { formatCompact, formatDecimal } from '../shared/decimal';
 import { DiaryPhoto } from '../shared/diary-photo';
 import { Icon } from '../shared/icon';
 import { DOMINANCE_LABEL, SPEED_LABEL } from '../shared/labels';
+import { MembersOnly } from '../shared/members-only';
 
 const PAGE_SIZE = 24;
 const LATEST_DIARIES = 6;
@@ -21,12 +23,12 @@ interface StrainsState {
 
 /**
  * Vitrine do breeder (banco de sementes ou independente): um card por strain que ele tem no catálogo e os cultivos mais recentes da
- * comunidade com sementes dele. Só diários públicos entram (contagens e fotos).
+ * comunidade com sementes dele. Só diários da comunidade entram (contagens e fotos).
  */
 @Component({
   selector: 'app-seedbank-showcase',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DiaryCardComponent, DiaryPhoto, Icon],
+  imports: [RouterLink, DiaryCardComponent, DiaryPhoto, Icon, MembersOnly],
   template: `
     <section class="mt-6" aria-labelledby="bank-strains">
       <h2 id="bank-strains" class="text-lg font-semibold">
@@ -94,7 +96,9 @@ interface StrainsState {
 
     <section class="mt-6" aria-labelledby="bank-diaries">
       <h2 id="bank-diaries" class="text-lg font-semibold">Últimos cultivos com sementes deste breeder</h2>
-      @if (latest(); as diaries) {
+      @if (!auth.isLoggedIn()) {
+        <app-members-only class="mt-3 block" text="Os cultivos com sementes deste breeder são da comunidade: entre para ver." />
+      } @else if (latest(); as diaries) {
         @if (diaries.length) {
           <ul class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @for (diary of diaries; track diary.id) {
@@ -102,7 +106,7 @@ interface StrainsState {
             }
           </ul>
         } @else {
-          <p class="wd-card mt-3 text-sm text-fg-muted">Ainda não há cultivos públicos com sementes deste breeder.</p>
+          <p class="wd-card mt-3 text-sm text-fg-muted">Ainda não há cultivos da comunidade com sementes deste breeder.</p>
         }
       } @else {
         <div class="mt-3 h-40 animate-pulse rounded-2xl bg-surface" aria-busy="true"></div>
@@ -113,6 +117,7 @@ interface StrainsState {
 export class SeedbankShowcase {
   private readonly catalog = inject(CatalogDbApi);
   private readonly diaries = inject(DiariesApi);
+  protected readonly auth = inject(AuthService);
 
   readonly breederId = input.required<string>();
 
@@ -143,10 +148,12 @@ export class SeedbankShowcase {
   protected readonly latest = toSignal(
     toObservable(this.breederId).pipe(
       switchMap((breederId) =>
-        this.diaries.feed({ breederId, sort: 'NEWEST', size: LATEST_DIARIES }).pipe(
-          map((result) => result.items),
-          catchError(() => of([])),
-        ),
+        this.auth.isLoggedIn()
+          ? this.diaries.feed({ breederId, sort: 'NEWEST', size: LATEST_DIARIES }).pipe(
+              map((result) => result.items),
+              catchError(() => of([])),
+            )
+          : of([]),
       ),
     ),
   );

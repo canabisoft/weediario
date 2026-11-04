@@ -27,7 +27,7 @@ class AdminPanelIntegrationTest extends IntegrationTestSupport {
     @Test
     void metricsAreAggregatedAndAdminOnly() throws Exception {
         Session grower = newGrower();
-        createDiary(grower, "Metric Kush", "PUBLIC", LocalDate.now().minusDays(3).toString());
+        createDiary(grower, "Metric Kush", "COMMUNITY", LocalDate.now().minusDays(3).toString());
 
         String body = mvc.perform(authed(get("/api/v1/admin/metrics"), admin()))
                 .andExpect(status().isOk())
@@ -117,7 +117,7 @@ class AdminPanelIntegrationTest extends IntegrationTestSupport {
         Session otherModerator = moderator();
         Session admin = admin();
         Session owner = newGrower();
-        UUID diaryId = createDiary(owner, "Staff Haze", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        UUID diaryId = createDiary(owner, "Staff Haze", "COMMUNITY", LocalDate.now().minusDays(10).toString());
 
         String byModerator = comment(otherModerator, diaryId, "Comentário de alguém da equipe");
         decide(moderator, byModerator, "REMOVE", "BAN")
@@ -139,7 +139,7 @@ class AdminPanelIntegrationTest extends IntegrationTestSupport {
     void nobodyModeratesTheirOwnContentOrApprovesTheirOwnRequest() throws Exception {
         Session moderator = moderator();
         Session owner = newGrower();
-        UUID diaryId = createDiary(owner, "Self Haze", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        UUID diaryId = createDiary(owner, "Self Haze", "COMMUNITY", LocalDate.now().minusDays(10).toString());
 
         // Comentário do próprio moderador retido pelo filtro: ele não consegue liberar.
         String held = comment(moderator, diaryId, "vendo 5g por R$ 50, entrego");
@@ -174,7 +174,7 @@ class AdminPanelIntegrationTest extends IntegrationTestSupport {
         Session owner = newGrower();
         Session banned = newGrower();
         Session suspended = newGrower();
-        UUID diaryId = createDiary(owner, "Ban Kush", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        UUID diaryId = createDiary(owner, "Ban Kush", "COMMUNITY", LocalDate.now().minusDays(10).toString());
         decide(moderator, comment(banned, diaryId, "comentário a banir"), "REMOVE", "BAN").andExpect(status().isNoContent());
         decide(moderator, comment(suspended, diaryId, "comentário a suspender"), "REMOVE", "SUSPEND")
                 .andExpect(status().isNoContent());
@@ -192,7 +192,7 @@ class AdminPanelIntegrationTest extends IntegrationTestSupport {
         Session moderator = moderator();
         Session admin = admin();
         Session owner = newGrower();
-        UUID diaryId = createDiary(owner, "Direct Haze", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        UUID diaryId = createDiary(owner, "Direct Haze", "COMMUNITY", LocalDate.now().minusDays(10).toString());
         String byAdmin = comment(admin, diaryId, "Comentário do admin");
 
         // O caminho direto não aceita moderador (nem deixa rastro); só autor e dono do diário.
@@ -211,7 +211,7 @@ class AdminPanelIntegrationTest extends IntegrationTestSupport {
         Session moderator = moderator();
         Session owner = newGrower();
         Session offender = newGrower();
-        UUID diaryId = createDiary(owner, "Cut Kush", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        UUID diaryId = createDiary(owner, "Cut Kush", "COMMUNITY", LocalDate.now().minusDays(10).toString());
         String commentId = comment(offender, diaryId, "Comentário que vai sair do ar");
 
         mvc.perform(authed(get("/api/v1/me"), offender)).andExpect(status().isOk());

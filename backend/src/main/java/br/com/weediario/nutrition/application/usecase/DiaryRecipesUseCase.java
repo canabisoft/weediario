@@ -75,7 +75,7 @@ public final class DiaryRecipesUseCase {
 
     private DiaryRef visibleDiary(UUID diaryId, Optional<UUID> viewerId) {
         return diaries.find(diaryId)
-                .filter(diary -> diary.isPublic() || viewerId.map(diary.ownerId()::equals).orElse(false))
+                .filter(diary -> (diary.shared() && viewerId.isPresent()) || viewerId.map(diary.ownerId()::equals).orElse(false))
                 .orElseThrow(() -> new ResourceNotFoundException("Diário"));
     }
 }

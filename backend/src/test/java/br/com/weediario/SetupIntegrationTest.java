@@ -50,7 +50,7 @@ class SetupIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.spec.lightWattage").value(480));
         mvc.perform(authed(delete("/api/v1/me/setups/{id}", setupId), grower)).andExpect(status().isNoContent());
 
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId))
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.setup.name").value("Tenda 80x80"))
                 .andExpect(jsonPath("$.setup.spec.lightWattage").value(240));

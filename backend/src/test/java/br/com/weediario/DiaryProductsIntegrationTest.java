@@ -20,7 +20,7 @@ class DiaryProductsIntegrationTest extends IntegrationTestSupport {
     @Test
     void nutrientAddedToAnExistingDiaryShowsUpInProductRanking() throws Exception {
         Session grower = newGrower();
-        UUID diaryId = createDiary(grower, "Gorilla Glue", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        UUID diaryId = createDiary(grower, "Gorilla Glue", "COMMUNITY", LocalDate.now().minusDays(10).toString());
         String productId = newProduct(grower, "NUTRIENT");
 
         // O cultivo foi aberto sem setup: o nutriente é informado depois, direto no diário.
@@ -31,7 +31,7 @@ class DiaryProductsIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(productId));
 
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId))
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId)))
                 .andExpect(jsonPath("$.setup.products[0].id").value(productId))
                 .andExpect(jsonPath("$.setup.name").doesNotExist());
         JsonNode row = rankingRow(productId);
@@ -49,7 +49,7 @@ class DiaryProductsIntegrationTest extends IntegrationTestSupport {
     void onlyTheAuthorChangesProducts() throws Exception {
         Session owner = newGrower();
         Session stranger = newGrower();
-        UUID diaryId = createDiary(owner, "Gelato", "PUBLIC", LocalDate.now().minusDays(3).toString());
+        UUID diaryId = createDiary(owner, "Gelato", "COMMUNITY", LocalDate.now().minusDays(3).toString());
         String productId = newProduct(stranger, "ADDITIVE");
 
         mvc.perform(authed(put("/api/v1/diaries/{id}/products", diaryId), stranger)
@@ -63,7 +63,7 @@ class DiaryProductsIntegrationTest extends IntegrationTestSupport {
     @Test
     void rejectsProductsThatAreNotInTheCatalog() throws Exception {
         Session grower = newGrower();
-        UUID diaryId = createDiary(grower, "Amnesia", "PUBLIC", LocalDate.now().minusDays(3).toString());
+        UUID diaryId = createDiary(grower, "Amnesia", "COMMUNITY", LocalDate.now().minusDays(3).toString());
 
         mvc.perform(authed(put("/api/v1/diaries/{id}/products", diaryId), grower)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"productIds\":[\"%s\"]}".formatted(UUID.randomUUID())))

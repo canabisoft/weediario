@@ -70,9 +70,9 @@ public final class CreateGrowDiaryUseCase {
 
     public GrowDiaryView execute(Command command) {
         GrowerId owner = new GrowerId(command.ownerId());
-        Visibility visibility = command.visibility() == null ? Visibility.PUBLIC : command.visibility();
-        // Título de diário público passa pelo filtro anti-comércio; o de diário privado só quando ficar público.
-        Verdict verdict = visibility == Visibility.PUBLIC ? CommerceFilter.requireAllowedOrHeld(command.title())
+        Visibility visibility = command.visibility() == null ? Visibility.COMMUNITY : command.visibility();
+        // Título de diário da comunidade passa pelo filtro anti-comércio; o de privado só quando for compartilhado.
+        Verdict verdict = visibility == Visibility.COMMUNITY ? CommerceFilter.requireAllowedOrHeld(command.title())
                 : Verdict.ALLOWED;
 
         return unitOfWork.execute(() -> {

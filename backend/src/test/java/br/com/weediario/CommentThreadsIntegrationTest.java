@@ -32,7 +32,7 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
         Session owner = newGrower();
         Session asker = newGrower();
         Session other = newGrower();
-        UUID diaryId = createDiary(owner, "Conversa", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Conversa", "COMMUNITY", LocalDate.now().toString());
 
         String root = diaryComment(asker, diaryId, "Qual EC na flora?", null).andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -42,7 +42,7 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
         String thanks = id(diaryComment(asker, diaryId, "Valeu!", answer));
         diaryComment(other, diaryId, "Outro assunto", null).andExpect(status().isCreated());
 
-        JsonNode page = body(mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId))
+        JsonNode page = body(mvc.perform(signedIn(get("/api/v1/diaries/{id}/comments", diaryId)))
                 .andExpect(status().isOk()).andReturn());
         assertThat(page.get("totalItems").asInt()).as("só comentários raiz são paginados").isEqualTo(2);
         JsonNode first = page.get("items").get(0);
@@ -58,28 +58,28 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
         assertThat(jdbc.queryForObject("select parent_id::text from diary_comments where id = ?::uuid", String.class, thanks))
                 .isEqualTo(rootId);
 
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.commentsCount").value(4));
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(jsonPath("$.commentsCount").value(4));
 
         // Responder comentário de outro diário não vale.
-        UUID otherDiary = createDiary(owner, "Outro", "PUBLIC", LocalDate.now().toString());
+        UUID otherDiary = createDiary(owner, "Outro", "COMMUNITY", LocalDate.now().toString());
         diaryComment(asker, otherDiary, "oi", rootId).andExpect(status().isNotFound());
     }
 
     @Test
     void replyPreviewShowsTheFirstRepliesAndTheRestComesFromSeeMore() throws Exception {
         Session owner = newGrower();
-        UUID diaryId = createDiary(owner, "Muitas respostas", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Muitas respostas", "COMMUNITY", LocalDate.now().toString());
         String rootId = id(diaryComment(owner, diaryId, "Pergunta", null));
         for (int i = 0; i < 7; i++) {
             id(diaryComment(newGrower(), diaryId, "resposta " + i, rootId));
         }
 
-        JsonNode root = body(mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId)).andReturn()).get("items").get(0);
+        JsonNode root = body(mvc.perform(signedIn(get("/api/v1/diaries/{id}/comments", diaryId))).andReturn()).get("items").get(0);
         assertThat(root.get("replyCount").asInt()).isEqualTo(7);
         assertThat(root.get("replies")).hasSize(5);
         assertThat(root.get("replies").get(0).get("body").asText()).isEqualTo("resposta 0");
 
-        JsonNode all = body(mvc.perform(get("/api/v1/diaries/{d}/comments/{c}/replies", diaryId, rootId))
+        JsonNode all = body(mvc.perform(signedIn(get("/api/v1/diaries/{d}/comments/{c}/replies", diaryId, rootId)))
                 .andExpect(status().isOk()).andReturn());
         assertThat(all.get("totalItems").asInt()).isEqualTo(7);
         assertThat(all.get("items").get(6).get("body").asText()).isEqualTo("resposta 6");
@@ -89,17 +89,17 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
     void heldReplyIsVisibleOnlyToItsAuthorAndGoesToModerationWithoutNotifying() throws Exception {
         Session owner = newGrower();
         Session seller = newGrower();
-        UUID diaryId = createDiary(owner, "Filtro nas respostas", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Filtro nas respostas", "COMMUNITY", LocalDate.now().toString());
         String rootId = id(diaryComment(owner, diaryId, "Como ficou a secagem?", null));
 
         diaryComment(seller, diaryId, "chama no zap 11 98765-4321", rootId).andExpect(status().isUnprocessableEntity());
         String held = id(diaryComment(seller, diaryId, "vendo 5g R$50, entrego", rootId));
 
-        JsonNode publicRoot = body(mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId)).andReturn())
+        JsonNode publicRoot = body(mvc.perform(signedIn(get("/api/v1/diaries/{id}/comments", diaryId))).andReturn())
                 .get("items").get(0);
         assertThat(publicRoot.get("replyCount").asInt()).isZero();
         assertThat(publicRoot.get("replies")).isEmpty();
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.commentsCount").value(1));
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(jsonPath("$.commentsCount").value(1));
 
         JsonNode sellerRoot = body(mvc.perform(authed(get("/api/v1/diaries/{id}/comments", diaryId), seller)).andReturn())
                 .get("items").get(0);
@@ -120,7 +120,7 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
     void replyNotifiesTheAnsweredAuthorButNotYourself() throws Exception {
         Session owner = newGrower();
         Session asker = newGrower();
-        UUID diaryId = createDiary(owner, "Avisos de resposta", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Avisos de resposta", "COMMUNITY", LocalDate.now().toString());
         String rootId = id(diaryComment(asker, diaryId, "Qual substrato?", null));
         id(diaryComment(asker, diaryId, "Esqueci: é auto?", rootId)); // respondeu a si mesmo
 
@@ -141,7 +141,7 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
         Session owner = newGrower();
         Session asker = newGrower();
         Session replier = newGrower();
-        UUID diaryId = createDiary(owner, "Apagar raiz", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Apagar raiz", "COMMUNITY", LocalDate.now().toString());
         String rootId = id(diaryComment(asker, diaryId, "Pergunta", null));
         String reply = id(diaryComment(replier, diaryId, "Resposta", rootId));
         String other = id(diaryComment(replier, diaryId, "Outra resposta", rootId));
@@ -169,7 +169,7 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
     void commentReactionsAreAnonymousCountsAndNeverStoreWhoReacted() throws Exception {
         Session owner = newGrower();
         Session fan = newGrower();
-        UUID diaryId = createDiary(owner, "Reações em comentários", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Reações em comentários", "COMMUNITY", LocalDate.now().toString());
         String rootId = id(diaryComment(owner, diaryId, "Semana 5 de flora", null));
         String reply = id(diaryComment(fan, diaryId, "Que resina!", rootId));
 
@@ -184,7 +184,7 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isOk());
 
         // A listagem traz contagens para todos e "mine" só para quem reagiu.
-        JsonNode anonymous = body(mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId)).andReturn()).get("items").get(0);
+        JsonNode anonymous = body(mvc.perform(signedIn(get("/api/v1/diaries/{id}/comments", diaryId))).andReturn()).get("items").get(0);
         assertThat(anonymous.get("reactions").get("counts").get("FIRE").asInt()).isEqualTo(1);
         assertThat(anonymous.get("reactions").get("mine")).isEmpty();
         assertThat(anonymous.get("replies").get(0).get("reactions").get("counts").get("HERB").asInt()).isEqualTo(1);
@@ -218,7 +218,7 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
     void repliesOfSuspendedAccountsDoNotLeak() throws Exception {
         Session owner = newGrower();
         Session suspended = newGrower();
-        UUID diaryId = createDiary(owner, "Contas suspensas", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Contas suspensas", "COMMUNITY", LocalDate.now().toString());
         String rootId = id(diaryComment(owner, diaryId, "Pergunta", null));
         id(diaryComment(suspended, diaryId, "Resposta", rootId));
         String suspendedRoot = id(diaryComment(suspended, diaryId, "Raiz de suspenso", null));
@@ -226,12 +226,12 @@ class CommentThreadsIntegrationTest extends IntegrationTestSupport {
 
         jdbc.update("update users set status = 'SUSPENDED' where username = ?", suspended.username());
 
-        JsonNode page = body(mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId)).andReturn());
+        JsonNode page = body(mvc.perform(signedIn(get("/api/v1/diaries/{id}/comments", diaryId))).andReturn());
         assertThat(page.get("totalItems").asInt()).isEqualTo(1);
         assertThat(page.get("items").get(0).get("replyCount").asInt()).isZero();
-        mvc.perform(get("/api/v1/diaries/{d}/comments/{c}/replies", diaryId, suspendedRoot))
+        mvc.perform(signedIn(get("/api/v1/diaries/{d}/comments/{c}/replies", diaryId, suspendedRoot)))
                 .andExpect(jsonPath("$.totalItems").value(0));
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.commentsCount").value(1));
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(jsonPath("$.commentsCount").value(1));
 
         // Nem dá para responder ou reagir ao que saiu do ar (mesmo critério da listagem).
         diaryComment(owner, diaryId, "Outra resposta", suspendedRoot).andExpect(status().isNotFound());

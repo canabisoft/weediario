@@ -44,7 +44,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
     @Test
     void harvestFeedsGramsPerPlantInTheRanking() throws Exception {
         Session grower = newGrower();
-        UUID diaryId = createDiary(grower, "Ranking Kush", "PUBLIC", LocalDate.now().minusDays(100).toString());
+        UUID diaryId = createDiary(grower, "Ranking Kush", "COMMUNITY", LocalDate.now().minusDays(100).toString());
 
         mvc.perform(authed(post("/api/v1/diaries/{id}/complete", diaryId), grower)
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
@@ -68,7 +68,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
     @Test
     void harvestNeedsWeightAndPlantsTogether() throws Exception {
         Session grower = newGrower();
-        UUID diaryId = createDiary(grower, "Half", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        UUID diaryId = createDiary(grower, "Half", "COMMUNITY", LocalDate.now().minusDays(10).toString());
 
         mvc.perform(authed(post("/api/v1/diaries/{id}/complete", diaryId), grower)
                         .contentType(MediaType.APPLICATION_JSON).content("""
@@ -81,7 +81,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
         Session grower = newGrower();
         createDiary(grower, "Secret", "PRIVATE", LocalDate.now().toString());
 
-        mvc.perform(get("/api/v1/growers/{u}", grower.username()))
+        mvc.perform(signedIn(get("/api/v1/growers/{u}", grower.username())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.diaries").value(0));
     }
@@ -100,7 +100,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.hasAvatar").value(true));
 
-        mvc.perform(get("/api/v1/growers/{u}", grower.username()))
+        mvc.perform(signedIn(get("/api/v1/growers/{u}", grower.username())))
                 .andExpect(jsonPath("$.bio").value("Cultivo indoor desde 2019."))
                 .andExpect(jsonPath("$.hasAvatar").value(true))
                 .andExpect(jsonPath("$.email").doesNotExist());
@@ -122,8 +122,8 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
         Session author = newGrower();
         Session fan = newGrower();
         String strain = "Follow" + UUID.randomUUID().toString().substring(0, 6);
-        UUID followedDiary = createDiary(author, strain, "PUBLIC", LocalDate.now().toString());
-        createDiary(newGrower(), strain, "PUBLIC", LocalDate.now().toString());
+        UUID followedDiary = createDiary(author, strain, "COMMUNITY", LocalDate.now().toString());
+        createDiary(newGrower(), strain, "COMMUNITY", LocalDate.now().toString());
 
         mvc.perform(authed(put("/api/v1/growers/{u}/follow", author.username()), fan)).andExpect(status().isNoContent());
         mvc.perform(authed(put("/api/v1/growers/{u}/follow", author.username()), fan)).andExpect(status().isNoContent());
@@ -131,7 +131,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
         mvc.perform(authed(get("/api/v1/growers/{u}", author.username()), fan))
                 .andExpect(jsonPath("$.followers").value(1))
                 .andExpect(jsonPath("$.followedByViewer").value(true));
-        mvc.perform(get("/api/v1/growers/{u}", author.username()))
+        mvc.perform(signedIn(get("/api/v1/growers/{u}", author.username())))
                 .andExpect(jsonPath("$.followedByViewer").value(false));
 
         JsonNode feed = body(mvc.perform(authed(get("/api/v1/feed/diaries?following=true&strain=" + strain), fan))
@@ -139,17 +139,17 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
         assertThat(feed.get("items")).hasSize(1);
         assertThat(feed.get("items").get(0).get("id").asText()).isEqualTo(followedDiary.toString());
 
-        mvc.perform(get("/api/v1/feed/diaries?author=" + author.username().toUpperCase()))
+        mvc.perform(signedIn(get("/api/v1/feed/diaries?author=" + author.username().toUpperCase())))
                 .andExpect(jsonPath("$.totalItems").value(1))
                 .andExpect(jsonPath("$.items[0].id").value(followedDiary.toString()));
 
-        mvc.perform(get("/api/v1/feed/diaries?following=true")).andExpect(status().isUnprocessableEntity());
+        mvc.perform(get("/api/v1/feed/diaries?following=true")).andExpect(status().isUnauthorized());
         mvc.perform(authed(get("/api/v1/me/following"), fan)).andExpect(jsonPath("$[0].username").value(author.username()));
         mvc.perform(authed(put("/api/v1/growers/{u}/follow", fan.username()), fan))
                 .andExpect(status().isUnprocessableEntity());
 
         mvc.perform(authed(delete("/api/v1/growers/{u}/follow", author.username()), fan)).andExpect(status().isNoContent());
-        mvc.perform(get("/api/v1/growers/{u}", author.username())).andExpect(jsonPath("$.followers").value(0));
+        mvc.perform(signedIn(get("/api/v1/growers/{u}", author.username()))).andExpect(jsonPath("$.followers").value(0));
     }
 
     @Test
@@ -162,7 +162,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
     @Test
     void seedbankIsRatedAlongWithTheStrain() throws Exception {
         Session grower = newGrower();
-        UUID diaryId = createDiary(grower, "Seedbank Haze", "PUBLIC", LocalDate.now().minusDays(90).toString());
+        UUID diaryId = createDiary(grower, "Seedbank Haze", "COMMUNITY", LocalDate.now().minusDays(90).toString());
         mvc.perform(authed(post("/api/v1/diaries/{id}/complete", diaryId), grower)
                         .contentType(MediaType.APPLICATION_JSON).content("""
                                 {"dryGrams":300,"plants":2}"""))
@@ -181,7 +181,7 @@ class CommunityFeaturesIntegrationTest extends IntegrationTestSupport {
         assertThat(seedbank.get("name").asText()).isEqualTo("Banco Teste");
         String seedbankId = seedbank.get("id").asText();
 
-        mvc.perform(get("/api/v1/seedbanks/{id}/reviews", seedbankId))
+        mvc.perform(signedIn(get("/api/v1/seedbanks/{id}/reviews", seedbankId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].strain").value("Seedbank Haze"))
                 .andExpect(jsonPath("$.items[0].germination").value(5));

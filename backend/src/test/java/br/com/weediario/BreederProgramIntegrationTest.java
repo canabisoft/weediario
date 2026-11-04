@@ -84,8 +84,8 @@ class BreederProgramIntegrationTest extends IntegrationTestSupport {
         Session first = newGrower();
         Session second = newGrower();
         Session third = newGrower();
-        diary(first, strainId, "PUBLIC");
-        diary(second, strainId, "PUBLIC");
+        diary(first, strainId, "COMMUNITY");
+        diary(second, strainId, "COMMUNITY");
         String productId = product(third);
         UUID thirdDiary = diary(third, strainId, "PRIVATE");
         mvc.perform(authed(put("/api/v1/diaries/{id}/products", thirdDiary), third)
@@ -107,7 +107,7 @@ class BreederProgramIntegrationTest extends IntegrationTestSupport {
 
         // 6. O breeder colhe e publica a primeira avaliação do que esperar: a review dele não conta como avaliação de
         //    fora, mas libera a entrada no banco oficial.
-        UUID repDiary = diary(rep, strainId, "PUBLIC");
+        UUID repDiary = diary(rep, strainId, "COMMUNITY");
         complete(rep, repDiary);
         review(rep, repDiary, "").andExpect(status().isCreated());
 
@@ -127,7 +127,7 @@ class BreederProgramIntegrationTest extends IntegrationTestSupport {
         mvc.perform(get("/api/v1/catalog/products/{id}", productId))
                 .andExpect(jsonPath("$.reviewCount").value(1))
                 .andExpect(jsonPath("$.rating").value(4.0));
-        JsonNode productReviews = body(mvc.perform(get("/api/v1/catalog/products/{id}/reviews", productId))
+        JsonNode productReviews = body(mvc.perform(signedIn(get("/api/v1/catalog/products/{id}/reviews", productId)))
                 .andExpect(status().isOk()).andReturn());
         JsonNode productReview = productReviews.get("items").get(0);
         assertThat(productReview.get("rating").asInt()).isEqualTo(4);

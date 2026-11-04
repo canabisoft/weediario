@@ -2,7 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { MyProfile } from '../core/api/api.models';
+import { AuthService } from '../core/auth/auth.service';
 import { SeedbankShowcase } from './seedbank-showcase';
+
+const ME: MyProfile = {
+  id: 'u1', username: 'quintal', hasAvatar: false, hasRecoveryPhrase: true, role: 'GROWER', termsAccepted: true,
+  currentTermsVersion: '1.0', profileHidden: false,
+};
 
 const strain = (id: string, name: string, extra: object = {}) => ({
   id,
@@ -15,8 +22,11 @@ const strain = (id: string, name: string, extra: object = {}) => ({
 });
 
 describe('SeedbankShowcase', () => {
-  function setup() {
+  function setup(member = true) {
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    if (member) {
+      TestBed.inject(AuthService).me.set(ME);
+    }
     const fixture = TestBed.createComponent(SeedbankShowcase);
     fixture.componentRef.setInput('breederId', 'b1');
     fixture.detectChanges();
@@ -26,7 +36,9 @@ describe('SeedbankShowcase', () => {
   const cards = (root: HTMLElement) =>
     Array.from(root.querySelectorAll('section[aria-labelledby="bank-strains"] li')).map((li) => li.textContent ?? '');
 
-  it('shows one card per strain of the seedbank and the latest public grows with its seeds', () => {
+  it('shows one card per strain of the seedbank and, to members, the latest grows with its seeds', () => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:capa');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     const { fixture, http } = setup();
 
     http.expectOne((req) => req.url === '/api/v1/catalog/breeders/b1/strains' && req.params.get('page') === '0').flush({
@@ -41,14 +53,32 @@ describe('SeedbankShowcase', () => {
     expect(feed.request.params.get('sort')).toBe('NEWEST');
     feed.flush({ items: [], page: 0, size: 6, totalItems: 0, totalPages: 0 });
     fixture.detectChanges();
+    // A capa é foto de diário da comunidade: vem pela API autenticada, nunca como <img> direto.
+    http.expectOne('/p?size=THUMBNAIL').flush(new Blob(['x']));
+    fixture.detectChanges();
 
     const texts = cards(fixture.nativeElement);
     expect(texts).toHaveLength(2);
     expect(texts[0]).toContain('Gelato 33');
     expect(texts[0]).toContain('4 cultivos');
     expect(texts[0]).toContain('4,5');
-    expect(fixture.nativeElement.querySelector('img')?.getAttribute('src')).toBe('/p?size=THUMBNAIL');
-    expect(fixture.nativeElement.textContent).toContain('Ainda não há cultivos públicos');
+    expect(fixture.nativeElement.querySelector('img')?.getAttribute('src')).toBe('blob:capa');
+    expect(fixture.nativeElement.textContent).toContain('Ainda não há cultivos da comunidade');
+    http.verify();
+    vi.restoreAllMocks();
+  });
+
+  it('shows the strain cards to visitors but invites them to join to see the grows', () => {
+    const { fixture, http } = setup(false);
+
+    http.expectOne((req) => req.url === '/api/v1/catalog/breeders/b1/strains').flush({
+      items: [strain('s1', 'Gelato 33', { diaries: 4 })], page: 0, size: 24, totalItems: 1, totalPages: 1,
+    });
+    fixture.detectChanges();
+
+    expect(cards(fixture.nativeElement)[0]).toContain('4 cultivos');
+    expect(fixture.nativeElement.querySelector('app-members-only')).not.toBeNull();
+    // Sem pedir o feed: visitante veria 401.
     http.verify();
   });
 

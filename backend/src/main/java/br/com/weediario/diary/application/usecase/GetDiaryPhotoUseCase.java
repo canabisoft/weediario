@@ -41,10 +41,13 @@ public final class GetDiaryPhotoUseCase {
             return found;
         });
         PhotoFile file = photos.open(photoId, size).orElseThrow(() -> new ResourceNotFoundException("Foto"));
-        return new Photo(file.content(), file.mediaType(), diary.visibility() == Visibility.PUBLIC);
+        return new Photo(file.content(), file.mediaType(), diary.visibility() == Visibility.COMMUNITY);
     }
 
-    /** {@code publiclyCacheable} permite cache em CDN/proxy apenas para diários públicos. */
-    public record Photo(byte[] content, String mediaType, boolean publiclyCacheable) {
+    /**
+     * Toda foto de diário exige login (comunidade fechada), então nunca vai para cache compartilhado (CDN/proxy).
+     * {@code browserCacheable}: a de diário da comunidade pode ficar no cache do próprio navegador; a de privado, não.
+     */
+    public record Photo(byte[] content, String mediaType, boolean browserCacheable) {
     }
 }

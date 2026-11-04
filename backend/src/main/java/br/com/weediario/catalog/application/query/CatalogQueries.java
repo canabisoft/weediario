@@ -95,7 +95,7 @@ public interface CatalogQueries {
 
     /**
      * Card de uma strain na página do banco. {@code coverThumbnailUrl}: miniatura da foto mais recente de um
-     * diário público com a strain (nulo se nenhum tiver foto).
+     * diário da comunidade com a strain (nulo se nenhum tiver foto ou se quem pede não está logado).
      */
     record BreederStrainCard(UUID id, String name, String floweringType, String dominance, String floweringSpeed,
                              String genetics, String status, String source, long diaries, long reviewCount,

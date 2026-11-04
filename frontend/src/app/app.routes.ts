@@ -45,6 +45,7 @@ export const routes: Routes = [
   {
     path: 'diarios',
     title: 'Diários · weediário',
+    canActivate: [authGuard],
     loadComponent: () => import('./diaries/diaries.page').then((m) => m.DiariesPage),
   },
   {
@@ -56,6 +57,7 @@ export const routes: Routes = [
   {
     path: 'diarios/:id',
     title: 'Diário · weediário',
+    canActivate: [authGuard],
     loadComponent: () => import('./diaries/diary-detail.page').then((m) => m.DiaryDetailPage),
   },
   {
@@ -135,6 +137,7 @@ export const routes: Routes = [
   {
     path: 'growers/:username',
     title: 'Grower · weediário',
+    canActivate: [authGuard],
     loadComponent: () => import('./growers/grower-profile.page').then((m) => m.GrowerProfilePage),
   },
   {

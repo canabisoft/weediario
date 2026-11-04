@@ -1,0 +1,32 @@
+# Falsos positivos do gitleaks, conferidos um a um em 04/11/2026 (guia, capítulo 3.4 / item C4).
+# Todos são valores inventados dos testes de integração (senhas de contas de teste e chaves fictícias em base64,
+# como "test-secret-with-at-least-256-bits..."), que nunca valeram em nenhum ambiente. Formato: commit:arquivo:regra:linha.
+# Antes de acrescentar uma linha, confira o valor: se for de verdade, troque a chave no serviço (capítulo 3.4).
+078662de35c5e865c1bb72e39aa9862926a2f506:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:102
+078662de35c5e865c1bb72e39aa9862926a2f506:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:26
+078662de35c5e865c1bb72e39aa9862926a2f506:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:65
+078662de35c5e865c1bb72e39aa9862926a2f506:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:95
+078662de35c5e865c1bb72e39aa9862926a2f506:backend/src/test/java/br/com/weediario/support/IntegrationTestSupport.java:generic-api-key:27
+078662de35c5e865c1bb72e39aa9862926a2f506:backend/src/test/java/br/com/weediario/support/IntegrationTestSupport.java:generic-api-key:36
+4a7782f3f52d26b2cb9b7090d5fd0e3abe8c7bdc:backend/src/test/java/br/com/weediario/AccountRecoveryIntegrationTest.java:generic-api-key:27
+4a7782f3f52d26b2cb9b7090d5fd0e3abe8c7bdc:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:121
+4a7782f3f52d26b2cb9b7090d5fd0e3abe8c7bdc:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:26
+4a7782f3f52d26b2cb9b7090d5fd0e3abe8c7bdc:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:73
+4a7782f3f52d26b2cb9b7090d5fd0e3abe8c7bdc:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:92
+5c3700840b1647874710312addd2a28997684685:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:128
+5c3700840b1647874710312addd2a28997684685:backend/src/test/java/br/com/weediario/CommunityFeaturesIntegrationTest.java:generic-api-key:159
+852dc43e2589248b7b2f8284f92e1e6f3f14f851:backend/src/test/java/br/com/weediario/support/IntegrationTestSupport.java:generic-api-key:29
+854468d3405c4cb93f9b85bbb258c3b5041b1bb1:backend/src/test/java/br/com/weediario/support/IntegrationTestSupport.java:generic-api-key:31
+a5765be24ea61e4ccbf89e96930d411aae989d43:backend/src/test/java/br/com/weediario/CommunityFeaturesIntegrationTest.java:generic-api-key:164
+c8545f05f3282fe44cb9ef699707b3c419d60d6a:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:87
+c8545f05f3282fe44cb9ef699707b3c419d60d6a:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:91
+d7255954c563cf7c3118a367e7699aada00a7961:backend/src/test/java/br/com/weediario/support/IntegrationTestSupport.java:generic-api-key:33
+fdf0b464a4942dffe4e41a16b6ddfd7ac106958b:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:100
+32f68f0087b8e0a8292545e434091ed9b443d964:backend/src/test/java/br/com/weediario/support/IntegrationTestSupport.java:generic-api-key:29
+dce5c7c008cf289fb715e514d1e9af52288e963c:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:102
+dce5c7c008cf289fb715e514d1e9af52288e963c:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:26
+dce5c7c008cf289fb715e514d1e9af52288e963c:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:65
+dce5c7c008cf289fb715e514d1e9af52288e963c:backend/src/test/java/br/com/weediario/AuthAndDiaryFlowIntegrationTest.java:generic-api-key:95
+dce5c7c008cf289fb715e514d1e9af52288e963c:backend/src/test/java/br/com/weediario/support/IntegrationTestSupport.java:generic-api-key:27
+dce5c7c008cf289fb715e514d1e9af52288e963c:backend/src/test/java/br/com/weediario/support/IntegrationTestSupport.java:generic-api-key:36
+e63d95296d933db8d2ef67ef98c1fc765b143272:backend/src/test/java/br/com/weediario/CommunityFeaturesIntegrationTest.java:generic-api-key:164

@@ -58,7 +58,7 @@ interface TimelineState {
                     (click)="viewer.set({ photos: update.photos, index: i })"
                   >
                     <!-- Só a miniatura aqui; a versão em alta é baixada ao abrir o lightbox. -->
-                    <app-diary-photo class="size-full" [url]="photo.thumbnailUrl" [isPublic]="isPublic()" alt="Foto do update" />
+                    <app-diary-photo class="size-full" [url]="photo.thumbnailUrl" alt="Foto do update" />
                   </button>
                 }
               </div>
@@ -96,7 +96,7 @@ interface TimelineState {
     }
 
     @if (viewer(); as v) {
-      <app-image-lightbox [photos]="v.photos" [startIndex]="v.index" [isPublic]="isPublic()" alt="Foto do update" (closed)="viewer.set(null)" />
+      <app-image-lightbox [photos]="v.photos" [startIndex]="v.index" alt="Foto do update" (closed)="viewer.set(null)" />
     }
   `,
 })
@@ -105,7 +105,6 @@ export class DiaryTimeline {
 
   readonly diaryId = input.required<string>();
   readonly isOwner = input(false);
-  readonly isPublic = input(true);
   /** Emitido quando um update é apagado (o cabeçalho do diário muda de estágio). */
   readonly changed = output<void>();
 

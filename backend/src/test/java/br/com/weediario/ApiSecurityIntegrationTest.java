@@ -46,7 +46,7 @@ class ApiSecurityIntegrationTest extends IntegrationTestSupport {
 
         // 404 (não 403) para não revelar sequer que o diário existe.
         mvc.perform(authed(get("/api/v1/diaries/{id}", diary), attacker)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/diaries/{id}", diary)).andExpect(status().isNotFound());
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diary))).andExpect(status().isNotFound());
 
         mvc.perform(authed(post("/api/v1/diaries/{id}/updates", diary), attacker)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"stage\":\"VEGETATIVE\",\"note\":\"x\"}"))

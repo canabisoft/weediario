@@ -43,7 +43,6 @@ export const STATUS_LABEL: Record<DiaryStatus, string> = {
 };
 
 export const VISIBILITY_LABEL: Record<Visibility, string> = {
-  PUBLIC: 'Público',
   COMMUNITY: 'Comunidade',
   PRIVATE: 'Privado',
 };

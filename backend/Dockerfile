@@ -8,7 +8,7 @@ COPY src ./src
 RUN mvn -q -B package -DskipTests
 
 # Ubuntu (glibc) e não Alpine: o encoder WebP (libwebp via JNI) é compilado para glibc e não carrega no musl.
-FROM eclipse-temurin:21-jre-noble@sha256:000fd431958bc81a24abe1e8e5f0f0fd3ae365a594bd50aadb20696805f9408c
+FROM eclipse-temurin:21-jre-noble@sha256:0eda5830ed7b669abc246a8dc520ea8a23cab06f9a8d4b6964109e2f2394e46f
 # uid/gid 100/101 são os que o adduser do Alpine gerava: volumes criados pela imagem antiga continuam acessíveis.
 RUN groupadd --system --gid 101 weediario \
     && useradd --system --uid 100 --gid weediario --no-create-home --shell /usr/sbin/nologin weediario \
@@ -21,7 +21,7 @@ USER weediario:weediario
 EXPOSE 8080
 # Rota pública e barata que também exercita o banco. start-period cobre as migrations na primeira subida.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=5 \
-    CMD curl -fsS -o /dev/null "http://127.0.0.1:8080/api/v1/feed/diaries?size=1" || exit 1
+    CMD curl -fsS -o /dev/null "http://127.0.0.1:8080/api/v1/catalog/strains?size=1" || exit 1
 # O encoder WebP extrai a libwebp para /app/native antes de carregá-la: esse diretório precisa permitir exec,
 # ao contrário do /tmp (tmpfs noexec no compose).
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-Djava.awt.headless=true", \

@@ -18,14 +18,13 @@ export class DiaryPhoto {
   private readonly source = inject(PhotoSource);
 
   readonly url = input.required<string>();
-  readonly isPublic = input(true);
   readonly alt = input('');
 
   protected readonly src = signal<string | null>(null);
 
   constructor() {
     effect((onCleanup) => {
-      const subscription = this.source.resolve(this.url(), this.isPublic()).subscribe({
+      const subscription = this.source.resolve(this.url()).subscribe({
         next: (src) => this.src.set(src),
         error: () => this.src.set(null),
       });

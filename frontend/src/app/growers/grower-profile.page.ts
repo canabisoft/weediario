@@ -30,7 +30,7 @@ function accumulate<T>(acc: Page<T>, next: Page<T>): Page<T> {
 }
 
 /**
- * Perfil público: apelido, bio, nível, estatísticas dos diários públicos, setups já usados em diários
+ * Perfil do grower (só para quem tem conta): apelido, bio, nível, estatísticas dos diários da comunidade, setups já usados em diários
  * públicos, diários e reviews. Só entra o que já é público em outro lugar; a lista de seguidores nunca aparece.
  */
 import { ReportButton } from '../shared/report-button';
@@ -70,7 +70,7 @@ import { ReportButton } from '../shared/report-button';
           <div class="wd-card mt-4 p-3">
             <p class="flex justify-between text-sm">
               <span>Próximo nível: <strong>{{ next.next.name }}</strong></span>
-              <span class="text-fg-muted">{{ next.missing === 1 ? 'falta 1 diário público' : 'faltam ' + next.missing + ' diários públicos' }}</span>
+              <span class="text-fg-muted">{{ next.missing === 1 ? 'falta 1 diário da comunidade' : 'faltam ' + next.missing + ' diários da comunidade' }}</span>
             </p>
             <div class="mt-2 h-2 overflow-hidden rounded-full bg-surface-raised" role="progressbar"
                  [attr.aria-valuenow]="percent(next.progress)" aria-valuemin="0" aria-valuemax="100"
@@ -89,12 +89,12 @@ import { ReportButton } from '../shared/report-button';
           <div class="wd-card p-3 text-center"><dd class="text-xl font-bold tabular-nums">{{ int(p.followers) }}</dd><dt class="text-xs text-fg-muted">Seguidores</dt></div>
         </dl>
 
-        <h2 class="mt-8 text-lg font-semibold">Diários públicos</h2>
+        <h2 class="mt-8 text-lg font-semibold">Diários</h2>
         <ul class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           @for (diary of diaries().items; track diary.id) {
             <li><app-diary-card [diary]="diary" /></li>
           } @empty {
-            <li class="wd-card text-center text-fg-muted sm:col-span-2 lg:col-span-3">Nenhum diário público ainda.</li>
+            <li class="wd-card text-center text-fg-muted sm:col-span-2 lg:col-span-3">Nenhum diário compartilhado ainda.</li>
           }
         </ul>
         @if (diaries().page + 1 < diaries().totalPages) {

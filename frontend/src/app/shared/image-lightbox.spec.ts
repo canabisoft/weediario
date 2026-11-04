@@ -39,30 +39,42 @@ describe('ImageLightbox', () => {
   let fixture: ComponentFixture<ImageLightbox>;
   let closed: number;
 
-  function open(isPublic: boolean, startIndex = 0): void {
+  /** Toda foto vem da API autenticada: atende os downloads e devolve um blob "apelidado" com a URL pedida. */
+  function serveDownloads(): void {
+    for (const request of TestBed.inject(HttpTestingController).match(() => true)) {
+      request.flush(Object.assign(new Blob(['x']), { from: request.request.url }));
+    }
+    fixture.detectChanges();
+  }
+
+  function open(startIndex = 0): void {
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => (blob as Blob & { from: string }).from);
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     fixture = TestBed.createComponent(ImageLightbox);
     fixture.componentRef.setInput('photos', PHOTOS);
     fixture.componentRef.setInput('startIndex', startIndex);
-    fixture.componentRef.setInput('isPublic', isPublic);
     closed = 0;
     fixture.componentInstance.closed.subscribe(() => closed++);
     fixture.detectChanges();
+    serveDownloads();
   }
 
   const images = () => Array.from(fixture.nativeElement.querySelectorAll('img') as NodeListOf<HTMLImageElement>);
   const key = (name: string) => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: name }));
     fixture.detectChanges();
+    serveDownloads();
   };
 
   afterEach(() => {
     fixture?.destroy();
     document.body.style.overflow = '';
+    vi.restoreAllMocks();
   });
 
   it('shows the cached thumbnail at once and requests only the current full-resolution photo', () => {
-    open(true);
+    open();
 
     const sources = images().map((image) => image.getAttribute('src'));
     expect(sources).toEqual(['/p/1?size=THUMBNAIL', '/p/1?size=FULL']);
@@ -70,7 +82,7 @@ describe('ImageLightbox', () => {
   });
 
   it('reveals the full-resolution image once it loads', () => {
-    open(true);
+    open();
     const full = images()[1];
     expect(full.classList).toContain('opacity-0');
 
@@ -82,7 +94,7 @@ describe('ImageLightbox', () => {
   });
 
   it('navigates with the arrow keys and wraps around', () => {
-    open(true, 2);
+    open(2);
 
     key('ArrowRight');
     expect(images()[1].getAttribute('src')).toBe('/p/1?size=FULL');
@@ -92,7 +104,7 @@ describe('ImageLightbox', () => {
   });
 
   it('closes with Escape and with the close button', () => {
-    open(true);
+    open();
 
     key('Escape');
     (fixture.nativeElement.querySelector('button[aria-label="Fechar"]') as HTMLButtonElement).click();
@@ -101,7 +113,7 @@ describe('ImageLightbox', () => {
   });
 
   it('locks page scroll while open and restores it when closed', () => {
-    open(true);
+    open();
     expect(document.body.style.overflow).toBe('hidden');
 
     fixture.destroy();
@@ -109,20 +121,16 @@ describe('ImageLightbox', () => {
     expect(document.body.style.overflow).toBe('');
   });
 
-  it('downloads photos of private diaries with the authenticated API instead of a bare img url', () => {
-    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:foto');
-    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
-    open(false);
+  it('downloads every photo with the authenticated API instead of a bare img url', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    fixture = TestBed.createComponent(ImageLightbox);
+    fixture.componentRef.setInput('photos', PHOTOS);
+    fixture.detectChanges();
     const http = TestBed.inject(HttpTestingController);
 
     expect(images()).toHaveLength(0);
-    http.expectOne('/p/1?size=THUMBNAIL').flush(new Blob(['x']));
-    http.expectOne('/p/1?size=FULL').flush(new Blob(['y']));
-    fixture.detectChanges();
-
-    expect(images().map((image) => image.getAttribute('src'))).toEqual(['blob:foto', 'blob:foto']);
-    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    http.expectOne('/p/1?size=THUMBNAIL');
+    http.expectOne('/p/1?size=FULL');
     http.verify();
-    vi.restoreAllMocks();
   });
 });

@@ -50,7 +50,7 @@ class CreateGrowDiaryUseCaseTest {
         GrowDiaryView view = useCase.execute(command(ACTIVE_GROWER, null, null));
 
         assertThat(view.status()).isEqualTo(DiaryStatus.IN_PROGRESS);
-        assertThat(view.visibility()).isEqualTo(Visibility.PUBLIC);
+        assertThat(view.visibility()).isEqualTo(Visibility.COMMUNITY);
         assertThat(view.startedOn()).isEqualTo(LocalDate.now(CLOCK));
         assertThat(view.currentDay()).isEqualTo(1);
         assertThat(diaries.store).hasSize(1);

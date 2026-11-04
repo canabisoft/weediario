@@ -30,13 +30,13 @@ import java.util.UUID;
 public class JdbcCatalogQueries implements CatalogQueries {
 
     /** Diários que contam para uso e rankings. */
-    private static final String PUBLIC_DIARIES = """
-            (grow_diaries d join users du on du.id = d.owner_id and du.status = 'ACTIVE' and d.visibility = 'PUBLIC')""";
+    private static final String SHARED_DIARIES = """
+            (grow_diaries d join users du on du.id = d.owner_id and du.status = 'ACTIVE' and d.visibility = 'COMMUNITY')""";
 
-    // Rankings só abrem para quem está logado, então incluem também os diários "comunidade" (nunca os privados).
+    // Rankings só abrem para quem está logado. Hoje o mesmo conjunto de SHARED_DIARIES (só existe "comunidade").
     private static final String COMMUNITY_DIARIES = """
             (grow_diaries d join users du on du.id = d.owner_id and du.status = 'ACTIVE'
-                 and d.visibility in ('PUBLIC', 'COMMUNITY'))""";
+                 and d.visibility = 'COMMUNITY')""";
 
     private static final String STRAIN_REVIEWS = """
             left join lateral (
@@ -79,7 +79,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                  where (s.name_key like :prefix or word_similarity(:key, s.name_key) >= :match)
                    and (cast(:breederId as uuid) is null or s.breeder_id = :breederId)
                  order by (s.name_key like :prefix) desc, word_similarity(:key, s.name_key) desc, usage desc, s.name
-                 limit :limit""".formatted(PUBLIC_DIARIES), params, (rs, n) -> suggestion(rs));
+                 limit :limit""".formatted(SHARED_DIARIES), params, (rs, n) -> suggestion(rs));
     }
 
     @Override
@@ -118,7 +118,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                    and (cast(:brandId as uuid) is null or p.brand_id = :brandId)
                    and (cast(:category as varchar) is null or p.category = :category)
                  order by (p.name_key like :prefix) desc, word_similarity(:key, p.name_key) desc, usage desc, p.name
-                 limit :limit""".formatted(PUBLIC_DIARIES), params, (rs, n) -> suggestion(rs));
+                 limit :limit""".formatted(SHARED_DIARIES), params, (rs, n) -> suggestion(rs));
     }
 
     // -------------------------------------------------------------------------------------- listagens
@@ -137,7 +137,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                 select s.id, s.name, b.name as breeder, b.id as breeder_id, s.flowering_type, s.dominance, s.status, s.source,
                        (select count(*) from %s where d.strain_id = s.id) as diaries, r.review_count, r.overall
                   from strains s left join breeders b on b.id = s.breeder_id
-                """.formatted(PUBLIC_DIARIES) + STRAIN_REVIEWS + filter + order + " limit :limit offset :offset",
+                """.formatted(SHARED_DIARIES) + STRAIN_REVIEWS + filter + order + " limit :limit offset :offset",
                 params,
                 (rs, n) -> new StrainListItem(rs.getObject("id", UUID.class), rs.getString("name"), rs.getString("breeder"),
                         rs.getObject("breeder_id", UUID.class), rs.getString("flowering_type"), rs.getString("dominance"),
@@ -181,7 +181,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                      where ri.product_id = p.id) as recipes,
                    pr.review_count, pr.rating
               from products p join brands br on br.id = p.brand_id
-            """.formatted(PUBLIC_DIARIES) + PRODUCT_RATINGS;
+            """.formatted(SHARED_DIARIES) + PRODUCT_RATINGS;
 
     private static ProductListItem productItem(java.sql.ResultSet rs) throws SQLException {
         return new ProductListItem(rs.getObject("id", UUID.class), rs.getString("name"),
@@ -203,7 +203,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                        case when s.status = 'TESTING' then %3$s end as tester_reviews,
                        case when s.status = 'TESTING' then %4$s end as breeder_reviewed
                   from strains s left join breeders b on b.id = s.breeder_id
-                """.formatted(PUBLIC_DIARIES, TestingProgressSql.TESTERS, TestingProgressSql.REVIEWS,
+                """.formatted(SHARED_DIARIES, TestingProgressSql.TESTERS, TestingProgressSql.REVIEWS,
                         TestingProgressSql.BREEDER_REVIEWED)
                         + STRAIN_REVIEWS + " where s.id = :id",
                 new MapSqlParameterSource("id", id),
@@ -240,7 +240,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
         Long total = jdbc.queryForObject("select count(*) " + from, params, Long.class);
         List<ProductReview> items = jdbc.query("""
                 select rv.id, s.id as strain_id, s.name as strain, b.name as breeder, rp.rating,
-                       case when d.visibility = 'PUBLIC' and not d.moderation_hold then d.id end as public_diary_id,
+                       case when d.visibility = 'COMMUNITY' and not d.moderation_hold then d.id end as public_diary_id,
                        rv.created_at
                 """ + from + " order by rv.created_at desc, rv.id limit :limit offset :offset",
                 params,
@@ -382,7 +382,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                   left join usage u on u.strain_id = s.id
                   left join ratings r on r.strain_id = s.id
                  where %s
-                 order by s.name_key, s.breeder_key""".formatted(PUBLIC_DIARIES, OFFICIAL),
+                 order by s.name_key, s.breeder_key""".formatted(SHARED_DIARIES, OFFICIAL),
                 new MapSqlParameterSource(),
                 (rs, n) -> new OpenStrain(rs.getObject("id", UUID.class), rs.getString("name"),
                         rs.getString("breeder_name"), rs.getString("flowering_type"), rs.getString("dominance"),
@@ -409,7 +409,8 @@ public class JdbcCatalogQueries implements CatalogQueries {
                 .addValue("limit", page.size()).addValue("offset", page.offset());
         Long total = jdbc.queryForObject("select count(*) from strains s where s.breeder_id = :breederId and " + OFFICIAL,
                 params, Long.class);
-        // A capa só vem de diários públicos (PUBLIC_DIARIES), então foto de cultivo privado nunca vaza aqui.
+        // A capa só vem de diários da comunidade (SHARED_DIARIES), então foto de cultivo privado nunca vaza aqui; o
+        // controller ainda a omite para visitante deslogado.
         List<BreederStrainCard> items = jdbc.query("""
                 select s.id, s.name, s.flowering_type, s.dominance, s.flowering_speed, s.genetics, s.status, s.source,
                        r.review_count, r.overall,
@@ -418,7 +419,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                           from %1$s where d.strain_id = s.id and d.harvest_dry_grams is not null) as avg_gpp,
                        cover.diary_id as cover_diary_id, cover.image_id as cover_photo_id
                   from strains s
-                """.formatted(PUBLIC_DIARIES) + STRAIN_REVIEWS + """
+                """.formatted(SHARED_DIARIES) + STRAIN_REVIEWS + """
                   left join lateral (
                       select d.id as diary_id, p.image_id
                         from %s
@@ -429,7 +430,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                        limit 1) cover on true
                  where s.breeder_id = :breederId and %s
                  order by diaries desc, r.review_count desc nulls last, s.name
-                 limit :limit offset :offset""".formatted(PUBLIC_DIARIES, OFFICIAL),
+                 limit :limit offset :offset""".formatted(SHARED_DIARIES, OFFICIAL),
                 params,
                 (rs, n) -> new BreederStrainCard(rs.getObject("id", UUID.class), rs.getString("name"),
                         rs.getString("flowering_type"), rs.getString("dominance"), rs.getString("flowering_speed"),
@@ -584,7 +585,7 @@ public class JdbcCatalogQueries implements CatalogQueries {
                          round(avg((rv.seedbank_germination + rv.seedbank_stability + rv.seedbank_service) / 3.0), 1) as overall
                     from reviews rv join users ru on ru.id = rv.author_id and ru.status = 'ACTIVE' and not rv.hidden
                    where rv.seedbank_id = b.id) r on true
-            """.formatted(PUBLIC_DIARIES);
+            """.formatted(SHARED_DIARIES);
 
     private static BreederListItem breederItem(java.sql.ResultSet rs) throws SQLException {
         return new BreederListItem(rs.getObject("id", UUID.class), rs.getString("name"), rs.getString("status"),

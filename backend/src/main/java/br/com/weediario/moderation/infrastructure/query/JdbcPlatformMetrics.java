@@ -35,10 +35,10 @@ public class JdbcPlatformMetrics implements PlatformMetrics {
     @Override
     public Content content() {
         return jdbc.queryForObject("""
-                select (select count(*) from grow_diaries where visibility = 'PUBLIC' and not moderation_hold) as public_diaries,
+                select (select count(*) from grow_diaries where visibility = 'COMMUNITY' and not moderation_hold) as public_diaries,
                        (select count(*) from grow_diaries where visibility = 'PRIVATE') as private_diaries,
                        (select count(*) from diary_updates u join grow_diaries d on d.id = u.diary_id
-                         where d.visibility = 'PUBLIC' and not d.moderation_hold) as diary_updates,
+                         where d.visibility = 'COMMUNITY' and not d.moderation_hold) as diary_updates,
                        (select count(*) from diary_comments where not hidden) as comments,
                        (select count(*) from recipes where visibility = 'PUBLIC' and not moderation_hold) as public_recipes,
                        (select count(*) from recipe_comments where not hidden) as recipe_comments,

@@ -16,7 +16,7 @@ public class NotificationUpdateNotifier implements UpdateNotifier {
     }
 
     @Override
-    public void updatePublished(UUID diaryId, UUID ownerId, boolean publicDiary) {
-        notify.updatePublished(diaryId, ownerId, publicDiary);
+    public void updatePublished(UUID diaryId, UUID ownerId, boolean sharedDiary) {
+        notify.updatePublished(diaryId, ownerId, sharedDiary);
     }
 }

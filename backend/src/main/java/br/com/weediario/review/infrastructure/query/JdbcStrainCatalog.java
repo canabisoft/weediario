@@ -87,7 +87,7 @@ public class JdbcStrainCatalog implements StrainCatalog {
                 """;
         Long total = jdbc.queryForObject("select count(*) " + from, params, Long.class);
         List<ReviewView> items = jdbc.query("""
-                select r.id, u.username, case when d.visibility = 'PUBLIC' then d.id end as public_diary_id,
+                select r.id, u.username, case when d.visibility = 'COMMUNITY' then d.id end as public_diary_id,
                        r.vigor, r.pest_resistance, r.ease_of_growth, r.yield_rating, r.terpene_profile,
                        r.report, r.created_at
                 """ + from + " order by r.created_at desc, r.id limit :limit offset :offset", params, REVIEW_MAPPER);
@@ -109,7 +109,7 @@ public class JdbcStrainCatalog implements StrainCatalog {
         Long total = jdbc.queryForObject("select count(*) " + from, params, Long.class);
         List<AuthoredReview> items = jdbc.query("""
                 select r.id, s.id as strain_id, s.name as strain, s.breeder,
-                       case when d.visibility = 'PUBLIC' then d.id end as public_diary_id,
+                       case when d.visibility = 'COMMUNITY' then d.id end as public_diary_id,
                        round((r.vigor + r.pest_resistance + r.ease_of_growth + r.yield_rating + r.terpene_profile) / 5.0, 1)
                            as overall,
                        r.report, r.created_at

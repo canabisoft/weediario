@@ -22,9 +22,9 @@ import java.util.UUID;
 @Component
 public class JdbcGrowerDirectory implements GrowerDirectory {
 
-    // :includeCommunity decide se os diários "comunidade" entram nas contagens: sempre no ranking (só logado o vê) e,
-    // no perfil (público), apenas quando quem olha está logado. Deslogado conta só PUBLIC.
-    private static final String VISIBLE = "(d.visibility = 'PUBLIC' or (d.visibility = 'COMMUNITY' and :includeCommunity))";
+    // Comunidade fechada: perfil e ranking só abrem para quem está logado; :includeCommunity é falso só para
+    // visitante, que então não vê contagem nenhuma.
+    private static final String VISIBLE = "(d.visibility = 'COMMUNITY' and :includeCommunity)";
     private static final String STATS = """
             select u.id, u.username, case when u.profile_hidden then null else u.bio end as bio,
                    u.avatar_image_id is not null and not u.profile_hidden as has_avatar,

@@ -22,7 +22,7 @@ public class GrowDiariesAdapter implements GrowDiaries {
     @Override
     public Optional<DiaryRef> find(UUID diaryId) {
         return diaries.findById(new GrowDiaryId(diaryId)).map(diary ->
-                new DiaryRef(diary.id().value(), diary.ownerId().value(), diary.visibility() == Visibility.PUBLIC,
+                new DiaryRef(diary.id().value(), diary.ownerId().value(), diary.visibility() == Visibility.COMMUNITY,
                         diary.medium() != GrowMedium.LIVING_SOIL));
     }
 }

@@ -16,6 +16,7 @@ import {
 } from '../core/api/catalog-db.api';
 import { problemMessage } from '../core/api/problem';
 import { AuthService } from '../core/auth/auth.service';
+import { MembersOnly } from '../shared/members-only';
 import { CatalogPicker } from '../shared/catalog-picker';
 import { formatCompact, formatDecimal } from '../shared/decimal';
 import { Icon } from '../shared/icon';
@@ -74,7 +75,7 @@ import { ReportButton } from '../shared/report-button';
 @Component({
   selector: 'app-catalog-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker, SeedbankShowcase, TestingStrains, TestingProgressBar, ReportButton, StrainReviewPanel],
+  imports: [FormsModule, RouterLink, Icon, RatingBar, CatalogPicker, SeedbankShowcase, TestingStrains, TestingProgressBar, ReportButton, StrainReviewPanel, MembersOnly],
   template: `
     <a routerLink="/strains" [queryParams]="kind() === 'seedbank' ? { aba: 'bancos' } : {}" class="text-sm text-fg-muted">
       ← {{ kind() === 'strain' ? 'Strains' : 'Bancos e breeders' }}
@@ -112,7 +113,7 @@ import { ReportButton } from '../shared/report-button';
                 <p class="text-fg-muted">{{ d.subtitle }}</p>
               }
             }
-            <p class="mt-1 text-xs text-fg-muted">Fonte: {{ source[d.source] }} · {{ d.diaries }} {{ d.diaries === 1 ? 'diário público' : 'diários públicos' }}</p>
+            <p class="mt-1 text-xs text-fg-muted">Fonte: {{ source[d.source] }} · {{ d.diaries }} {{ d.diaries === 1 ? 'diário da comunidade' : 'diários da comunidade' }}</p>
             @if (d.promotedAt) {
               <p class="mt-1 text-xs text-fg-muted">Entrou no banco oficial em {{ date(d.promotedAt) }}, depois do teste da comunidade.</p>
             }
@@ -284,34 +285,38 @@ import { ReportButton } from '../shared/report-button';
         }
 
         <h2 class="mt-6 text-lg font-semibold">Avaliações</h2>
-        <ul class="mt-3 grid gap-3">
-          @for (review of d.reviews; track review.id) {
-            <li class="wd-card">
-              <p class="flex flex-wrap items-center gap-2 text-sm">
-                <a [routerLink]="['/growers', review.author]" class="font-semibold">{{ review.author }}</a>
-                @if (review.context) {
-                  <span class="text-fg-muted">· {{ review.context }}</span>
-                }
-                @if (review.diaryId) {
-                  <a [routerLink]="['/diarios', review.diaryId]" class="ml-auto text-xs text-accent">Ver o diário</a>
-                }
-                @if (auth.isLoggedIn() && review.author !== auth.me()?.username) {
-                  <app-report-button targetType="REVIEW" [targetId]="review.id" />
-                }
-              </p>
-              <p class="mt-1 flex flex-wrap gap-x-3 text-xs text-fg-muted">
-                @for (score of review.scores; track score.label) {
-                  <span>{{ score.label }} <strong class="text-fg">{{ score.value }}</strong></span>
-                }
-              </p>
-              <p class="mt-2 whitespace-pre-line break-words">{{ review.report }}</p>
-            </li>
-          } @empty {
-            <li class="wd-card text-sm text-fg-muted">
-              Ainda sem avaliações.{{ kind() === 'strain' ? ' Cultivou esta strain? Seja a primeira pessoa a avaliar.' : ' Elas chegam quando alguém conclui um cultivo e publica a review.' }}
-            </li>
-          }
-        </ul>
+        @if (auth.isLoggedIn()) {
+            <ul class="mt-3 grid gap-3">
+            @for (review of d.reviews; track review.id) {
+              <li class="wd-card">
+                <p class="flex flex-wrap items-center gap-2 text-sm">
+                  <a [routerLink]="['/growers', review.author]" class="font-semibold">{{ review.author }}</a>
+                  @if (review.context) {
+                    <span class="text-fg-muted">· {{ review.context }}</span>
+                  }
+                  @if (review.diaryId) {
+                    <a [routerLink]="['/diarios', review.diaryId]" class="ml-auto text-xs text-accent">Ver o diário</a>
+                  }
+                  @if (auth.isLoggedIn() && review.author !== auth.me()?.username) {
+                    <app-report-button targetType="REVIEW" [targetId]="review.id" />
+                  }
+                </p>
+                <p class="mt-1 flex flex-wrap gap-x-3 text-xs text-fg-muted">
+                  @for (score of review.scores; track score.label) {
+                    <span>{{ score.label }} <strong class="text-fg">{{ score.value }}</strong></span>
+                  }
+                </p>
+                <p class="mt-2 whitespace-pre-line break-words">{{ review.report }}</p>
+              </li>
+            } @empty {
+              <li class="wd-card text-sm text-fg-muted">
+                Ainda sem avaliações.{{ kind() === 'strain' ? ' Cultivou esta strain? Seja a primeira pessoa a avaliar.' : ' Elas chegam quando alguém conclui um cultivo e publica a review.' }}
+              </li>
+            }
+          </ul>
+        } @else {
+          <app-members-only class="mt-3 block" text="As avaliações trazem o apelido e o diário de quem cultivou, então são só para quem tem conta. As médias acima são abertas." />
+        }
       } @else {
         <p class="wd-card mt-4">{{ state.error }}</p>
       }
@@ -420,7 +425,7 @@ export class CatalogDetailPage {
   private strain(id: string): Observable<Detail> {
     return forkJoin([
       this.catalog.strain(id),
-      this.reviewsApi.strainReviews(id).pipe(catchError(() => of(EMPTY_PAGE))),
+      this.auth.isLoggedIn() ? this.reviewsApi.strainReviews(id).pipe(catchError(() => of(EMPTY_PAGE))) : of(EMPTY_PAGE),
       this.reviewsApi.strain(id).pipe(catchError(() => of(null))),
     ]).pipe(
       map(([s, reviews, summary]): Detail => ({
@@ -477,7 +482,7 @@ export class CatalogDetailPage {
   private seedbank(id: string): Observable<Detail> {
     return forkJoin([
       this.catalog.breeder(id),
-      this.reviewsApi.seedbankReviews(id).pipe(catchError(() => of(EMPTY_PAGE))),
+      this.auth.isLoggedIn() ? this.reviewsApi.seedbankReviews(id).pipe(catchError(() => of(EMPTY_PAGE))) : of(EMPTY_PAGE),
       this.reviewsApi.seedbank(id).pipe(catchError(() => of(null))),
     ]).pipe(
       map(([b, reviews, summary]): Detail => ({

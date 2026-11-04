@@ -78,7 +78,7 @@ const NOTE_MAX = 500;
       <div class="mt-3 grid gap-3 sm:grid-cols-2">
         <a routerLink="/mais-usados" class="wd-card grid gap-1 hover:border-accent/50">
           <span class="flex items-center gap-2 font-semibold"><app-icon name="trophy" class="size-5 text-accent" /> Ranking de strains</span>
-          <span class="text-sm text-fg-muted">As genéticas mais cultivadas, pelo número de diários públicos e de growers, com a média de gramas por planta das colheitas.</span>
+          <span class="text-sm text-fg-muted">As genéticas mais cultivadas, pelo número de diários da comunidade e de growers, com a média de gramas por planta das colheitas.</span>
         </a>
         <a routerLink="/mais-usados" [queryParams]="{ tipo: 'BREEDERS' }" class="wd-card grid gap-1 hover:border-accent/50">
           <span class="flex items-center gap-2 font-semibold"><app-icon name="sprout" class="size-5 text-accent" /> Ranking de breeders</span>

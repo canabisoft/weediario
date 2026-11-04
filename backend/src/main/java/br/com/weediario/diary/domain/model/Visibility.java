@@ -1,9 +1,14 @@
 package br.com.weediario.diary.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
+/** Comunidade fechada: não há diário aberto a visitantes deslogados. */
 public enum Visibility {
-    /** Aparece no feed público, para quem está logado ou não. */
-    PUBLIC,
-    /** Aparece só para quem está logado (feed, perfil e rankings); some para visitantes deslogados. */
+    /**
+     * Compartilhado com quem tem conta (feed, perfil e rankings). Aceita "PUBLIC" na entrada, valor antigo que um app
+     * ainda em cache no aparelho pode mandar.
+     */
+    @JsonAlias("PUBLIC")
     COMMUNITY,
     /** Visível apenas para o autor. */
     PRIVATE

@@ -49,7 +49,7 @@ class ModerationIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.id").value(target));
 
         mvc.perform(get("/api/v1/catalog/strains/{id}", sameInDuplicate)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/diaries/{id}", diary))
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diary)))
                 .andExpect(jsonPath("$.strainId").value(sameInTarget));
         mvc.perform(get("/api/v1/catalog/strains/{id}", onlyInDuplicate)).andExpect(jsonPath("$.breederId").value(target));
         mvc.perform(get("/api/v1/catalog/breeders/{id}", duplicate)).andExpect(status().isNotFound());
@@ -142,7 +142,7 @@ class ModerationIntegrationTest extends IntegrationTestSupport {
     private String diary(Session grower, String fields) throws Exception {
         String base = """
                 {"title":"Catálogo","floweringType":"PHOTOPERIOD","seedSex":"FEMINIZED","medium":"LIVING_SOIL",
-                 "visibility":"PUBLIC","startedOn":"%s",""".formatted(LocalDate.now());
+                 "visibility":"COMMUNITY","startedOn":"%s",""".formatted(LocalDate.now());
         return body(mvc.perform(authed(post("/api/v1/diaries"), grower)
                         .contentType(MediaType.APPLICATION_JSON).content(base + fields.substring(1)))
                 .andExpect(status().isCreated()).andReturn()).get("id").asText();

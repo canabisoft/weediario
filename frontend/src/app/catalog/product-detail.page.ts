@@ -5,8 +5,10 @@ import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { Page } from '../core/api/api.models';
 import { CatalogDbApi, ProductListItem, ProductReview } from '../core/api/catalog-db.api';
 import { problemMessage } from '../core/api/problem';
+import { AuthService } from '../core/auth/auth.service';
 import { formatDecimal } from '../shared/decimal';
 import { Icon } from '../shared/icon';
+import { MembersOnly } from '../shared/members-only';
 import { SOURCE_LABEL, categoryLabel, formatDate } from '../shared/labels';
 
 const EMPTY_PAGE: Page<ProductReview> = { items: [], page: 0, size: 0, totalItems: 0, totalPages: 0 };
@@ -18,14 +20,14 @@ interface State {
 }
 
 /**
- * Detalhe de um produto do catálogo (fertilizante, substrato...): marca, categoria, uso nos diários públicos,
+ * Detalhe de um produto do catálogo (fertilizante, substrato...): marca, categoria, uso nos diários da comunidade,
  * receitas que o usam e as notas que ele recebeu nas reviews pós-colheita. As notas não mostram quem avaliou e
- * só levam ao diário quando ele é público.
+ * só levam ao diário quando ele é da comunidade.
  */
 @Component({
   selector: 'app-product-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, MembersOnly],
   template: `
     <a routerLink="/strains" [queryParams]="{ aba: 'produtos' }" class="text-sm text-fg-muted">← Produtos</a>
     @if (state(); as s) {
@@ -52,7 +54,7 @@ interface State {
 
         <dl class="wd-card mt-4 grid grid-cols-3 gap-3 text-sm">
           <div>
-            <dt class="text-xs text-fg-muted">Diários públicos</dt>
+            <dt class="text-xs text-fg-muted">Diários da comunidade</dt>
             <dd class="text-lg font-semibold tabular-nums">{{ p.diaries }}</dd>
           </div>
           <div>
@@ -75,31 +77,35 @@ interface State {
         <p class="text-sm text-fg-muted">
           Dadas por quem usou o produto num cultivo concluído, junto com a avaliação pós-colheita da strain.
         </p>
-        <ul class="mt-3 grid gap-2">
-          @for (review of s.reviews.items; track review.id) {
-            <li class="wd-card flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span class="inline-flex items-center gap-0.5 font-bold tabular-nums" [attr.aria-label]="review.rating + ' de 5 estrelas'">
-                @for (star of stars; track star) {
-                  <app-icon name="star" class="size-4" [class.text-accent]="star <= review.rating" [class.text-fg-muted]="star > review.rating" [filled]="star <= review.rating" />
+        @if (auth.isLoggedIn()) {
+            <ul class="mt-3 grid gap-2">
+            @for (review of s.reviews.items; track review.id) {
+              <li class="wd-card flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span class="inline-flex items-center gap-0.5 font-bold tabular-nums" [attr.aria-label]="review.rating + ' de 5 estrelas'">
+                  @for (star of stars; track star) {
+                    <app-icon name="star" class="size-4" [class.text-accent]="star <= review.rating" [class.text-fg-muted]="star > review.rating" [filled]="star <= review.rating" />
+                  }
+                </span>
+                <span class="min-w-0 flex-1 text-sm">
+                  Cultivo de <a [routerLink]="['/strains', review.strainId]" class="font-semibold">{{ review.strain }}</a>
+                  @if (review.breeder) {
+                    <span class="text-fg-muted"> · {{ review.breeder }}</span>
+                  }
+                </span>
+                <span class="text-xs text-fg-muted">{{ date(review.createdAt) }}</span>
+                @if (review.diaryId) {
+                  <a [routerLink]="['/diarios', review.diaryId]" class="text-xs text-accent">Ver o diário</a>
                 }
-              </span>
-              <span class="min-w-0 flex-1 text-sm">
-                Cultivo de <a [routerLink]="['/strains', review.strainId]" class="font-semibold">{{ review.strain }}</a>
-                @if (review.breeder) {
-                  <span class="text-fg-muted"> · {{ review.breeder }}</span>
-                }
-              </span>
-              <span class="text-xs text-fg-muted">{{ date(review.createdAt) }}</span>
-              @if (review.diaryId) {
-                <a [routerLink]="['/diarios', review.diaryId]" class="text-xs text-accent">Ver o diário</a>
-              }
-            </li>
-          } @empty {
-            <li class="wd-card text-sm text-fg-muted">
-              Ainda sem notas. Elas chegam quando alguém conclui um cultivo com este produto e publica a avaliação.
-            </li>
-          }
-        </ul>
+              </li>
+            } @empty {
+              <li class="wd-card text-sm text-fg-muted">
+                Ainda sem notas. Elas chegam quando alguém conclui um cultivo com este produto e publica a avaliação.
+              </li>
+            }
+          </ul>
+        } @else {
+          <app-members-only class="mt-3 block" text="As notas trazem o link do cultivo de quem avaliou, então são só para quem tem conta." />
+        }
       } @else {
         <p class="wd-card mt-4">{{ s.error }}</p>
       }
@@ -110,6 +116,7 @@ interface State {
 })
 export class ProductDetailPage {
   private readonly api = inject(CatalogDbApi);
+  protected readonly auth = inject(AuthService);
 
   /** Parâmetro de rota. */
   readonly id = input.required<string>();
@@ -120,7 +127,10 @@ export class ProductDetailPage {
   protected readonly state = toSignal(
     toObservable(this.id).pipe(
       switchMap((id) =>
-        forkJoin([this.api.product(id), this.api.productReviews(id).pipe(catchError(() => of(EMPTY_PAGE)))]).pipe(
+        forkJoin([
+          this.api.product(id),
+          this.auth.isLoggedIn() ? this.api.productReviews(id).pipe(catchError(() => of(EMPTY_PAGE))) : of(EMPTY_PAGE),
+        ]).pipe(
           map(([product, reviews]): State => ({ product, reviews, error: null })),
           catchError((error) => of<State>({ product: null, reviews: EMPTY_PAGE, error: problemMessage(error, 'Produto não encontrado.') })),
         ),

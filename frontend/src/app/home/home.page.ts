@@ -7,6 +7,7 @@ import { DiariesApi } from '../core/api/diaries.api';
 import { AuthService } from '../core/auth/auth.service';
 import { DiaryCardComponent } from '../diaries/diary-card';
 import { Icon } from '../shared/icon';
+import { MembersOnly } from '../shared/members-only';
 
 const PHRASES = [
   'Autocultivo é o caminho.',
@@ -21,7 +22,7 @@ const PHRASES = [
 @Component({
   selector: 'app-home-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, DiaryCardComponent],
+  imports: [RouterLink, Icon, DiaryCardComponent, MembersOnly],
   template: `
     <section class="relative overflow-hidden rounded-3xl border border-accent/25 bg-linear-to-br from-accent/25 via-surface-raised to-surface p-6 sm:p-8">
       <app-icon name="leaf" class="pointer-events-none absolute -right-6 -top-6 size-40 text-accent/10" [strokeWidth]="1.2" />
@@ -63,17 +64,24 @@ const PHRASES = [
       </div>
     </section>
 
-    <div class="mt-8 flex items-center justify-between">
-      <h2 class="text-lg font-semibold">Diários atualizados recentemente</h2>
-      <a routerLink="/diarios" class="text-sm font-semibold text-accent">Ver todos →</a>
-    </div>
-    <ul class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      @for (diary of latest(); track diary.id) {
-        <li><app-diary-card [diary]="diary" /></li>
-      } @empty {
-        <li class="wd-card text-center text-fg-muted sm:col-span-2 lg:col-span-3">Os primeiros diários da comunidade aparecem aqui.</li>
-      }
-    </ul>
+    @if (auth.isLoggedIn()) {
+      <div class="mt-8 flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Diários atualizados recentemente</h2>
+        <a routerLink="/diarios" class="text-sm font-semibold text-accent">Ver todos →</a>
+      </div>
+      <ul class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (diary of latest(); track diary.id) {
+          <li><app-diary-card [diary]="diary" /></li>
+        } @empty {
+          <li class="wd-card text-center text-fg-muted sm:col-span-2 lg:col-span-3">Os primeiros diários da comunidade aparecem aqui.</li>
+        }
+      </ul>
+    } @else {
+      <h2 class="mb-3 mt-8 text-lg font-semibold">Uma comunidade fechada</h2>
+      <app-members-only
+        text="Diários, perfis e relatos de cultivo ficam entre quem tem conta: nada disso aparece para visitantes nem em buscadores. É de graça e não pede nome real."
+      />
+    }
 
     <h2 class="mb-2 mt-8 text-lg font-semibold">Ferramentas (funcionam offline)</h2>
     <div class="grid gap-3 sm:grid-cols-2">
@@ -91,13 +99,16 @@ const PHRASES = [
 export class HomePage {
   protected readonly auth = inject(AuthService);
   protected readonly phrase = PHRASES[Math.floor(Math.random() * PHRASES.length)];
+  // Comunidade fechada: visitante nem chama o feed (veria 401).
   protected readonly latest = toSignal(
-    inject(DiariesApi)
-      .feed({ size: 6 })
-      .pipe(
-        map((page) => page.items),
-        catchError(() => of<DiaryCard[]>([])),
-      ),
+    this.auth.isLoggedIn()
+      ? inject(DiariesApi)
+          .feed({ size: 6 })
+          .pipe(
+            map((page) => page.items),
+            catchError(() => of<DiaryCard[]>([])),
+          )
+      : of<DiaryCard[]>([]),
     { initialValue: [] },
   );
 }

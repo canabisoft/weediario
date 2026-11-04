@@ -62,7 +62,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("TERMS_ACCEPTANCE_REQUIRED"));
         mvc.perform(authed(get("/api/v1/me"), legacy)).andExpect(jsonPath("$.termsAccepted").value(false));
-        mvc.perform(get("/api/v1/feed/diaries")).andExpect(status().isOk());
+        mvc.perform(signedIn(get("/api/v1/feed/diaries"))).andExpect(status().isOk());
 
         mvc.perform(authed(put("/api/v1/me/terms"), legacy).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"version\":\"" + TERMS + "\"}"))
@@ -80,7 +80,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         Session owner = newGrower();
         Session author = newGrower();
         Session moderator = moderator();
-        UUID diaryId = createDiary(owner, "Filtro", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Filtro", "COMMUNITY", LocalDate.now().toString());
 
         mvc.perform(authed(post("/api/v1/diaries/{id}/comments", diaryId), author).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"body\":\"chama no zap 11 98765-4321\"}"))
@@ -89,7 +89,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         String held = comment(author, diaryId, "vendo 5g R$50, entrego");
         comment(author, diaryId, "pH 6,2 e EC 1.4, gastei R$ 300 no LED");
 
-        mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId))
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}/comments", diaryId)))
                 .andExpect(jsonPath("$.totalItems").value(1))
                 .andExpect(jsonPath("$.items[0].body").value("pH 6,2 e EC 1.4, gastei R$ 300 no LED"));
         JsonNode mine = body(mvc.perform(authed(get("/api/v1/diaries/{id}/comments", diaryId), author)).andReturn());
@@ -113,7 +113,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         // Bio de anúncio: perfil público sem a bio até a moderação decidir.
         mvc.perform(authed(put("/api/v1/me/profile"), author).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"bio\":\"aceito pix, faço entrega\"}")).andExpect(status().isOk());
-        mvc.perform(get("/api/v1/growers/{u}", author.username())).andExpect(jsonPath("$.bio").doesNotExist());
+        mvc.perform(signedIn(get("/api/v1/growers/{u}", author.username()))).andExpect(jsonPath("$.bio").doesNotExist());
 
         // Catálogo não tem fila: nome com contato é recusado.
         mvc.perform(authed(post("/api/v1/catalog/breeders/resolve"), owner).contentType(MediaType.APPLICATION_JSON)
@@ -127,7 +127,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
     void threeReportsHideAndTheModeratorDecisionIsAudited() throws Exception {
         Session owner = newGrower();
         Session moderator = moderator();
-        UUID diaryId = createDiary(owner, "Denunciado", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Denunciado", "COMMUNITY", LocalDate.now().toString());
 
         report(owner, "DIARY", diaryId, "SPAM").andExpect(status().isUnprocessableEntity());
         report(trustedGrower(), "DIARY", diaryId, "ILLEGAL_COMMERCE").andExpect(jsonPath("$.hidden").value(false));
@@ -136,7 +136,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         report(repeated, "DIARY", diaryId, "ILLEGAL_COMMERCE").andExpect(jsonPath("$.hidden").value(false));
         report(trustedGrower(), "DIARY", diaryId, "TRAFFICKING_APOLOGY").andExpect(jsonPath("$.hidden").value(true));
 
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(status().isNotFound());
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(status().isNotFound());
         mvc.perform(authed(get("/api/v1/moderation/queue"), owner)).andExpect(status().isForbidden());
         JsonNode queued = queued(moderator, diaryId.toString());
         assertThat(queued.get("reports").asInt()).isEqualTo(3);
@@ -146,7 +146,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
 
         // Improcedente: volta ao público, sai da fila e fica no log.
         decide(moderator, "DIARY", diaryId, "KEEP", "NONE", null).andExpect(status().isNoContent());
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.visibility").value("PUBLIC"));
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(jsonPath("$.visibility").value("COMMUNITY"));
         assertThat(queued(moderator, diaryId.toString())).isNull();
         assertThat(jdbc.queryForObject("select count(*) from content_reports where target_id = ?::uuid", Long.class,
                 diaryId.toString())).isZero();
@@ -158,7 +158,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
     void reportsFromBrandNewAccountsGoToTheQueueButHideNothing() throws Exception {
         Session owner = newGrower();
         Session moderator = moderator();
-        UUID diaryId = createDiary(owner, "Alvo de contas falsas", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Alvo de contas falsas", "COMMUNITY", LocalDate.now().toString());
 
         for (int i = 0; i < 5; i++) {
             report(newGrower(), "DIARY", diaryId, "ILLEGAL_COMMERCE").andExpect(jsonPath("$.hidden").value(false));
@@ -168,7 +168,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         jdbc.update("update users set created_at = created_at - interval '30 days' where username = ?", idle.username());
         report(idle, "DIARY", diaryId, "ILLEGAL_COMMERCE").andExpect(jsonPath("$.hidden").value(false));
 
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.visibility").value("PUBLIC"));
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(jsonPath("$.visibility").value("COMMUNITY"));
         assertThat(queued(moderator, diaryId.toString()).get("reports").asInt()).isEqualTo(6);
     }
 
@@ -177,10 +177,10 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         Session author = newGrower();
         Session reporter = trustedGrower();
         for (int i = 0; i < 10; i++) {
-            UUID diaryId = createDiary(author, "Cota " + i, "PUBLIC", LocalDate.now().toString());
+            UUID diaryId = createDiary(author, "Cota " + i, "COMMUNITY", LocalDate.now().toString());
             report(reporter, "DIARY", diaryId, "SPAM").andExpect(status().isOk());
         }
-        UUID eleventh = createDiary(author, "Cota 10", "PUBLIC", LocalDate.now().toString());
+        UUID eleventh = createDiary(author, "Cota 10", "COMMUNITY", LocalDate.now().toString());
         report(reporter, "DIARY", eleventh, "SPAM")
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().exists("Retry-After"));
@@ -195,7 +195,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         Session owner = newGrower();
         Session seller = newGrower();
         Session moderator = moderator();
-        UUID diaryId = createDiary(owner, "Com vendedor", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Com vendedor", "COMMUNITY", LocalDate.now().toString());
         String text = "olha esse material, top demais";
         String commentId = comment(seller, diaryId, text);
         for (int i = 0; i < 3; i++) {
@@ -249,7 +249,7 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
         mvc.perform(authed(post("/api/v1/reports/profiles/{u}", grower.username()), trustedGrower())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"INAPPROPRIATE\"}"))
                 .andExpect(jsonPath("$.hidden").value(true));
-        mvc.perform(get("/api/v1/growers/{u}", grower.username())).andExpect(jsonPath("$.bio").doesNotExist());
+        mvc.perform(signedIn(get("/api/v1/growers/{u}", grower.username()))).andExpect(jsonPath("$.bio").doesNotExist());
 
         decide(moderator, "PROFILE", userId, "REMOVE", "NONE", "INAPPROPRIATE").andExpect(status().isNoContent());
         mvc.perform(authed(get("/api/v1/me"), grower))
@@ -293,6 +293,6 @@ class TermsAndModerationIntegrationTest extends IntegrationTestSupport {
     private static String diaryJson(String title) {
         return """
                 {"title":"%s","strainName":"Gelato","floweringType":"PHOTOPERIOD","seedSex":"FEMINIZED",
-                 "medium":"LIVING_SOIL","visibility":"PUBLIC","startedOn":"%s"}""".formatted(title, LocalDate.now());
+                 "medium":"LIVING_SOIL","visibility":"COMMUNITY","startedOn":"%s"}""".formatted(title, LocalDate.now());
     }
 }

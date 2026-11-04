@@ -2,3 +2,6 @@ target/
 .idea/
 .vscode/
 *.iml
+# Segredos nunca entram na imagem.
+.env
+.env.*

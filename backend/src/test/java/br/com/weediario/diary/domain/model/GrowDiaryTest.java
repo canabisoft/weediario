@@ -37,7 +37,7 @@ class GrowDiaryTest {
     @Test
     void rejectsBlankTitle() {
         assertThatThrownBy(() -> GrowDiary.start(owner(), "  ", strain(), FloweringType.AUTOFLOWER, SeedSex.FEMINIZED,
-                GrowMedium.LIVING_SOIL, Visibility.PUBLIC, TODAY, CLOCK))
+                GrowMedium.LIVING_SOIL, Visibility.COMMUNITY, TODAY, CLOCK))
                 .isInstanceOf(DomainException.class);
     }
 
@@ -104,7 +104,7 @@ class GrowDiaryTest {
         GrowDiary diary = startedOn(TODAY.minusDays(5));
         diary.holdForModeration(CLOCK);
 
-        assertThatThrownBy(() -> diary.changeVisibility(Visibility.PUBLIC, CLOCK)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> diary.changeVisibility(Visibility.COMMUNITY, CLOCK)).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> diary.changeVisibility(Visibility.COMMUNITY, CLOCK)).isInstanceOf(DomainException.class);
         // Continuar privado é permitido.
         diary.changeVisibility(Visibility.PRIVATE, CLOCK);
@@ -113,7 +113,7 @@ class GrowDiaryTest {
 
     private static GrowDiary startedOn(LocalDate date) {
         return GrowDiary.start(owner(), "Tenda 60x60 - GG4", strain(), FloweringType.PHOTOPERIOD, SeedSex.FEMINIZED,
-                GrowMedium.LIVING_SOIL, Visibility.PUBLIC, date, CLOCK);
+                GrowMedium.LIVING_SOIL, Visibility.COMMUNITY, date, CLOCK);
     }
 
     private static GrowerId owner() {

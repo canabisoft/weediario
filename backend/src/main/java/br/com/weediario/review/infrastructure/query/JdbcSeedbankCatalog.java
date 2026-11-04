@@ -85,7 +85,7 @@ public class JdbcSeedbankCatalog implements SeedbankCatalog {
                 """;
         Long total = jdbc.queryForObject("select count(*) " + from, params, Long.class);
         List<SeedbankReviewView> items = jdbc.query("""
-                select r.id, u.username, case when d.visibility = 'PUBLIC' then d.id end as public_diary_id, s.name as strain,
+                select r.id, u.username, case when d.visibility = 'COMMUNITY' then d.id end as public_diary_id, s.name as strain,
                        r.seedbank_germination, r.seedbank_stability, r.seedbank_service, r.report, r.created_at
                 """ + from + " order by r.created_at desc, r.id limit :limit offset :offset",
                 params,

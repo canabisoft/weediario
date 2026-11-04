@@ -69,7 +69,7 @@ export class SocialApi {
     return this.http.get<GrowerProfile>(`/api/v1/growers/${encodeURIComponent(username)}`);
   }
 
-  /** Setups já usados em diários públicos do grower. */
+  /** Setups já usados em diários da comunidade do grower. */
   publicSetups(username: string): Observable<PublicSetup[]> {
     return this.http.get<PublicSetup[]>(`/api/v1/growers/${encodeURIComponent(username)}/setups`);
   }

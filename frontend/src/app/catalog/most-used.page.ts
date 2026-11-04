@@ -7,7 +7,7 @@ import { formatCompact } from '../shared/decimal';
 import { CATEGORY_LABEL, options } from '../shared/labels';
 
 /**
- * "Mais usados": strains, breeders, marcas e produtos que mais aparecem nos diários públicos,
+ * "Mais usados": strains, breeders, marcas e produtos que mais aparecem nos diários da comunidade,
  * com quantos growers diferentes usam e a média de g/planta das colheitas registradas.
  */
 @Component({
@@ -16,7 +16,7 @@ import { CATEGORY_LABEL, options } from '../shared/labels';
   imports: [RouterLink],
   template: `
     <h1 class="text-2xl font-bold">Mais usados</h1>
-    <p class="text-fg-muted">O que a comunidade mais cultiva e usa, contado nos diários públicos.</p>
+    <p class="text-fg-muted">O que a comunidade mais cultiva e usa, contado nos diários da comunidade.</p>
 
     <div class="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Tipo de ranking">
       @for (option of kinds; track option.id) {
@@ -69,7 +69,7 @@ import { CATEGORY_LABEL, options } from '../shared/labels';
             </dl>
           </li>
         } @empty {
-          <li class="wd-card text-center text-fg-muted">Ainda não há diários públicos suficientes para este ranking.</li>
+          <li class="wd-card text-center text-fg-muted">Ainda não há diários da comunidade suficientes para este ranking.</li>
         }
       </ol>
     } @else {

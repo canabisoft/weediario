@@ -63,7 +63,7 @@ class AccountDataIntegrationTest extends IntegrationTestSupport {
     @Test
     void deletingTheAccountRemovesItsDataAndFilesButKeepsModerationRecordsAndOpenCatalogItems() throws Exception {
         Session grower = growerWithEmail();
-        UUID diaryId = createDiary(grower, "Para Apagar", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        UUID diaryId = createDiary(grower, "Para Apagar", "COMMUNITY", LocalDate.now().minusDays(10).toString());
         UUID photoId = uploadPhoto(grower, TestImages.phoneJpegWithExif(800, 600, (short) 1));
         publishUpdate(grower, diaryId, photoId);
         consentToTreatment(grower);

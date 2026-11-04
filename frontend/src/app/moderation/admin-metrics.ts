@@ -82,7 +82,7 @@ export class AdminMetrics {
         title: 'Conteúdo publicado',
         stats: [
           { label: 'Total visível', value: d.published },
-          { label: 'Diários públicos', value: d.content.publicDiaries, hint: `${this.format(d.content.privateDiaries)} privados` },
+          { label: 'Diários da comunidade', value: d.content.publicDiaries, hint: `${this.format(d.content.privateDiaries)} privados` },
           { label: 'Updates', value: d.content.diaryUpdates },
           { label: 'Comentários', value: d.content.comments + d.content.recipeComments },
           { label: 'Receitas públicas', value: d.content.publicRecipes },

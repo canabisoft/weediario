@@ -15,6 +15,8 @@ x-hardening: &hardening
 
 # Logs do docker com tamanho máximo: nada acumula para sempre no disco do servidor.
 x-logging: &logging
+  # Teto padrão de memória: um serviço fora de controle não derruba a VPS inteira. Os maiores sobrescrevem.
+  mem_limit: 256m
   logging:
     driver: local
     options:
@@ -26,6 +28,19 @@ services:
     <<: *logging
     image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     restart: unless-stopped
+    mem_limit: 768m
+    # O entrypoint cria a pasta de dados e troca para o usuário postgres: só as capacidades para isso, e nenhuma
+    # elevação de privilégio depois.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     # Erros do banco sem DETAIL nem o comando SQL: nada de valor de usuário (apelido, chave duplicada) nos logs.
     command: ["postgres", "-c", "log_error_verbosity=terse", "-c", "log_min_error_statement=panic"]
     environment:
@@ -67,6 +82,8 @@ services:
     build: ./backend
     image: weediario-backend:local
     restart: unless-stopped
+    # A JVM usa até 75% disto de heap (-XX:MaxRAMPercentage=75 no Dockerfile).
+    mem_limit: 1g
     # Deixa o desligamento gracioso do Spring (server.shutdown=graceful, 25s) drenar antes do SIGKILL.
     stop_grace_period: 30s
     depends_on:
@@ -146,6 +163,9 @@ services:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    # Sem root. Os volumes /data e /config precisam pertencer a esse usuário; uma vez, ao migrar de uma instalação antiga:
+    #   for v in weediario_caddy_data weediario_caddy_config; do docker run --rm -v $v:/v alpine chown -R 1000:1000 /v; done
+    user: "1000:1000"
     read_only: true
     tmpfs:
       - /tmp
@@ -153,6 +173,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # Única capacidade: abrir as portas 80 e 443. O binário da imagem já a traz gravada no arquivo e, sem ela no
+    # conjunto permitido, o kernel nem o executa.
     cap_add:
       - NET_BIND_SERVICE
 

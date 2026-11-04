@@ -20,12 +20,12 @@ const FIELDS: readonly { json: string; csv: string; meaning: string }[] = [
   { json: 'status', csv: 'status', meaning: 'VERIFIED (conferida pela moderação ou pelo teste da comunidade) ou UNVERIFIED.' },
   { json: 'source', csv: 'source', meaning: 'DATASET (base pública importada), COMMUNITY (cadastrada por growers) ou BREEDER (programa de breeders).' },
   { json: 'promotedAt', csv: 'promoted_at', meaning: 'Quando a semente de breeder passou no teste da comunidade (UTC).' },
-  { json: 'publicDiaries', csv: 'public_diaries', meaning: 'Diários públicos com a strain.' },
-  { json: 'growers', csv: 'growers', meaning: 'Growers diferentes com diário público da strain.' },
+  { json: 'publicDiaries', csv: 'public_diaries', meaning: 'Diários compartilhados com a comunidade que usam a strain (nunca os privados).' },
+  { json: 'growers', csv: 'growers', meaning: 'Growers diferentes com diário compartilhado da strain.' },
   { json: 'reviewCount', csv: 'review_count', meaning: 'Avaliações pós-colheita publicadas.' },
   { json: 'vigor, pestResistance, easeOfGrowth, yield, terpeneProfile', csv: 'vigor, pest_resistance, ease_of_growth, yield, terpene_profile', meaning: 'Média de cada critério (1 a 5).' },
   { json: 'overall', csv: 'overall', meaning: 'Média geral das avaliações (1 a 5).' },
-  { json: 'avgGramsPerPlant', csv: 'avg_grams_per_plant', meaning: 'Média de gramas secas por planta nas colheitas registradas em diários públicos.' },
+  { json: 'avgGramsPerPlant', csv: 'avg_grams_per_plant', meaning: 'Média de gramas secas por planta nas colheitas registradas em diários compartilhados.' },
   { json: 'breederKind', csv: 'breeder_kind', meaning: 'SEEDBANK (banco de sementes) ou INDEPENDENT (breeder independente); vazio se não informado.' },
   { json: 'generation', csv: 'generation', meaning: 'Geração da genética: F1, F2, F3_PLUS, S1, BX (retrocruzamento), IBL (linhagem estável) ou POLYHYBRID.' },
 ];
@@ -62,7 +62,7 @@ const FIELDS: readonly { json: string; csv: string; meaning: string }[] = [
         (3 cultivadores de fora do banco e uma avaliação pós-colheita). Sementes ainda em teste ficam de fora.
       </p>
       <p>
-        Junto com as características de cada genética vão só números agregados: quantos diários públicos e growers a
+        Junto com as características de cada genética vão só números agregados: quantos diários compartilhados e growers a
         usam, as médias das avaliações e a média de gramas por planta.
       </p>
     </section>

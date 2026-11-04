@@ -54,9 +54,9 @@ public final class NotifyUseCase {
         deliver(Notification.newFollower(followeeId, followerId, clock));
     }
 
-    /** Só updates de diários públicos chegam aos seguidores. */
-    public void updatePublished(UUID diaryId, UUID ownerId, boolean publicDiary) {
-        if (!publicDiary) {
+    /** Só updates de diários da comunidade chegam aos seguidores (privado, nunca). */
+    public void updatePublished(UUID diaryId, UUID ownerId, boolean sharedDiary) {
+        if (!sharedDiary) {
             return;
         }
         unitOfWork.run(() -> {

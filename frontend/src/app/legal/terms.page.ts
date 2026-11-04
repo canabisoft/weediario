@@ -56,8 +56,9 @@ export const CLAUSES: readonly Clause[] = [
         'sensíveis. Fica cifrado, não serve para entrar nem para procurar contas, e pode ser removido quando quiser. ' +
         'Sem e-mail e sem a frase, a conta não pode ser recuperada.',
       'Não guardamos registros de acesso: nem endereço IP, nem aparelho, nem as páginas que você abre.',
-      'Diários privados só são vistos por você; os públicos, por qualquer pessoa. Rankings, receitas, equipamentos e o ' +
-        'acompanhamento de tratamento só ficam disponíveis para quem tem conta.',
+      'O weediário é uma comunidade fechada: diários, fotos, perfis, avaliações, rankings, receitas, equipamentos e o ' +
+        'acompanhamento de tratamento só ficam disponíveis para quem tem conta. Diários privados só são vistos por você. ' +
+        'Visitantes sem conta veem apenas as páginas institucionais, as ferramentas e o catálogo de strains com números agregados.',
       'Do aceite destes termos guardamos só a versão e a data e hora; de mudanças sensíveis na conta, só o tipo e a data ' +
         '(90 dias). Os textos do acompanhamento de tratamento ficam cifrados.',
       'No seu perfil você pode baixar todos os seus dados e apagar a conta; os dois pedem a sua senha. Ao apagar, somem a ' +

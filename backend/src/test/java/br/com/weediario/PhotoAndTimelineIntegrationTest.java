@@ -31,7 +31,7 @@ class PhotoAndTimelineIntegrationTest extends IntegrationTestSupport {
     @Test
     void publishedPhotoHasNoExifAndFollowsDiaryVisibility() throws Exception {
         Session grower = newGrower();
-        UUID diaryId = createDiary(grower, "Gelato 41", "PUBLIC", LocalDate.now().minusDays(20).toString());
+        UUID diaryId = createDiary(grower, "Gelato 41", "COMMUNITY", LocalDate.now().minusDays(20).toString());
         UUID photoId = uploadPhoto(grower, TestImages.phoneJpegWithExif(1200, 900, (short) 6));
 
         mvc.perform(authed(post("/api/v1/diaries/{id}/updates", diaryId), grower)
@@ -51,7 +51,7 @@ class PhotoAndTimelineIntegrationTest extends IntegrationTestSupport {
                         .value("/api/v1/diaries/%s/photos/%s?size=FULL".formatted(diaryId, photoId)));
 
         // Visitante anônimo vê a foto de um diário público, sem nenhum metadado de origem.
-        MvcResult photo = mvc.perform(get("/api/v1/diaries/{d}/photos/{p}", diaryId, photoId))
+        MvcResult photo = mvc.perform(signedIn(get("/api/v1/diaries/{d}/photos/{p}", diaryId, photoId)))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", "image/webp"))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
@@ -67,7 +67,7 @@ class PhotoAndTimelineIntegrationTest extends IntegrationTestSupport {
                         .contentType(MediaType.APPLICATION_JSON).content("""
                                 {"visibility":"PRIVATE"}"""))
                 .andExpect(status().isOk());
-        mvc.perform(get("/api/v1/diaries/{d}/photos/{p}", diaryId, photoId)).andExpect(status().isNotFound());
+        mvc.perform(signedIn(get("/api/v1/diaries/{d}/photos/{p}", diaryId, photoId))).andExpect(status().isNotFound());
         mvc.perform(authed(get("/api/v1/diaries/{d}/photos/{p}", diaryId, photoId), grower))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store, private"));
@@ -78,7 +78,7 @@ class PhotoAndTimelineIntegrationTest extends IntegrationTestSupport {
         Session owner = newGrower();
         Session attacker = newGrower();
         UUID photoId = uploadPhoto(owner, TestImages.phoneJpegWithExif(400, 300, (short) 1));
-        UUID attackerDiary = createDiary(attacker, "Critical", "PUBLIC", LocalDate.now().toString());
+        UUID attackerDiary = createDiary(attacker, "Critical", "COMMUNITY", LocalDate.now().toString());
 
         mvc.perform(authed(post("/api/v1/diaries/{id}/updates", attackerDiary), attacker)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -91,7 +91,7 @@ class PhotoAndTimelineIntegrationTest extends IntegrationTestSupport {
     void cannotPostToSomeoneElsesDiary() throws Exception {
         Session owner = newGrower();
         Session stranger = newGrower();
-        UUID diaryId = createDiary(owner, "Critical", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Critical", "COMMUNITY", LocalDate.now().toString());
 
         mvc.perform(authed(post("/api/v1/diaries/{id}/updates", diaryId), stranger)
                         .contentType(MediaType.APPLICATION_JSON).content("""
@@ -102,7 +102,7 @@ class PhotoAndTimelineIntegrationTest extends IntegrationTestSupport {
     @Test
     void deletingUpdateRemovesPhotoAndRewindsStage() throws Exception {
         Session grower = newGrower();
-        UUID diaryId = createDiary(grower, "Blue Dream", "PUBLIC", LocalDate.now().minusDays(40).toString());
+        UUID diaryId = createDiary(grower, "Blue Dream", "COMMUNITY", LocalDate.now().minusDays(40).toString());
         UUID photoId = uploadPhoto(grower, TestImages.encode(TestImages.twoColor(300, 300), "png"));
 
         MvcResult created = mvc.perform(authed(post("/api/v1/diaries/{id}/updates", diaryId), grower)
@@ -112,19 +112,19 @@ class PhotoAndTimelineIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isCreated())
                 .andReturn();
         String updateId = body(created).get("id").asText();
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.currentStage").value("FLOWERING"));
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(jsonPath("$.currentStage").value("FLOWERING"));
 
         mvc.perform(authed(delete("/api/v1/diaries/{d}/updates/{u}", diaryId, updateId), grower))
                 .andExpect(status().isNoContent());
 
-        mvc.perform(get("/api/v1/diaries/{d}/photos/{p}", diaryId, photoId)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.currentStage").value("GERMINATION"));
+        mvc.perform(signedIn(get("/api/v1/diaries/{d}/photos/{p}", diaryId, photoId))).andExpect(status().isNotFound());
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(jsonPath("$.currentStage").value("GERMINATION"));
     }
 
     @Test
     void timelineIsPaginatedNewestFirst() throws Exception {
         Session grower = newGrower();
-        UUID diaryId = createDiary(grower, "Zkittlez", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        UUID diaryId = createDiary(grower, "Zkittlez", "COMMUNITY", LocalDate.now().minusDays(10).toString());
         for (int daysAgo = 9; daysAgo >= 0; daysAgo -= 3) {
             mvc.perform(authed(post("/api/v1/diaries/{id}/updates", diaryId), grower)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -134,7 +134,7 @@ class PhotoAndTimelineIntegrationTest extends IntegrationTestSupport {
                     .andExpect(status().isCreated());
         }
 
-        JsonNode page = body(mvc.perform(get("/api/v1/diaries/{id}/updates?size=2", diaryId))
+        JsonNode page = body(mvc.perform(signedIn(get("/api/v1/diaries/{id}/updates?size=2", diaryId)))
                 .andExpect(status().isOk()).andReturn());
 
         assertThat(page.get("totalItems").asInt()).isEqualTo(4);

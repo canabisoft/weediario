@@ -3,3 +3,6 @@ dist/
 .angular/
 .vscode/
 *.log
+# Segredos nunca entram na imagem.
+.env
+.env.*

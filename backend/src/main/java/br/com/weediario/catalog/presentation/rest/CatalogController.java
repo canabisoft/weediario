@@ -131,11 +131,15 @@ public class CatalogController {
         return browse.breeder(id);
     }
 
+    /** A capa é foto de diário da comunidade: visitante deslogado recebe o card sem ela. */
     @GetMapping("/breeders/{id}/strains")
-    public PageResult<BreederStrainCard> breederStrains(@PathVariable UUID id,
+    public PageResult<BreederStrainCard> breederStrains(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id,
                                                         @RequestParam(defaultValue = "0") int page,
                                                         @RequestParam(defaultValue = "24") int size) {
-        return browse.strainsOfBreeder(id, new PageQuery(page, size));
+        PageResult<BreederStrainCard> cards = browse.strainsOfBreeder(id, new PageQuery(page, size));
+        return principal != null ? cards : cards.map(card -> new BreederStrainCard(card.id(), card.name(),
+                card.floweringType(), card.dominance(), card.floweringSpeed(), card.genetics(), card.status(),
+                card.source(), card.diaries(), card.reviewCount(), card.overall(), card.avgGramsPerPlant(), null));
     }
 
     @GetMapping("/products")

@@ -139,8 +139,7 @@ public final class GrowDiary {
 
     /** Diários privados só existem para o autor. */
     public boolean isVisibleTo(Optional<GrowerId> viewer) {
-        return visibility == Visibility.PUBLIC
-                || (visibility == Visibility.COMMUNITY && viewer.isPresent())
+        return (visibility == Visibility.COMMUNITY && viewer.isPresent())
                 || viewer.map(this::isOwnedBy).orElse(false);
     }
 

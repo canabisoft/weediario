@@ -78,7 +78,7 @@ export interface BreederStrainCard {
   readonly reviewCount: number;
   readonly overall?: number;
   readonly avgGramsPerPlant?: number;
-  /** Miniatura da foto mais recente de um diário público com a strain. */
+  /** Miniatura da foto mais recente de um diário da comunidade com a strain. */
   readonly coverThumbnailUrl?: string;
 }
 
@@ -98,7 +98,7 @@ export interface ProductListItem {
   readonly rating?: number;
 }
 
-/** Nota de um produto numa review pós-colheita. Sem autor; {@code diaryId} só se o diário for público. */
+/** Nota de um produto numa review pós-colheita. Sem autor; {@code diaryId} só se o diário for da comunidade. */
 export interface ProductReview {
   readonly id: string;
   readonly strainId: string;

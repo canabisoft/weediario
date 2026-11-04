@@ -11,6 +11,6 @@ public interface GrowDiaries {
     Optional<DiaryRef> find(UUID diaryId);
 
     /** {@code mineralLike}: meio mineral ou inerte, em que a nutrição vem de sais (fertirrigação). */
-    record DiaryRef(UUID id, UUID ownerId, boolean isPublic, boolean mineralLike) {
+    record DiaryRef(UUID id, UUID ownerId, boolean shared, boolean mineralLike) {
     }
 }

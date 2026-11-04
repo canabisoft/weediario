@@ -25,7 +25,7 @@ class ReviewIntegrationTest extends IntegrationTestSupport {
         String strain = "Review Kush " + UUID.randomUUID().toString().substring(0, 6);
         Session first = newGrower();
         Session second = newGrower();
-        UUID firstDiary = createDiary(first, strain, "PUBLIC", LocalDate.now().minusDays(90).toString());
+        UUID firstDiary = createDiary(first, strain, "COMMUNITY", LocalDate.now().minusDays(90).toString());
         // Mesma genética digitada de outro jeito: deve cair na mesma strain do catálogo.
         UUID secondDiary = createDiary(second, strain.toUpperCase().replace(" ", "-"), "PRIVATE",
                 LocalDate.now().minusDays(90).toString());
@@ -52,7 +52,7 @@ class ReviewIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.vigor").value(4.0))
                 .andExpect(jsonPath("$.overall").value(4.2));
 
-        JsonNode reviews = body(mvc.perform(get("/api/v1/strains/{id}/reviews", strainId))
+        JsonNode reviews = body(mvc.perform(signedIn(get("/api/v1/strains/{id}/reviews", strainId)))
                 .andExpect(status().isOk()).andReturn());
         assertThat(reviews.get("totalItems").asInt()).isEqualTo(2);
         for (JsonNode review : reviews.get("items")) {
@@ -72,7 +72,7 @@ class ReviewIntegrationTest extends IntegrationTestSupport {
     void oneReviewPerGrowAndOnlyByItsAuthor() throws Exception {
         Session owner = newGrower();
         Session stranger = newGrower();
-        UUID diaryId = createDiary(owner, "Solo Review", "PUBLIC", LocalDate.now().minusDays(80).toString());
+        UUID diaryId = createDiary(owner, "Solo Review", "COMMUNITY", LocalDate.now().minusDays(80).toString());
         complete(owner, diaryId);
 
         mvc.perform(authed(post("/api/v1/diaries/{id}/review", diaryId), stranger)
@@ -121,13 +121,13 @@ class ReviewIntegrationTest extends IntegrationTestSupport {
         assertThat(ranking.get("items").get(0).get("username").asText()).isEqualTo(grower.username());
         assertThat(ranking.get("items").get(0).get("reviews").asInt()).isEqualTo(1);
         assertThat(ranking.get("items").get(0).get("diaries").asInt()).isZero();
-        mvc.perform(get("/api/v1/growers/{u}", grower.username())).andExpect(jsonPath("$.reviews").value(1));
+        mvc.perform(signedIn(get("/api/v1/growers/{u}", grower.username()))).andExpect(jsonPath("$.reviews").value(1));
     }
 
     @Test
     void ratingsOutOfRangeAreRejected() throws Exception {
         Session owner = newGrower();
-        UUID diaryId = createDiary(owner, "Range", "PUBLIC", LocalDate.now().minusDays(80).toString());
+        UUID diaryId = createDiary(owner, "Range", "COMMUNITY", LocalDate.now().minusDays(80).toString());
 
         mvc.perform(authed(post("/api/v1/diaries/{id}/review", diaryId), owner)
                         .contentType(MediaType.APPLICATION_JSON).content(REVIEW.formatted(9, 0)))

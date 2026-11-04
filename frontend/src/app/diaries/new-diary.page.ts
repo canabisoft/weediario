@@ -92,12 +92,8 @@ import { FLOWERING_LABEL, MEDIUM_LABEL, SEED_SEX_LABEL, options, today } from '.
             <legend class="wd-label">Visibilidade</legend>
             <div class="grid gap-2">
               <label class="flex min-h-12 items-start gap-2 rounded-xl border border-line px-3 py-2">
-                <input type="radio" value="PUBLIC" formControlName="visibility" class="mt-0.5 size-5" />
-                <span><span class="block">Público</span><span class="block text-xs text-fg-muted">Qualquer pessoa vê, logada ou não.</span></span>
-              </label>
-              <label class="flex min-h-12 items-start gap-2 rounded-xl border border-line px-3 py-2">
                 <input type="radio" value="COMMUNITY" formControlName="visibility" class="mt-0.5 size-5" />
-                <span><span class="block">Comunidade</span><span class="block text-xs text-fg-muted">Só quem tem conta vê. Conta nos rankings.</span></span>
+                <span><span class="block">Comunidade</span><span class="block text-xs text-fg-muted">Quem tem conta no weediário vê. Conta nos rankings.</span></span>
               </label>
               <label class="flex min-h-12 items-start gap-2 rounded-xl border border-line px-3 py-2">
                 <input type="radio" value="PRIVATE" formControlName="visibility" class="mt-0.5 size-5" />
@@ -138,7 +134,7 @@ export class NewDiaryPage implements OnInit {
     setupId: [''],
     medium: ['LIVING_SOIL' as GrowMedium],
     startedOn: [today()],
-    visibility: ['PUBLIC' as Visibility],
+    visibility: ['COMMUNITY' as Visibility],
   });
   protected readonly breeder = signal<CatalogItem | null>(null);
   protected readonly strain = signal<CatalogItem | null>(null);

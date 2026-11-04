@@ -85,7 +85,6 @@ export class ImageLightbox {
 
   readonly photos = input.required<readonly LightboxPhoto[]>();
   readonly startIndex = input(0);
-  readonly isPublic = input(true);
   readonly alt = input('Foto do cultivo');
   readonly closed = output<void>();
 
@@ -123,7 +122,6 @@ export class ImageLightbox {
   constructor() {
     effect((onCleanup) => {
       const photo = this.current();
-      const isPublic = this.isPublic();
       this.resetView(false);
       this.fullLoaded.set(false);
       this.fullFailed.set(false);
@@ -131,12 +129,12 @@ export class ImageLightbox {
       if (!photo) {
         return;
       }
-      const thumb = this.source.resolve(photo.thumbnailUrl, isPublic).subscribe({
+      const thumb = this.source.resolve(photo.thumbnailUrl).subscribe({
         next: (src) => this.thumbSrc.set(src),
         error: () => this.thumbSrc.set(null),
       });
       // Só aqui a versão em alta é pedida: nunca no feed nem na linha do tempo.
-      const full = this.source.resolve(photo.fullUrl, isPublic).subscribe({
+      const full = this.source.resolve(photo.fullUrl).subscribe({
         next: (src) => this.fullSrc.set(src),
         error: () => this.fullFailed.set(true),
       });

@@ -145,6 +145,6 @@ class DiaryUpdateTest {
 
     private static GrowDiary diary(SeedSex seedSex) {
         return GrowDiary.start(OWNER, "Tenda 80x80", new Strain("Amnesia Haze", null), FloweringType.PHOTOPERIOD,
-                seedSex, GrowMedium.INERT, Visibility.PUBLIC, TODAY.minusDays(30), CLOCK);
+                seedSex, GrowMedium.INERT, Visibility.COMMUNITY, TODAY.minusDays(30), CLOCK);
     }
 }

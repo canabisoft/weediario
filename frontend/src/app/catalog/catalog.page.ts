@@ -19,7 +19,7 @@ interface Row {
   readonly subtitle: string;
   readonly source: CatalogSource;
   readonly verified: boolean;
-  /** Diários públicos que usam o item (sementes em teste mostram o andamento no subtítulo). */
+  /** Diários da comunidade que usam o item (sementes em teste mostram o andamento no subtítulo). */
   readonly usage?: number;
   readonly score?: number;
   /** Só produtos: receitas públicas que usam o produto. */

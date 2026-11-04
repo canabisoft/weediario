@@ -16,7 +16,8 @@ export type GrowMedium = 'LIVING_SOIL' | 'MINERAL' | 'INERT';
 export type FloweringType = 'PHOTOPERIOD' | 'AUTOFLOWER';
 export type SeedSex = 'REGULAR' | 'FEMINIZED' | 'CLONE';
 export type DiaryStatus = 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-export type Visibility = 'PUBLIC' | 'COMMUNITY' | 'PRIVATE';
+/** Comunidade fechada: o diário é compartilhado com quem tem conta ou fica só para o dono. */
+export type Visibility = 'COMMUNITY' | 'PRIVATE';
 export type GrowEnvironment = 'INDOOR' | 'OUTDOOR' | 'GREENHOUSE';
 export type ReactionType = 'FIRE' | 'HERB' | 'CLAP';
 export type FeedSort = 'RECENTLY_UPDATED' | 'NEWEST' | 'MOST_REACTED';
@@ -225,7 +226,7 @@ export interface GrowerProfile {
   readonly hasAvatar: boolean;
   readonly diaries: number;
   readonly likes: number;
-  /** Colheitas registradas em diários públicos. */
+  /** Colheitas registradas em diários da comunidade. */
   readonly harvests: number;
   readonly gramsPerPlant?: number;
   /** Avaliações de genéticas publicadas. */
@@ -263,14 +264,14 @@ export interface Problem {
   readonly violations?: { field: string; message: string }[];
 }
 
-/** Setup que o grower já usou em diários públicos (a cópia congelada do cultivo). */
+/** Setup que o grower já usou em diários da comunidade (a cópia congelada do cultivo). */
 export interface PublicSetup {
   readonly setup: SetupSnapshot;
   readonly diaries: number;
   readonly lastStartedOn: string;
 }
 
-/** Review no perfil de quem escreveu. {@code diaryId} só vem se o diário for público. */
+/** Review no perfil de quem escreveu. {@code diaryId} só vem se o diário for da comunidade. */
 export interface AuthoredReview {
   readonly id: string;
   readonly strainId: string;

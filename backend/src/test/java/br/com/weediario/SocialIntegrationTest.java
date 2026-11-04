@@ -23,7 +23,7 @@ class SocialIntegrationTest extends IntegrationTestSupport {
     void reactionsAreAnonymousAndIdempotent() throws Exception {
         Session owner = newGrower();
         Session fan = newGrower();
-        UUID diaryId = createDiary(owner, "Reacted", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Reacted", "COMMUNITY", LocalDate.now().toString());
 
         mvc.perform(authed(put("/api/v1/diaries/{id}/reactions/FIRE", diaryId), fan)).andExpect(status().isOk());
         mvc.perform(authed(put("/api/v1/diaries/{id}/reactions/FIRE", diaryId), fan))
@@ -52,8 +52,8 @@ class SocialIntegrationTest extends IntegrationTestSupport {
     void sameGrowerHasUnlinkablePseudonymsAcrossDiaries() throws Exception {
         Session owner = newGrower();
         Session fan = newGrower();
-        UUID first = createDiary(owner, "A", "PUBLIC", LocalDate.now().toString());
-        UUID second = createDiary(owner, "B", "PUBLIC", LocalDate.now().toString());
+        UUID first = createDiary(owner, "A", "COMMUNITY", LocalDate.now().toString());
+        UUID second = createDiary(owner, "B", "COMMUNITY", LocalDate.now().toString());
 
         mvc.perform(authed(put("/api/v1/diaries/{id}/reactions/HERB", first), fan)).andExpect(status().isOk());
         mvc.perform(authed(put("/api/v1/diaries/{id}/reactions/HERB", second), fan)).andExpect(status().isOk());
@@ -67,12 +67,12 @@ class SocialIntegrationTest extends IntegrationTestSupport {
     void commentsShowNicknameAndCountInFeed() throws Exception {
         Session owner = newGrower();
         Session visitor = newGrower();
-        UUID diaryId = createDiary(owner, "Commented", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Commented", "COMMUNITY", LocalDate.now().toString());
 
         comment(visitor, diaryId, "Qual EC você usa na flora?");
         comment(owner, diaryId, "<script>alert(1)</script> 1.8 na semana 4");
 
-        JsonNode page = body(mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId))
+        JsonNode page = body(mvc.perform(signedIn(get("/api/v1/diaries/{id}/comments", diaryId)))
                 .andExpect(status().isOk()).andReturn());
         JsonNode first = page.get("items").get(0);
         JsonNode reply = page.get("items").get(1);
@@ -84,7 +84,7 @@ class SocialIntegrationTest extends IntegrationTestSupport {
         assertThat(reply.get("body").asText()).startsWith("<script>");
         assertThat(first.has("authorId")).isFalse();
 
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(jsonPath("$.commentsCount").value(2));
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(jsonPath("$.commentsCount").value(2));
     }
 
     @Test
@@ -92,7 +92,7 @@ class SocialIntegrationTest extends IntegrationTestSupport {
         Session owner = newGrower();
         Session author = newGrower();
         Session stranger = newGrower();
-        UUID diaryId = createDiary(owner, "Moderated", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Moderated", "COMMUNITY", LocalDate.now().toString());
         String commentId = comment(author, diaryId, "spam spam spam");
 
         mvc.perform(authed(delete("/api/v1/diaries/{d}/comments/{c}", diaryId, commentId), stranger))
@@ -105,7 +105,7 @@ class SocialIntegrationTest extends IntegrationTestSupport {
     void commentIsHiddenAfterThreeDistinctReports() throws Exception {
         Session owner = newGrower();
         Session author = newGrower();
-        UUID diaryId = createDiary(owner, "Reported", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Reported", "COMMUNITY", LocalDate.now().toString());
         String commentId = comment(author, diaryId, "conteúdo abusivo");
 
         report(author, "COMMENT", commentId, "SPAM").andExpect(status().isUnprocessableEntity()); // o próprio autor não
@@ -131,14 +131,14 @@ class SocialIntegrationTest extends IntegrationTestSupport {
                                 {"body":"oi"}"""))
                 .andExpect(status().isNotFound());
         mvc.perform(authed(put("/api/v1/diaries/{id}/reactions/CLAP", diaryId), other)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId)).andExpect(status().isNotFound());
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}/comments", diaryId))).andExpect(status().isNotFound());
     }
 
     @Test
     void commentFloodIsThrottled() throws Exception {
         Session owner = newGrower();
         Session flooder = newGrower();
-        UUID diaryId = createDiary(owner, "Flood", "PUBLIC", LocalDate.now().toString());
+        UUID diaryId = createDiary(owner, "Flood", "COMMUNITY", LocalDate.now().toString());
         for (int i = 0; i < 5; i++) {
             comment(flooder, diaryId, "msg " + i);
         }
@@ -153,14 +153,14 @@ class SocialIntegrationTest extends IntegrationTestSupport {
     void feedCanBeSortedByReactions() throws Exception {
         String strain = "Sort" + UUID.randomUUID().toString().substring(0, 6);
         Session owner = newGrower();
-        UUID quiet = createDiary(owner, strain, "PUBLIC", LocalDate.now().toString());
-        UUID popular = createDiary(owner, strain, "PUBLIC", LocalDate.now().minusDays(3).toString());
+        UUID quiet = createDiary(owner, strain, "COMMUNITY", LocalDate.now().toString());
+        UUID popular = createDiary(owner, strain, "COMMUNITY", LocalDate.now().minusDays(3).toString());
         for (String type : List.of("FIRE", "HERB", "CLAP")) {
             mvc.perform(authed(put("/api/v1/diaries/{id}/reactions/" + type, popular), newGrower()))
                     .andExpect(status().isOk());
         }
 
-        JsonNode feed = body(mvc.perform(get("/api/v1/feed/diaries?sort=MOST_REACTED&strain=" + strain))
+        JsonNode feed = body(mvc.perform(signedIn(get("/api/v1/feed/diaries?sort=MOST_REACTED&strain=" + strain)))
                 .andExpect(status().isOk()).andReturn());
 
         assertThat(feed.get("items").get(0).get("id").asText()).isEqualTo(popular.toString());
@@ -180,6 +180,6 @@ class SocialIntegrationTest extends IntegrationTestSupport {
     }
 
     private long commentCount(UUID diaryId) throws Exception {
-        return body(mvc.perform(get("/api/v1/diaries/{id}/comments", diaryId)).andReturn()).get("totalItems").asLong();
+        return body(mvc.perform(signedIn(get("/api/v1/diaries/{id}/comments", diaryId))).andReturn()).get("totalItems").asLong();
     }
 }

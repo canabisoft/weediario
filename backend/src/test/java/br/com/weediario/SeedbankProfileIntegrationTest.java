@@ -22,16 +22,16 @@ class SeedbankProfileIntegrationTest extends IntegrationTestSupport {
     void seedbankPageListsEachStrainWithCoverAndLatestDiaries() throws Exception {
         Session grower = newGrower();
         String bank = "Banco " + UUID.randomUUID().toString().substring(0, 6);
-        UUID first = diary(grower, "Zkittlez", bank, "PUBLIC", 20);
-        UUID second = diary(grower, "Gelato 33", bank, "PUBLIC", 10);
-        diary(grower, "Gelato 33", bank, "PUBLIC", 5);
+        UUID first = diary(grower, "Zkittlez", bank, "COMMUNITY", 20);
+        UUID second = diary(grower, "Gelato 33", bank, "COMMUNITY", 10);
+        diary(grower, "Gelato 33", bank, "COMMUNITY", 5);
         UUID hidden = diary(grower, "Segredo Kush", bank, "PRIVATE", 3);
         UUID photo = publishWithPhoto(grower, second);
         publishWithPhoto(grower, hidden);
         String breederId = body(mvc.perform(get("/api/v1/catalog/breeders/suggest").param("q", bank)).andReturn())
                 .get(0).get("id").asText();
 
-        JsonNode strains = body(mvc.perform(get("/api/v1/catalog/breeders/{id}/strains", breederId))
+        JsonNode strains = body(mvc.perform(signedIn(get("/api/v1/catalog/breeders/{id}/strains", breederId)))
                 .andExpect(status().isOk()).andReturn());
         List<String> names = names(strains.get("items"), "name");
         // Uma strain por card, a mais cultivada primeiro. A strain do diário privado existe no catálogo,
@@ -45,7 +45,13 @@ class SeedbankProfileIntegrationTest extends IntegrationTestSupport {
         assertThat(secret.get("diaries").asInt()).isZero();
         assertThat(secret.has("coverThumbnailUrl") && !secret.get("coverThumbnailUrl").isNull()).isFalse();
 
-        JsonNode latest = body(mvc.perform(get("/api/v1/feed/diaries?breederId={id}&sort=NEWEST&size=6", breederId))
+        // Visitante deslogado vê os mesmos cards e contagens, mas sem a foto (ela é de um diário da comunidade).
+        JsonNode anonymous = body(mvc.perform(get("/api/v1/catalog/breeders/{id}/strains", breederId))
+                .andExpect(status().isOk()).andReturn());
+        assertThat(anonymous.get("items").get(0).get("diaries").asInt()).isEqualTo(2);
+        assertThat(anonymous.get("items").get(0).has("coverThumbnailUrl")).isFalse();
+
+        JsonNode latest = body(mvc.perform(signedIn(get("/api/v1/feed/diaries?breederId={id}&sort=NEWEST&size=6", breederId)))
                 .andExpect(status().isOk()).andReturn());
         assertThat(latest.get("totalItems").asInt()).isEqualTo(3);
         assertThat(latest.get("items").get(2).get("id").asText()).isEqualTo(first.toString());

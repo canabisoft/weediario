@@ -91,7 +91,20 @@ export class LoginPage {
   }
 }
 
-/** Só aceita caminhos internos, para o parâmetro "voltar" não virar um redirecionamento para outro site. */
+/**
+ * Só aceita caminhos internos, para o parâmetro "voltar" não virar um redirecionamento para outro site. Monta a URL
+ * como o navegador montaria e compara a origem: "começa com /" deixa passar truques como `/\outro.site` (a barra
+ * invertida vira barra) e uma tabulação entre as barras (o navegador a remove).
+ */
 export function safeReturnUrl(url: string | undefined): string {
-  return url && url.startsWith('/') && !url.startsWith('//') ? url : '/diarios';
+  const fallback = '/diarios';
+  if (!url || !url.startsWith('/')) {
+    return fallback;
+  }
+  try {
+    const target = new URL(url, location.origin);
+    return target.origin === location.origin ? target.pathname + target.search + target.hash : fallback;
+  } catch {
+    return fallback;
+  }
 }

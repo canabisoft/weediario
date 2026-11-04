@@ -8,7 +8,7 @@ export interface RankedGrower {
   readonly username: string;
   readonly hasAvatar: boolean;
   readonly diaries: number;
-  /** Total de reações recebidas nos diários públicos (🔥 🌿 👏). */
+  /** Total de reações recebidas nos diários da comunidade (🔥 🌿 👏). */
   readonly likes: number;
   /** Gramas secas por planta nas colheitas registradas; null se ainda não há colheita. */
   readonly gramsPerPlant: number | null;
@@ -30,7 +30,7 @@ export interface GrowerLevel {
   readonly minDiaries: number;
 }
 
-/** Nível pela quantidade de diários públicos (experiência acumulada), do mais alto para o mais baixo. */
+/** Nível pela quantidade de diários da comunidade (experiência acumulada), do mais alto para o mais baixo. */
 export const GROWER_LEVELS: readonly GrowerLevel[] = [
   { name: 'GrandMaster', minDiaries: 50 },
   { name: 'Guru', minDiaries: 25 },
@@ -45,7 +45,7 @@ export function levelFor(diaries: number): GrowerLevel {
 
 export interface LevelProgress {
   readonly next: GrowerLevel;
-  /** Diários públicos que faltam para o próximo nível. */
+  /** Diários da comunidade que faltam para o próximo nível. */
   readonly missing: number;
   /** Andamento entre o nível atual e o próximo, de 0 a 1. */
   readonly progress: number;

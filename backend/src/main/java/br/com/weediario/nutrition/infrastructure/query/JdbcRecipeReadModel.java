@@ -42,7 +42,7 @@ public class JdbcRecipeReadModel implements RecipeReadModel {
                    (select count(*) from recipes c join users cu on cu.id = c.owner_id and cu.status = 'ACTIVE'
                      where c.replicated_from = r.id) as replications,
                    (select count(*) from diary_recipes dr
-                      join grow_diaries d on d.id = dr.diary_id and d.visibility = 'PUBLIC'
+                      join grow_diaries d on d.id = dr.diary_id and d.visibility = 'COMMUNITY'
                       join users du on du.id = d.owner_id and du.status = 'ACTIVE'
                      where dr.recipe_id = r.id) as diaries,
                    rt.rating_count, rt.rating, rt.rating_sum

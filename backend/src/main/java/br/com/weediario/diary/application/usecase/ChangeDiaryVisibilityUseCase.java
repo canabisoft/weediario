@@ -46,8 +46,9 @@ public final class ChangeDiaryVisibilityUseCase {
         return unitOfWork.execute(() -> {
             GrowDiary diary = access.ownedBy(diaryId, ownerId);
             Verdict verdict = Verdict.ALLOWED;
-            if (visibility == Visibility.PUBLIC && diary.visibility() != Visibility.PUBLIC && !diary.moderationHold()) {
-                // Ao ficar público, o que foi escrito no privado passa pelo filtro anti-comércio.
+            if (visibility == Visibility.COMMUNITY && diary.visibility() != Visibility.COMMUNITY
+                    && !diary.moderationHold()) {
+                // Ao abrir para a comunidade, o que foi escrito no privado passa pelo filtro anti-comércio.
                 List<String> texts = new ArrayList<>();
                 texts.add(diary.title());
                 updates.findByDiary(diary.id(), 0, MAX_UPDATES_CHECKED).forEach(update -> texts.add(update.note()));

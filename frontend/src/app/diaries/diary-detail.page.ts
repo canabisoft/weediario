@@ -44,8 +44,6 @@ import { ReportButton } from '../shared/report-button';
               <span class="rounded-full bg-surface-raised px-2 py-0.5">{{ status[d.status] }}</span>
               @if (d.visibility === 'PRIVATE') {
                 <span class="inline-flex items-center gap-1 rounded-full bg-surface-raised px-2 py-0.5"><app-icon name="lock" class="size-3" /> Privado</span>
-              } @else if (d.visibility === 'COMMUNITY') {
-                <span class="inline-flex items-center gap-1 rounded-full bg-surface-raised px-2 py-0.5"><app-icon name="user" class="size-3" /> Comunidade</span>
               }
             </div>
             <h1 class="text-2xl font-bold sm:text-3xl">{{ d.title }}</h1>
@@ -126,7 +124,7 @@ import { ReportButton } from '../shared/report-button';
           }
 
           <app-diary-reactions [diaryId]="d.id" />
-          <app-diary-timeline [diaryId]="d.id" [isOwner]="isOwner()" [isPublic]="d.visibility === 'PUBLIC'" (changed)="reload()" />
+          <app-diary-timeline [diaryId]="d.id" [isOwner]="isOwner()" (changed)="reload()" />
           <section class="wd-card"><app-diary-comments [diaryId]="d.id" /></section>
         </article>
       } @else {

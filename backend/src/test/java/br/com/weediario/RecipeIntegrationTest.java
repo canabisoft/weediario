@@ -23,7 +23,7 @@ class RecipeIntegrationTest extends IntegrationTestSupport {
     @Test
     void visitorsWithoutAccountCannotReadRankingsRecipesOrSetups() throws Exception {
         Session grower = newGrower();
-        UUID diaryId = createDiary(grower, "Gelato", "PUBLIC", LocalDate.now().minusDays(10).toString());
+        UUID diaryId = createDiary(grower, "Gelato", "COMMUNITY", LocalDate.now().minusDays(10).toString());
 
         for (String path : List.of("/api/v1/recipes", "/api/v1/recipes/recommended", "/api/v1/catalog/rankings/STRAINS",
                 "/api/v1/catalog/rankings/PRODUCTS", "/api/v1/growers/ranking",
@@ -32,8 +32,8 @@ class RecipeIntegrationTest extends IntegrationTestSupport {
             mvc.perform(get(path)).andExpect(status().isUnauthorized());
         }
         // O diário público e o perfil continuam abertos.
-        mvc.perform(get("/api/v1/diaries/{id}", diaryId)).andExpect(status().isOk());
-        mvc.perform(get("/api/v1/growers/{u}", grower.username())).andExpect(status().isOk());
+        mvc.perform(signedIn(get("/api/v1/diaries/{id}", diaryId))).andExpect(status().isOk());
+        mvc.perform(signedIn(get("/api/v1/growers/{u}", grower.username()))).andExpect(status().isOk());
     }
 
     @Test
@@ -125,7 +125,7 @@ class RecipeIntegrationTest extends IntegrationTestSupport {
     void diaryShowsTheRecipesItUsesRespectingRecipePrivacy() throws Exception {
         Session grower = newGrower();
         Session other = newGrower();
-        UUID diaryId = createDiary(grower, "Gelato", "PUBLIC", LocalDate.now().minusDays(15).toString());
+        UUID diaryId = createDiary(grower, "Gelato", "COMMUNITY", LocalDate.now().minusDays(15).toString());
         String mine = create(grower, "Minha vega", "PRIVATE", null);
         String theirs = create(other, "Flora pública", "PUBLIC", null);
         String theirsPrivate = create(other, "Flora secreta", "PRIVATE", null);

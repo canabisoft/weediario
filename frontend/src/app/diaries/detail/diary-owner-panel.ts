@@ -106,7 +106,6 @@ export class DiaryOwnerPanel {
   });
 
   protected readonly visibilityOptions = [
-    { value: 'PUBLIC', label: 'Público' },
     { value: 'COMMUNITY', label: 'Comunidade' },
     { value: 'PRIVATE', label: 'Privado' },
   ] as const;
