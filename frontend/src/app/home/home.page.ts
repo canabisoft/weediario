@@ -7,7 +7,7 @@ import { DiariesApi } from '../core/api/diaries.api';
 import { AuthService } from '../core/auth/auth.service';
 import { DiaryCardComponent } from '../diaries/diary-card';
 import { Icon } from '../shared/icon';
-import { MembersOnly } from '../shared/members-only';
+import { Landing } from './landing';
 
 const PHRASES = [
   'Autocultivo é o caminho.',
@@ -22,49 +22,68 @@ const PHRASES = [
 @Component({
   selector: 'app-home-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, DiaryCardComponent, MembersOnly],
+  imports: [RouterLink, Icon, DiaryCardComponent, Landing],
   template: `
-    <section class="relative overflow-hidden rounded-3xl border border-accent/25 bg-linear-to-br from-accent/25 via-surface-raised to-surface p-6 sm:p-8">
-      <app-icon name="leaf" class="pointer-events-none absolute -right-6 -top-6 size-40 text-accent/10" [strokeWidth]="1.2" />
-      <h1 class="max-w-lg text-2xl font-bold sm:text-3xl">Seu diário de cultivo</h1>
-      <p class="mt-2 max-w-lg text-fg-muted">{{ phrase }}</p>
-      <div class="mt-4 flex flex-wrap gap-2">
-        @if (auth.isLoggedIn()) {
-          <a routerLink="/diarios/novo" class="wd-button"><app-icon name="plus" class="size-5" /> Iniciar diário</a>
+    @if (!auth.isLoggedIn()) {
+      <app-landing />
+    } @else {
+      <section
+        class="relative overflow-hidden rounded-3xl border border-accent/25 bg-linear-to-br from-accent/25 via-surface-raised to-surface p-6 sm:p-8"
+      >
+        <app-icon
+          name="leaf"
+          class="pointer-events-none absolute -right-6 -top-6 size-40 text-accent/10"
+          [strokeWidth]="1.2"
+        />
+        <h1 class="max-w-lg text-2xl font-bold sm:text-3xl">Seu diário de cultivo</h1>
+        <p class="mt-2 max-w-lg text-fg-muted">{{ phrase }}</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a routerLink="/diarios/novo" class="wd-button"
+            ><app-icon name="plus" class="size-5" /> Iniciar diário</a
+          >
           <a routerLink="/perfil" class="wd-button bg-surface-raised text-fg">Meus diários</a>
-        } @else {
-          <a routerLink="/cadastro" class="wd-button">Criar conta</a>
-          <a routerLink="/entrar" class="wd-button bg-surface-raised text-fg">Entrar</a>
-        }
-      </div>
-    </section>
+        </div>
+      </section>
 
-    <section class="mt-8" aria-labelledby="home-comunidade">
-      <h2 id="home-comunidade" class="text-lg font-semibold">Feito pela comunidade, para a comunidade</h2>
-      <p class="text-sm text-fg-muted">O catálogo cresce com quem cultiva, e o que a comunidade constrói volta para ela.</p>
-      <div class="mt-3 grid gap-3 sm:grid-cols-2">
-        <a routerLink="/dados-abertos" class="wd-card grid gap-2 border-accent/40 hover:border-accent">
-          <span class="grid size-10 place-items-center rounded-xl bg-accent/15 text-accent"><app-icon name="database" class="size-5" /></span>
-          <span class="font-semibold">Banco aberto de strains</span>
-          <span class="text-sm text-fg-muted">
-            Milhares de genéticas com as médias das avaliações e dos rendimentos da comunidade. Livre para baixar em CSV
-            ou JSON, sem dado pessoal de ninguém.
-          </span>
-          <span class="text-sm font-semibold text-accent">Conhecer o banco →</span>
-        </a>
-        <a routerLink="/breeders/programa" class="wd-card grid gap-2 border-accent/40 hover:border-accent">
-          <span class="grid size-10 place-items-center rounded-xl bg-accent/15 text-accent"><app-icon name="sprout" class="size-5" /></span>
-          <span class="font-semibold">Programa de breeders</span>
-          <span class="text-sm text-fg-muted">
-            Banco de sementes ou breeder independente? Cadastre suas genéticas: elas entram no catálogo depois de
-            avaliadas pela comunidade.
-          </span>
-          <span class="text-sm font-semibold text-accent">Conhecer o programa →</span>
-        </a>
-      </div>
-    </section>
+      <section class="mt-8" aria-labelledby="home-comunidade">
+        <h2 id="home-comunidade" class="text-lg font-semibold">
+          Feito pela comunidade, para a comunidade
+        </h2>
+        <p class="text-sm text-fg-muted">
+          O catálogo cresce com quem cultiva, e o que a comunidade constrói volta para ela.
+        </p>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+          <a
+            routerLink="/dados-abertos"
+            class="wd-card grid gap-2 border-accent/40 hover:border-accent"
+          >
+            <span class="grid size-10 place-items-center rounded-xl bg-accent/15 text-accent"
+              ><app-icon name="database" class="size-5"
+            /></span>
+            <span class="font-semibold">Banco aberto de strains</span>
+            <span class="text-sm text-fg-muted">
+              Milhares de genéticas com as médias das avaliações e dos rendimentos da comunidade.
+              Livre para baixar em CSV ou JSON, sem dado pessoal de ninguém.
+            </span>
+            <span class="text-sm font-semibold text-accent">Conhecer o banco →</span>
+          </a>
+          <a
+            routerLink="/breeders/programa"
+            class="wd-card grid gap-2 border-accent/40 hover:border-accent"
+          >
+            <span class="grid size-10 place-items-center rounded-xl bg-accent/15 text-accent"
+              ><app-icon name="sprout" class="size-5"
+            /></span>
+            <span class="font-semibold">Programa de breeders</span>
+            <span class="text-sm text-fg-muted">
+              Banco de sementes ou breeder independente? Cadastre suas genéticas: elas entram no
+              catálogo depois de avaliadas pela comunidade.
+            </span>
+            <span class="text-sm font-semibold text-accent">Conhecer o programa →</span>
+          </a>
+        </div>
+      </section>
 
-    @if (auth.isLoggedIn()) {
       <div class="mt-8 flex items-center justify-between">
         <h2 class="text-lg font-semibold">Diários atualizados recentemente</h2>
         <a routerLink="/diarios" class="text-sm font-semibold text-accent">Ver todos →</a>
@@ -73,27 +92,26 @@ const PHRASES = [
         @for (diary of latest(); track diary.id) {
           <li><app-diary-card [diary]="diary" /></li>
         } @empty {
-          <li class="wd-card text-center text-fg-muted sm:col-span-2 lg:col-span-3">Os primeiros diários da comunidade aparecem aqui.</li>
+          <li class="wd-card text-center text-fg-muted sm:col-span-2 lg:col-span-3">
+            Os primeiros diários da comunidade aparecem aqui.
+          </li>
         }
       </ul>
-    } @else {
-      <h2 class="mb-3 mt-8 text-lg font-semibold">Uma comunidade fechada</h2>
-      <app-members-only
-        text="Diários, perfis e relatos de cultivo ficam entre quem tem conta: nada disso aparece para visitantes nem em buscadores. É de graça e não pede nome real."
-      />
-    }
 
-    <h2 class="mb-2 mt-8 text-lg font-semibold">Ferramentas (funcionam offline)</h2>
-    <div class="grid gap-3 sm:grid-cols-2">
-      <a routerLink="/ferramentas/vpd" class="wd-card block hover:border-accent/50">
-        <span class="font-semibold">Calculadora de VPD</span>
-        <span class="block text-sm text-fg-muted">Temperatura + umidade: sua planta está na zona ideal?</span>
-      </a>
-      <a routerLink="/ferramentas/ec-ppm" class="wd-card block hover:border-accent/50">
-        <span class="font-semibold">Conversor EC / PPM</span>
-        <span class="block text-sm text-fg-muted">Converta entre as escalas dos medidores.</span>
-      </a>
-    </div>
+      <h2 class="mb-2 mt-8 text-lg font-semibold">Ferramentas (funcionam offline)</h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <a routerLink="/ferramentas/vpd" class="wd-card block hover:border-accent/50">
+          <span class="font-semibold">Calculadora de VPD</span>
+          <span class="block text-sm text-fg-muted"
+            >Temperatura + umidade: sua planta está na zona ideal?</span
+          >
+        </a>
+        <a routerLink="/ferramentas/ec-ppm" class="wd-card block hover:border-accent/50">
+          <span class="font-semibold">Conversor EC / PPM</span>
+          <span class="block text-sm text-fg-muted">Converta entre as escalas dos medidores.</span>
+        </a>
+      </div>
+    }
   `,
 })
 export class HomePage {

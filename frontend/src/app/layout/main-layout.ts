@@ -26,7 +26,8 @@ const DESKTOP_QUERY = '(min-width: 1024px)';
 
 /**
  * Casca da aplicação: menu lateral (fixo no desktop, gaveta no celular), cabeçalho com busca e ação
- * rápida, e a área onde as páginas são renderizadas.
+ * rápida, e a área onde as páginas são renderizadas. Visitante não tem menu lateral nem busca (comunidade fechada:
+ * quase tudo pede login): só o logo, Entrar e Criar conta; as páginas abertas ficam linkadas na landing.
  */
 @Component({
   selector: 'app-main-layout',

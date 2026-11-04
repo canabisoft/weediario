@@ -26,6 +26,10 @@ describe('MainLayout', () => {
     }).compileComponents();
   });
 
+  function signIn(role: 'GROWER' | 'MODERATOR' = 'GROWER') {
+    TestBed.inject(AuthService).me.set({ id: 'u1', username: 'maria', hasAvatar: false, hasRecoveryPhrase: true, role, termsAccepted: true, currentTermsVersion: '1.0', profileHidden: false });
+  }
+
   async function render() {
     const fixture = TestBed.createComponent(MainLayout);
     await fixture.whenStable();
@@ -33,6 +37,7 @@ describe('MainLayout', () => {
   }
 
   it('renders the sidebar navigation and the privacy card', async () => {
+    signIn();
     const { root } = await render();
     const nav = root.querySelector('nav[aria-label="Navegação principal"]')!;
 
@@ -43,6 +48,7 @@ describe('MainLayout', () => {
   });
 
   it('highlights the open database and the breeder program in the sidebar', async () => {
+    signIn();
     const { root } = await render();
     const community = root.querySelector('section[aria-labelledby="menu-comunidade"]')!;
 
@@ -52,6 +58,7 @@ describe('MainLayout', () => {
   });
 
   it('has a highlighted quick action to start a diary', async () => {
+    signIn();
     const { root } = await render();
     const action = root.querySelector('header a[href="/diarios/novo"]');
 
@@ -60,6 +67,7 @@ describe('MainLayout', () => {
   });
 
   it('opens the mobile drawer and closes it with Escape', async () => {
+    signIn();
     const { fixture, root } = await render();
     const toggle = root.querySelector('button[aria-controls="menu-lateral"]') as HTMLButtonElement;
 
@@ -74,7 +82,7 @@ describe('MainLayout', () => {
   });
 
   it('sends the global search to the growers ranking', async () => {
-    TestBed.inject(AuthService).me.set({ id: 'u1', username: 'maria', hasAvatar: false, hasRecoveryPhrase: true, role: 'GROWER', termsAccepted: true, currentTermsVersion: '1.0', profileHidden: false });
+    signIn();
     const { fixture, root } = await render();
     const form = root.querySelector('header form[role="search"]') as HTMLFormElement;
     (form.querySelector('input[name="q"]') as HTMLInputElement).value = '  kaya ';
@@ -85,21 +93,16 @@ describe('MainLayout', () => {
     expect(TestBed.inject(Router).url).toBe('/growers?q=kaya');
   });
 
-  it('asks visitors to sign in before showing the growers ranking', async () => {
-    const { fixture, root } = await render();
-    const form = root.querySelector('header form[role="search"]') as HTMLFormElement;
-    (form.querySelector('input[name="q"]') as HTMLInputElement).value = 'kaya';
-
-    form.dispatchEvent(new Event('submit', { cancelable: true }));
-    await fixture.whenStable();
-
-    expect(TestBed.inject(Router).url).toBe('/entrar?voltar=%2Fgrowers%3Fq%3Dkaya');
-  });
-
-  it('offers login when nobody is signed in', async () => {
+  it('gives visitors no sidebar nor search: only the logo, login and sign-up (closed community)', async () => {
     const { root } = await render();
 
+    expect(root.querySelector('aside')).toBeNull();
+    expect(root.querySelector('button[aria-controls="menu-lateral"]')).toBeNull();
+    expect(root.querySelector('header form[role="search"]')).toBeNull();
+    expect(root.querySelector('header a[href="/diarios/novo"]')).toBeNull();
+    expect(root.querySelector('header a[href="/"]')?.textContent).toContain('weediário');
     expect(root.querySelector('header a[href="/entrar"]')).not.toBeNull();
+    expect(root.querySelector('header a[href="/cadastro"]')?.textContent).toContain('Criar conta');
   });
 
   it('toggles night mode with one tap from the header', async () => {
@@ -114,8 +117,7 @@ describe('MainLayout', () => {
   });
 
   it('shows the notification bell with the unread counter, and the moderation link only to moderators', async () => {
-    const auth = TestBed.inject(AuthService);
-    auth.me.set({ id: 'u1', username: 'maria', hasAvatar: false, hasRecoveryPhrase: true, role: 'GROWER', termsAccepted: true, currentTermsVersion: '1.0', profileHidden: false });
+    signIn();
     const { fixture, root } = await render();
 
     const bell = root.querySelector('header a[href="/notificacoes"]')!;
@@ -123,7 +125,7 @@ describe('MainLayout', () => {
     expect(bell.textContent).toContain('7');
     expect(root.querySelector('nav a[href="/moderacao"]')).toBeNull();
 
-    auth.me.set({ id: 'u1', username: 'maria', hasAvatar: false, hasRecoveryPhrase: true, role: 'MODERATOR', termsAccepted: true, currentTermsVersion: '1.0', profileHidden: false });
+    signIn('MODERATOR');
     await fixture.whenStable();
     expect(root.querySelector('nav a[href="/moderacao"]')?.textContent).toContain('Moderação');
   });
