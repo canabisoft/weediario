@@ -1,0 +1,388 @@
+<header>
+  <h1 class="text-2xl font-bold sm:text-3xl">Como cultivar em casa gastando pouco</h1>
+  <p class="mt-2 text-fg-muted">
+    Nove etapas, da conversa sobre a lei até a cura das flores. Cada uma tem texto simples, foto, o
+    que dá para reaproveitar em vez de comprar e um checklist para você marcar o que já fez.
+  </p>
+  <p class="mt-2 text-sm text-fg-muted">
+    Conteúdo informativo, para maiores de 18 anos. Cultivo no Brasil tem risco jurídico: leia a
+    etapa 0 primeiro. O progresso fica só neste aparelho.
+  </p>
+</header>
+
+<section class="mt-6" aria-labelledby="guia-trilha">
+  <h2 id="guia-trilha" class="text-xl font-bold">Sua trilha, etapa por etapa</h2>
+  <p class="mt-1 text-sm text-fg-muted" aria-live="polite">{{ status() }}</p>
+  <!-- Um segmento por etapa: sem style inline (a CSP do app não deixa). -->
+  <div
+    class="mt-3 flex gap-1"
+    role="img"
+    [attr.aria-label]="concluidas() + ' de ' + etapas.length + ' etapas concluídas'"
+  >
+    @for (e of etapas; track e.id) {
+      <span
+        class="h-2 flex-1 rounded-full transition-colors duration-300"
+        [class.bg-accent]="concluidaPorEtapa()[e.id]"
+        [class.bg-line]="!concluidaPorEtapa()[e.id]"
+      ></span>
+    }
+  </div>
+
+  <!-- Linha do tempo: a linha se preenche e a planta muda de fase conforme a página rola. -->
+  <ol class="mt-6 list-none p-0" aria-label="Trilha do cultivo em 9 etapas">
+    @for (e of etapas; track e.id) {
+      <li
+        data-linha
+        [attr.data-i]="e.id"
+        class="relative grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 pb-6 last:pb-0 md:grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)] md:gap-x-6"
+      >
+        <div class="relative col-start-1 row-start-1 md:col-start-2">
+          @if (!$last) {
+            <span
+              aria-hidden="true"
+              class="absolute left-1/2 top-5 bottom-[-2.75rem] w-1 -translate-x-1/2 rounded-full transition-colors duration-500"
+              [class.bg-accent]="e.id < faseVista()"
+              [class.bg-line]="e.id >= faseVista()"
+            ></span>
+          }
+          <span
+            aria-hidden="true"
+            class="relative z-10 grid size-10 place-items-center rounded-full border-2 font-bold transition-colors duration-300"
+            [class.border-accent]="estadoNo(e.id) !== 'atual'"
+            [class.bg-accent]="estadoNo(e.id) === 'feito'"
+            [class.text-accent-fg]="estadoNo(e.id) === 'feito'"
+            [class.bg-canvas]="estadoNo(e.id) === 'todo'"
+            [class.text-accent]="estadoNo(e.id) === 'todo'"
+            [class.border-warn]="estadoNo(e.id) === 'atual'"
+            [class.bg-warn]="estadoNo(e.id) === 'atual'"
+            [class.text-canvas]="estadoNo(e.id) === 'atual'"
+          >
+            @if (estadoNo(e.id) === 'feito') {
+              <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            } @else {
+              {{ e.id }}
+            }
+          </span>
+        </div>
+
+        <div
+          class="wd-card col-start-2 row-start-1"
+          [class]="e.id % 2 === 0 ? 'md:col-start-1' : 'md:col-start-3'"
+          [class.border-warn]="estadoNo(e.id) === 'atual'"
+        >
+          <div class="flex items-start gap-3">
+            <div class="min-w-0 flex-1">
+              <h3 class="text-lg font-bold">{{ e.curto }}</h3>
+              <p class="text-sm text-fg-muted">{{ e.sub }}</p>
+            </div>
+            <span class="h-14 w-11 shrink-0 md:hidden"><app-guia-planta [etapa]="e.id" /></span>
+          </div>
+          <ul class="mt-2 flex flex-wrap gap-1.5">
+            @for (chip of e.chips; track chip) {
+              <li class="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
+                {{ chip }}
+              </li>
+            }
+          </ul>
+          <p class="mt-2 text-xs text-fg-muted">
+            {{ itensFeitos(e.id) }} de {{ e.checklist.length }} itens marcados
+          </p>
+          <button
+            type="button"
+            data-etapa
+            class="wd-button mt-3 px-4 text-sm"
+            [attr.aria-label]="descricaoNo(e.id)"
+            (click)="abrir(e.id, $event)"
+          >
+            Ler a etapa {{ e.id }}
+          </button>
+        </div>
+
+        @if (e.id === faseVista()) {
+          <div
+            class="row-start-1 hidden items-start md:flex"
+            [class]="e.id % 2 === 0 ? 'md:col-start-3 justify-start' : 'md:col-start-1 justify-end'"
+          >
+            <span class="h-36 w-28"><app-guia-planta [etapa]="e.id" /></span>
+          </div>
+        }
+      </li>
+    }
+  </ol>
+
+  @if (estado.feitas().size > 0) {
+    <p class="mt-3 text-right">
+      <button type="button" class="text-sm text-fg-muted underline" (click)="limparProgresso()">
+        Limpar o meu progresso
+      </button>
+    </p>
+  }
+</section>
+
+<section class="mt-10" aria-labelledby="guia-compras">
+  <h2 id="guia-compras" class="text-xl font-bold">O que comprar e o que reaproveitar</h2>
+  <p class="mt-1 text-fg-muted">
+    A regra para gastar pouco: reaproveite o que der e compre com cuidado só o que influencia o
+    resultado, que é a luz, o timer e o termo-higrômetro.
+  </p>
+  <ul class="mt-4 grid gap-3">
+    @for (c of compras; track c.chave) {
+      <li class="wd-card">
+        <h3 class="font-semibold">{{ c.item }}</h3>
+        <dl class="mt-1 grid gap-x-3 text-sm sm:grid-cols-[auto_1fr]">
+          <dt class="text-fg-muted">Opção barata</dt>
+          <dd>{{ c.barata }}</dd>
+          <dt class="text-fg-muted">Quando vale comprar</dt>
+          <dd>{{ c.quando }}</dd>
+        </dl>
+        <app-guia-lojas [itens]="[c.chave]" />
+      </li>
+    }
+  </ul>
+</section>
+
+<section class="mt-10" aria-labelledby="guia-creditos">
+  <h2 id="guia-creditos" class="text-xl font-bold">Créditos e avisos</h2>
+  <p class="mt-2 text-sm text-fg-muted">
+    As fotos vêm do Wikimedia Commons, com licença livre, e ficam neste site (nada é carregado de
+    terceiros). Os vídeos são links para canais brasileiros independentes: o weediário não incorpora
+    vídeo, não conta cliques e não recebe comissão de loja nem de canal.
+  </p>
+  <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-fg-muted">
+    @for (f of fotos | keyvalue; track f.key) {
+      <li>
+        {{ f.value.alt }} Foto de {{ f.value.autor }}, {{ f.value.licenca }} (<a
+          [href]="f.value.origem"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-accent underline"
+          >origem</a
+        >).
+      </li>
+    }
+  </ul>
+  <p class="mt-3 text-sm text-fg-muted">
+    Este guia é informativo. Não é aconselhamento jurídico nem médico e não indica dose.
+  </p>
+</section>
+
+<!-- Todas as etapas ficam no HTML (SEO e leitura sem JavaScript); só a escolhida aparece. -->
+<dialog
+  #dialogo
+  class="m-auto max-h-[calc(100dvh-2rem)] w-[min(46rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-line bg-canvas p-0 text-fg shadow-2xl backdrop:bg-black/60 open:flex open:flex-col max-sm:m-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-screen max-sm:rounded-none"
+  [attr.aria-labelledby]="aberta() === null ? null : 'guia-t-' + aberta()"
+  (close)="aoFechar()"
+  (click)="aoClicar($event)"
+>
+  <div class="flex items-center justify-between border-b border-line bg-surface px-4 py-2">
+    <span class="text-sm font-semibold text-fg-muted">
+      Etapa {{ aberta() ?? 0 }} de {{ etapas.length - 1 }}
+    </span>
+    <button
+      type="button"
+      class="min-h-10 rounded-xl border border-accent px-4 text-sm font-semibold text-accent hover:bg-accent/10"
+      (click)="fechar()"
+    >
+      Fechar
+    </button>
+  </div>
+
+  <div #conteudo class="overflow-y-auto overscroll-contain px-4 pb-6">
+    @for (e of etapas; track e.id) {
+      <article [id]="'etapa-' + e.id" [class.hidden]="aberta() !== e.id">
+        <header class="mt-4 flex items-start gap-3">
+          <span
+            class="grid size-12 shrink-0 place-items-center rounded-full bg-accent text-xl font-bold text-accent-fg"
+            aria-hidden="true"
+            >{{ e.id }}</span
+          >
+          <div>
+            <h2 [id]="'guia-t-' + e.id" class="text-2xl font-bold">{{ e.curto }}</h2>
+            <ul class="mt-1 flex flex-wrap gap-1.5">
+              @for (chip of e.chips; track chip) {
+                <li
+                  class="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent"
+                >
+                  {{ chip }}
+                </li>
+              }
+            </ul>
+          </div>
+        </header>
+
+        @if (e.videos.length) {
+          <section class="mt-5" [attr.aria-labelledby]="'guia-v-' + e.id">
+            <h3 [id]="'guia-v-' + e.id" class="text-lg font-bold">Veja em vídeo</h3>
+            <p class="mt-1 text-sm text-fg-muted">
+              Canais brasileiros, de terceiros. O vídeo só carrega do YouTube quando você clica nele.
+            </p>
+            <ul class="mt-2 grid gap-3 sm:grid-cols-2">
+              @for (v of e.videos; track v.id) {
+                <li class="overflow-hidden rounded-xl border border-line bg-surface">
+                  @if (tocando() === v.id && urlTocando(); as url) {
+                    <iframe
+                      [src]="url"
+                      [title]="v.titulo"
+                      class="aspect-video w-full"
+                      allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                      allowfullscreen
+                      referrerpolicy="strict-origin-when-cross-origin"
+                    ></iframe>
+                  } @else {
+                    <button
+                      type="button"
+                      class="group relative block w-full"
+                      [attr.aria-label]="'Assistir: ' + v.titulo"
+                      (click)="tocar(v.id)"
+                    >
+                      <img
+                        [src]="'/guia-cultivo/video/' + v.id + '.jpg'"
+                        alt=""
+                        width="320"
+                        height="180"
+                        loading="lazy"
+                        decoding="async"
+                        class="aspect-video w-full bg-surface-raised object-cover"
+                      />
+                      <span
+                        class="absolute inset-0 grid place-items-center bg-black/20 group-hover:bg-black/35"
+                        aria-hidden="true"
+                      >
+                        <span class="grid size-12 place-items-center rounded-full bg-accent text-accent-fg">
+                          <svg viewBox="0 0 24 24" class="ml-0.5 size-6" fill="currentColor">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </span>
+                      </span>
+                      <span
+                        class="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 text-xs font-semibold text-white"
+                        aria-hidden="true"
+                        >{{ v.duracao }}</span
+                      >
+                    </button>
+                  }
+                  <div class="p-3">
+                    <span class="text-xs font-bold text-accent">{{ v.tema }}</span>
+                    <span class="block text-sm font-semibold">{{ v.titulo }}</span>
+                    <span class="block text-xs text-fg-muted">{{ v.canal }}</span>
+                    <a
+                      [href]="'https://www.youtube.com/watch?v=' + v.id"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="mt-1 inline-block text-xs text-accent underline"
+                      >Abrir no YouTube</a
+                    >
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        @for (chave of e.fotos; track chave) {
+          @let f = fotos[chave];
+          <figure class="mt-4">
+            <img
+              [src]="f.arq"
+              [alt]="f.alt"
+              width="900"
+              height="675"
+              loading="lazy"
+              decoding="async"
+              class="aspect-[4/3] w-full rounded-xl bg-surface-raised object-cover"
+            />
+            <figcaption class="mt-1 text-xs text-fg-muted">
+              {{ f.alt }} Foto: {{ f.autor }}, {{ f.licenca }}, via
+              <a
+                [href]="f.origem"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-accent underline"
+                >Wikimedia Commons</a
+              >.
+            </figcaption>
+          </figure>
+        }
+
+        <app-guia-blocos [blocos]="e.blocos" />
+
+        <fieldset class="mt-6 rounded-2xl border border-line bg-surface p-4">
+          <legend class="px-1 font-bold">Marque o que você já fez</legend>
+          <ul>
+            @for (item of e.checklist; track $index) {
+              <li>
+                <label class="flex cursor-pointer items-start gap-3 py-1.5">
+                  <input
+                    type="checkbox"
+                    class="mt-0.5 size-5 shrink-0 accent-accent"
+                    [checked]="estado.marcado(e.id, $index)"
+                    (change)="estado.alternar(e.id, $index)"
+                  />
+                  <span
+                    [class.line-through]="estado.marcado(e.id, $index)"
+                    [class.text-fg-muted]="estado.marcado(e.id, $index)"
+                    >{{ item }}</span
+                  >
+                </label>
+              </li>
+            }
+          </ul>
+        </fieldset>
+
+        @if (e.id === etapas.length - 1) {
+          <aside class="mt-6 rounded-2xl border border-accent/40 bg-accent/10 p-4">
+            <h3 class="text-lg font-bold">Registre o seu cultivo no weediário</h3>
+            <p class="mt-1 text-sm">
+              Cada semana da planta merece um registro: fase, fotos, rega, pH, temperatura e
+              umidade. O diário é seu: sem nome, CPF nem telefone, e privado se você quiser.
+            </p>
+            <p class="mt-3 flex flex-wrap gap-2">
+              @if (auth.isLoggedIn()) {
+                <a routerLink="/diarios/novo" class="wd-button px-5" (click)="fechar()"
+                  >Iniciar um diário</a
+                >
+              } @else {
+                <a routerLink="/cadastro" class="wd-button px-5" (click)="fechar()"
+                  >Criar conta grátis</a
+                >
+                <a
+                  routerLink="/manifesto"
+                  class="wd-button border border-line bg-transparent px-5 text-fg"
+                  (click)="fechar()"
+                  >Ler o manifesto</a
+                >
+              }
+              <a
+                routerLink="/ferramentas"
+                class="wd-button border border-line bg-transparent px-5 text-fg"
+                (click)="fechar()"
+                >Calculadoras de VPD e EC</a
+              >
+            </p>
+          </aside>
+        }
+
+        <nav class="mt-6 flex items-center justify-between gap-2" aria-label="Navegar entre etapas">
+          @if (e.id > 0) {
+            <button
+              type="button"
+              class="min-h-11 rounded-xl border border-accent px-4 font-semibold text-accent hover:bg-accent/10"
+              (click)="abrir(e.id - 1)"
+            >
+              ← {{ etapas[e.id - 1].curto }}
+            </button>
+          } @else {
+            <span></span>
+          }
+          @if (e.id < etapas.length - 1) {
+            <button type="button" class="wd-button px-5" (click)="abrir(e.id + 1)">
+              {{ etapas[e.id + 1].curto }} →
+            </button>
+          }
+        </nav>
+      </article>
+    }
+  </div>
+</dialog>

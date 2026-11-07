@@ -1,3 +1,4 @@
+import { ETAPAS_RESUMO } from '../guia-cultivo/guia-cultivo.resumo';
 import { SITE_NAME, SITE_URL } from './public-pages';
 
 const GITHUB_URL = 'https://github.com/canabisoft/weediario';
@@ -87,6 +88,28 @@ const STRAINS = [
   },
 ];
 
+/** O guia de cultivo: só os nomes das etapas (o conteúdo todo fica no HTML da página, não aqui). */
+const GUIA_CULTIVO = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: 'Como cultivar cannabis em casa gastando pouco',
+    description:
+      'Guia em nove etapas, do planejamento à cura, com checklist e o que reaproveitar em vez de comprar. Conteúdo informativo, para maiores de 18 anos.',
+    url: `${SITE_URL}/guia-de-cultivo`,
+    inLanguage: 'pt-BR',
+    isAccessibleForFree: true,
+    publisher: ORGANIZATION,
+    step: ETAPAS_RESUMO.map((etapa, i) => ({
+      '@type': 'HowToStep',
+      position: i + 1,
+      name: etapa.nome,
+      text: etapa.descricao,
+      url: `${SITE_URL}/guia-de-cultivo#etapa-${i}`,
+    })),
+  },
+];
+
 /** JSON-LD de cada página pública; as outras não têm. */
 export function structuredDataFor(path: string): readonly object[] {
   switch (path) {
@@ -94,6 +117,8 @@ export function structuredDataFor(path: string): readonly object[] {
       return HOME;
     case '/strains':
       return STRAINS;
+    case '/guia-de-cultivo':
+      return GUIA_CULTIVO;
     default:
       return [];
   }

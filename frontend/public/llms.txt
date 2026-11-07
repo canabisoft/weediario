@@ -14,6 +14,8 @@
 - Catálogo de strains: genéticas, bancos de sementes e produtos, com as médias de avaliação da comunidade.
 - Banco aberto: os números agregados do catálogo em CSV e JSON, sob a licença ODbL, sem dado pessoal de ninguém.
 - Ferramentas: calculadora de VPD e conversor EC/PPM, que funcionam offline.
+- Guia de cultivo em casa: nove etapas, da lei à cura, com checklist (o progresso fica só no aparelho).
+- Associações de cannabis medicinal por estado: nome, cidade e link para o site de cada uma, grátis e sem catálogo de produtos.
 - Manifesto, Termos de Uso e Política de Privacidade.
 
 ## O que exige conta
@@ -26,6 +28,8 @@ Diários de cultivo, fotos, perfis, comentários, avaliações, rankings, receit
 - [Manifesto](https://weediario.com/manifesto): o que a gente coleta, o que nunca coleta e como apagar tudo.
 - [Catálogo de strains](https://weediario.com/strains): busca por nome, breeder ou tipo.
 - [Ferramentas](https://weediario.com/ferramentas): calculadora de VPD e conversor EC/PPM.
+- [Guia de cultivo](https://weediario.com/guia-de-cultivo): como cultivar em casa gastando pouco, em nove etapas.
+- [Associações](https://weediario.com/associacoes): associações de pacientes de cannabis medicinal por estado, com link para o site de cada uma.
 - [Dados abertos](https://weediario.com/dados-abertos): download do catálogo em CSV e JSON.
 - [Termos de Uso](https://weediario.com/termos): as regras da comunidade.
 - [Política de Privacidade](https://weediario.com/privacidade): quem trata os dados, bases legais e direitos (LGPD).

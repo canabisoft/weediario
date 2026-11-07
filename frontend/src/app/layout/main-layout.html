@@ -164,6 +164,20 @@
           </span>
           weediário
         </a>
+        <nav aria-label="Páginas abertas" class="mr-2 hidden items-center gap-1 sm:flex">
+          <a
+            routerLink="/guia-de-cultivo"
+            routerLinkActive="bg-accent/10 text-accent"
+            class="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-fg hover:text-accent"
+            >Guia de cultivo</a
+          >
+          <a
+            routerLink="/associacoes"
+            routerLinkActive="bg-accent/10 text-accent"
+            class="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-fg hover:text-accent"
+            >Associações</a
+          >
+        </nav>
       }
 
       <button
@@ -213,6 +227,27 @@
         <a routerLink="/cadastro" class="wd-button px-3 text-sm sm:px-4">Criar conta</a>
       }
     </div>
+
+    @if (!auth.isMember()) {
+      <!-- No celular os links abertos não cabem na barra: ficam numa linha abaixo. -->
+      <nav
+        aria-label="Páginas abertas"
+        class="mx-auto mt-2 flex max-w-5xl gap-2 sm:hidden"
+      >
+        <a
+          routerLink="/guia-de-cultivo"
+          routerLinkActive="border-accent text-accent"
+          class="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-line text-sm font-semibold text-fg"
+          >Guia de cultivo</a
+        >
+        <a
+          routerLink="/associacoes"
+          routerLinkActive="border-accent text-accent"
+          class="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-line text-sm font-semibold text-fg"
+          >Associações</a
+        >
+      </nav>
+    }
 
     @if (auth.isMember()) {
       <!-- No celular a busca ganha a largura toda, abaixo da barra. -->

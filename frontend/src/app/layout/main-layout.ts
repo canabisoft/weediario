@@ -102,6 +102,8 @@ export class MainLayout {
 
   protected readonly secondaryNav: readonly NavItem[] = [
     { path: '/ferramentas', label: 'Ferramentas', icon: 'tools' },
+    { path: '/guia-de-cultivo', label: 'Guia de cultivo', icon: 'sprout' },
+    { path: '/associacoes', label: 'Associações', icon: 'pill' },
     { path: '/ajustes', label: 'Ajustes', icon: 'settings' },
     { path: '/manifesto', label: 'Manifesto', icon: 'shield' },
     { path: '/termos', label: 'Termos de Uso', icon: 'diaries' },

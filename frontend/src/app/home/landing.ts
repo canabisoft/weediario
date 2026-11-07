@@ -87,6 +87,18 @@ const OPEN_PAGES: readonly OpenPage[] = [
     title: 'Ferramentas',
     text: 'Calculadora de VPD e conversor EC/PPM, que funcionam até sem internet.',
   },
+  {
+    path: '/guia-de-cultivo',
+    icon: 'sprout',
+    title: 'Guia de cultivo em casa',
+    text: 'Nove etapas, da lei à cura, com checklist e o que reaproveitar para gastar pouco.',
+  },
+  {
+    path: '/associacoes',
+    icon: 'pill',
+    title: 'Associações de cannabis medicinal',
+    text: 'Encontre associações por estado, veja o catálogo e fale direto com elas.',
+  },
 ];
 
 /**
@@ -168,6 +180,31 @@ const OPEN_PAGES: readonly OpenPage[] = [
           </span>
         </figcaption>
       </figure>
+    </section>
+
+    <section class="mt-4 md:mt-0" aria-labelledby="landing-gratis">
+      <h2 id="landing-gratis" class="text-2xl font-extrabold tracking-tight sm:text-3xl">
+        Grátis para todos, sem criar conta.
+      </h2>
+      <div class="mt-5 grid gap-4 sm:grid-cols-2">
+        <a routerLink="/guia-de-cultivo" class="wd-card block p-6 hover:border-accent/60">
+          <app-icon name="sprout" class="size-7 text-accent" />
+          <span class="mt-3 block text-lg font-bold">Guia de cultivo em casa</span>
+          <span class="mt-1 block text-sm text-fg-muted"
+            >Nove etapas, da lei à cura, com checklist, vídeos e o que reaproveitar para gastar
+            pouco.</span
+          >
+          <span class="mt-4 block font-semibold text-accent">Abrir o guia →</span>
+        </a>
+        <a routerLink="/associacoes" class="wd-card block p-6 hover:border-accent/60">
+          <app-icon name="pill" class="size-7 text-accent" />
+          <span class="mt-3 block text-lg font-bold">Associações de cannabis medicinal</span>
+          <span class="mt-1 block text-sm text-fg-muted"
+            >Encontre associações por estado, veja o catálogo e fale direto com elas.</span
+          >
+          <span class="mt-4 block font-semibold text-accent">Encontrar uma associação →</span>
+        </a>
+      </div>
     </section>
 
     <section class="mt-12" aria-labelledby="landing-o-que">
@@ -253,7 +290,9 @@ const OPEN_PAGES: readonly OpenPage[] = [
       <h2 id="landing-aberto" class="text-2xl font-extrabold tracking-tight sm:text-3xl">
         Estas páginas não pedem conta
       </h2>
-      <p class="mt-2 text-fg-muted">Catálogo, banco aberto e ferramentas, para qualquer pessoa.</p>
+      <p class="mt-2 text-fg-muted">
+        Catálogo, banco aberto, ferramentas e o guia de cultivo, para qualquer pessoa.
+      </p>
       <ul class="mt-6 grid gap-3 sm:grid-cols-2">
         @for (page of openPages; track page.path) {
           <li>

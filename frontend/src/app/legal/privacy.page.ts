@@ -40,6 +40,9 @@ export const PRIVACY_SECTIONS: readonly Section[] = [
       'Cookies: dois, ambos necessários. Um mantém a sessão (até 90 dias desde o login); o outro, por até 180 dias, lembra ' +
         'que o aparelho já entrou na conta, para o limite de tentativas de senha valer à parte para ele; esse ' +
         'não fica guardado no servidor.',
+      'Só neste aparelho, sem ir para o servidor: o tema que você escolheu e, no guia de cultivo, as etapas que você marcou ' +
+        'e a última que abriu. Ficam no armazenamento do navegador (localStorage), não são enviados a ninguém e saem quando ' +
+        'você usa "Limpar o meu progresso" ou apaga os dados do site no navegador.',
       'Tudo isso fica enquanto a conta existir; ao apagar a conta, sai junto, salvo os registros de moderação e os itens ' +
         'que você cadastrou no catálogo aberto, que ficam sem vínculo com você. Cópias de backup somem em até 30 dias.',
     ],
@@ -75,6 +78,9 @@ export const PRIVACY_SECTIONS: readonly Section[] = [
         'só o endereço e a mensagem. Se esse envio passar por servidores fora do Brasil, a transferência segue o art. 33 da ' +
         'LGPD, nas garantias contratuais do provedor.',
       'Backup: as cópias de segurança são cifradas antes de sair do servidor; quem as guarda não consegue lê-las.',
+      'Vídeos do guia de cultivo: as miniaturas ficam no nosso servidor. O vídeo só vem do YouTube (endereço ' +
+        'youtube-nocookie.com) se você clicar nele; nesse momento o YouTube recebe o seu IP e o endereço do site (só o domínio, sem a página), ' +
+        'e vale a política dele. Se não clicar, nada é enviado.',
       'Não vendemos dados, não usamos ferramentas de estatística nem cookies de terceiros, e nenhum anunciante recebe dados ' +
         'seus.',
     ],

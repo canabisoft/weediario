@@ -110,6 +110,18 @@ const PHRASES = [
           <span class="font-semibold">Conversor EC / PPM</span>
           <span class="block text-sm text-fg-muted">Converta entre as escalas dos medidores.</span>
         </a>
+        <a routerLink="/guia-de-cultivo" class="wd-card block hover:border-accent/50">
+          <span class="font-semibold">Guia de cultivo em casa</span>
+          <span class="block text-sm text-fg-muted"
+            >Nove etapas, da lei à cura, com checklist e o que reaproveitar para gastar pouco.</span
+          >
+        </a>
+        <a routerLink="/associacoes" class="wd-card block hover:border-accent/50">
+          <span class="font-semibold">Associações de cannabis medicinal</span>
+          <span class="block text-sm text-fg-muted"
+            >Encontre associações por estado e fale direto com elas.</span
+          >
+        </a>
       </div>
     }
   `,

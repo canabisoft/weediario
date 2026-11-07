@@ -19,6 +19,7 @@ describe('SeoService', () => {
         provideRouter([
           { path: '', component: Blank },
           { path: 'strains', component: Blank },
+          { path: 'guia-de-cultivo', component: Blank },
           { path: 'diarios/:id', component: Blank },
         ]),
         { provide: TitleStrategy, useClass: SeoTitleStrategy },
@@ -60,6 +61,21 @@ describe('SeoService', () => {
     expect(head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
       'https://weediario.com/',
     );
+  });
+
+  it('describes the cultivation guide as a HowTo with its nine steps', async () => {
+    await router.navigateByUrl('/guia-de-cultivo');
+
+    const page = PUBLIC_PAGES.find((candidate) => candidate.path === '/guia-de-cultivo')!;
+    expect(page.ogImage).toBe('/og/guia-de-cultivo.jpg');
+    expect(head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
+      'https://weediario.com/guia-de-cultivo',
+    );
+    expect(content('meta[name="robots"]')).toBe('index, follow');
+    const howTo = jsonLd().find((data) => data['@type'] === 'HowTo');
+    expect(howTo.step).toHaveLength(9);
+    expect(howTo.step[0]).toMatchObject({ position: 1, name: 'Regularização' });
+    expect(howTo.step[8].url).toBe('https://weediario.com/guia-de-cultivo#etapa-8');
   });
 
   it('keeps pages behind the login out of search engines and share cards', async () => {

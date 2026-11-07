@@ -46,6 +46,20 @@ export const PUBLIC_PAGES: readonly PublicPage[] = [
     ogImage: '/og/ferramentas.jpg',
   },
   {
+    path: '/guia-de-cultivo',
+    title: 'Como cultivar cannabis em casa gastando pouco: guia em 9 etapas — weediário',
+    description:
+      'Do planejamento à cura, em 9 etapas e com checklist: espaço, luz, germinação, rega, floração, colheita e secagem, com o que reaproveitar em vez de comprar. Sem cadastro.',
+    ogImage: '/og/guia-de-cultivo.jpg',
+  },
+  {
+    path: '/associacoes',
+    title: 'Associações de cannabis medicinal por estado — weediário',
+    description:
+      'Encontre uma associação de pacientes de cannabis medicinal no seu estado e fale direto com ela. Lista gratuita e sem cadastro.',
+    ogImage: '/og/home.jpg',
+  },
+  {
     path: '/dados-abertos',
     title: 'Banco aberto de strains em CSV e JSON — weediário',
     description:

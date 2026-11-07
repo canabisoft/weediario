@@ -18,6 +18,14 @@ import { RouterLink } from '@angular/router';
         </li>
       }
     </ul>
+
+    <h2 class="mt-8 text-lg font-semibold">Para ler</h2>
+    <a routerLink="/guia-de-cultivo" class="wd-card mt-2 block active:opacity-80">
+      <span class="text-lg font-semibold">Guia de cultivo em casa</span>
+      <span class="block text-sm text-fg-muted"
+        >Nove etapas, da lei à cura, com checklist e o que reaproveitar para gastar pouco.</span
+      >
+    </a>
   `,
 })
 export class ToolsPage {
@@ -25,7 +33,8 @@ export class ToolsPage {
     {
       path: '/ferramentas/vpd',
       title: 'Calculadora de VPD',
-      description: 'Déficit de pressão de vapor pela temperatura e umidade, com a faixa ideal por fase.',
+      description:
+        'Déficit de pressão de vapor pela temperatura e umidade, com a faixa ideal por fase.',
     },
     {
       path: '/ferramentas/ec-ppm',

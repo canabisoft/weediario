@@ -208,6 +208,16 @@ export const routes: Routes = [
     loadComponent: () => import('./tools/ec/ec-converter.page').then((m) => m.EcConverterPage),
   },
   {
+    path: 'guia-de-cultivo',
+    title: 'Guia de cultivo em casa · weediário',
+    loadComponent: () => import('./guia-cultivo/guia-cultivo.page').then((m) => m.GuiaCultivoPage),
+  },
+  {
+    path: 'associacoes',
+    title: 'Associações de cannabis medicinal · weediário',
+    loadComponent: () => import('./associacoes/associacoes.page').then((m) => m.AssociacoesPage),
+  },
+  {
     path: 'ajustes',
     title: 'Ajustes · weediário',
     loadComponent: () => import('./settings/settings.page').then((m) => m.SettingsPage),
