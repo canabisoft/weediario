@@ -38,6 +38,14 @@
         <Class name="br.com.weediario.identity.presentation.rest.AuthController"/>
     </Match>
 
+    <!-- Cookie de "aparelho conhecido": só um nonce aleatório de 128 bits assinado por HMAC (nada de dado pessoal,
+         senha, token de sessão ou apelido em texto), HttpOnly, Secure, SameSite=Strict e restrito ao path do login.
+         O achado "dado sensível em cookie" não se aplica. Coberto por ApiSecurityIntegrationTest. -->
+    <Match>
+        <Bug pattern="COOKIE_USAGE"/>
+        <Class name="br.com.weediario.identity.presentation.rest.TrustedDeviceCookie"/>
+    </Match>
+
     <!-- Normalização intencional para comparar textos (chave do catálogo, filtro anti-comércio, importação) e a
          confirmação do apelido ao apagar a conta, que já exige a senha. Nenhuma decide autorização. -->
     <Match>

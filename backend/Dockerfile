@@ -9,6 +9,9 @@ RUN mvn -q -B package -DskipTests
 
 # Ubuntu (glibc) e não Alpine: o encoder WebP (libwebp via JNI) é compilado para glibc e não carrega no musl.
 FROM eclipse-temurin:21-jre-noble@sha256:0eda5830ed7b669abc246a8dc520ea8a23cab06f9a8d4b6964109e2f2394e46f
+# CVE-2026-109518 (apt, execução remota de código no download de pacotes): a imagem base ainda traz a 2.8.3. Atualiza só o
+# apt, que já tem correção em 2.8.4ubuntu0.1. Remover quando o digest da imagem base acima já vier com o apt corrigido.
+RUN apt-get update     && apt-get install -y --no-install-recommends --only-upgrade apt     && rm -rf /var/lib/apt/lists/*
 # uid/gid 100/101 são os que o adduser do Alpine gerava: volumes criados pela imagem antiga continuam acessíveis.
 RUN groupadd --system --gid 101 weediario \
     && useradd --system --uid 100 --gid weediario --no-create-home --shell /usr/sbin/nologin weediario \
